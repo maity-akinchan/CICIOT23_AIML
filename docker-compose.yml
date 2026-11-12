@@ -1,0 +1,87 @@
+services:
+  backend-fastapi:
+    container_name: sentinel-api
+    image: python:3.11-slim
+    working_dir: /app
+    command: >
+      sh -c "pip install --no-cache-dir -r requirements.txt &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend-fastapi:/app
+      - ./ml:/ml
+    environment:
+      - PYTHONUNBUFFERED=1
+    networks:
+      sentinel_net:
+        ipv4_address: 172.18.0.20
+
+  frontend-react:
+    container_name: sentinel-ui
+    image: node:20-alpine
+    working_dir: /app
+    command: >
+      sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 5173"
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend-react:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_BASE_URL=http://localhost:8000
+      - VITE_WS_URL=ws://localhost:8000/ws/live
+    depends_on:
+      - backend-fastapi
+    networks:
+      sentinel_net:
+        ipv4_address: 172.18.0.30
+
+  iot-target:
+    container_name: smart-camera-01
+    build:
+      context: ./testbed
+      dockerfile: Dockerfile.target
+    ports:
+      - "8081:80"
+    networks:
+      sentinel_net:
+        ipv4_address: 172.18.0.10
+
+  collector-go:
+    container_name: sentinel-collector
+    image: golang:1.22-bookworm
+    working_dir: /app
+    command: >
+      sh -c "apt-get update && apt-get install -y --no-install-recommends libpcap-dev &&
+             go run . --mode live --iface eth0 --api-url http://172.18.0.20:8000/api/v1/ingest/windows --collector-id go-sensor-docker0"
+    volumes:
+      - ./collector-go:/app
+    network_mode: "service:iot-target"
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    depends_on:
+      - backend-fastapi
+      - iot-target
+
+  iot-attacker:
+    container_name: rogue-device-99
+    image: kalilinux/kali-rolling
+    command: >
+      sh -c "apt-get update && apt-get install -y --no-install-recommends hping3 curl iproute2 &&
+             tail -f /dev/null"
+    volumes:
+      - ./testbed:/testbed
+    depends_on:
+      - iot-target
+    networks:
+      sentinel_net:
+        ipv4_address: 172.18.0.50
+
+networks:
+  sentinel_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.18.0.0/16
