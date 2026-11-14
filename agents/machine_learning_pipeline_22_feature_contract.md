@@ -44,6 +44,9 @@ The array of feature names in `bundle["feature_names"]` **MUST** always be in th
 | `20` | `hdr_pkt_ratio` | Derived (Py) | `float64` | $[0, 1.0]$ | Header overhead ratio: $\text{Header\_Length} / (\text{AVG} + 10^{-5})$ |
 | `21` | `pkt_cv` | Derived (Py) | `float64` | $[0, \infty)$ | Packet size jitter (Coeff of Variation): $\text{Std} / (\text{AVG} + 10^{-5})$ |
 
+### 2.1 Plain-English UI Display Labels for the 22 Features
+While the internal keys above (`0`–`21`) are strictly locked in Go, Python, and JSON payloads, any React UI component displaying these features (alerts, feature drawers, or feature importance charts) **MUST** display their human-readable labels per `05_REACT_SOC_DASHBOARD_UX_SPEC.md` Section 1.4 (e.g., `flow_duration` $\rightarrow$ **Duration (sec)**, `Rate` $\rightarrow$ **Packet Rate (pkt/s)**, `Duration` $\rightarrow$ **TTL (Hop Count)**, `syn_ack_ratio` $\rightarrow$ **SYN-to-ACK Ratio (Unfinished Connections)**, `pkt_cv` $\rightarrow$ **Packet Size Variation**).
+
 ---
 
 ## 3. EXACT MATHEMATICAL FORMULAS FOR THE 4 DERIVED RATIOS

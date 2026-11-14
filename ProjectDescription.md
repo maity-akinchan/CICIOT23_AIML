@@ -31,10 +31,12 @@ The system strictly relies on 22 features to differentiate Benign, DoS, and DDoS
 21. `hdr_pkt_ratio` = Header_Length / (AVG + 1e-5)
 22. `pkt_cv` = Std / (AVG + 1e-5)
 
-## Expected Modules
-1. **Security Overview Dashboard:** High-level KPIs and recent alerts.
-2. **Live Traffic Monitoring:** Streaming table of flows with confidence scores.
-3. **Attack Detection & Alerts:** Stateful alerts highlighting the top 3 anomalous features.
-4. **Network Flow Explorer:** Searchable grid mapping IPs/MACs to predicted classes.
-5. **Model Performance Analytics:** Renders the static test-set benchmark stats from the .joblib file (Confusion Matrix, Macro-F1).
-6. **Incident History:** DoS/DDoS flows aggregated over time into distinct incident tickets.
+## Expected Pages (V2 Plain-English Command Center)
+1. **Security Overview:** High-level KPIs, 60s live traffic chart, connected device health, and recent alerts.
+2. **Live Network Traffic:** Streaming table of traffic windows with Model Confidence scores and PCAP drag-and-drop analyzer.
+3. **Attack Alerts:** Debounced alerts highlighting **"Why This Was Flagged"** (top 3 anomalous features in Plain English).
+4. **Flow Explorer:** Searchable grid mapping IPs/MACs to predictions with a 22-feature Plain-English slide-over drawer.
+5. **Model Performance:** Renders static test-set benchmark stats from the `.joblib` bundle (Confusion Matrix, Macro-F1, Feature Importance).
+6. **Attack History:** DoS/DDoS flows aggregated over time into distinct attack episodes with AI Auto-Block logs and CSV/JSON export.
+7. **Connected Devices:** Multi-device status grid (`Normal`, `DoS Attack`, `DDoS Attack`, `Internet Blocked`) and control drawer (**Auto-Block Attacks**, **Block All Internet** kill switch, Firewall Rules, DNS Switcher, and Device Action History).
+8. **Add Device / Download Service:** 3-step onboarding (`Generate Setup Key`, platform picker, binary download, and 1-line `curl | sh` installer with live connection indicator).

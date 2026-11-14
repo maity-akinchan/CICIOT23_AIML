@@ -1,7 +1,7 @@
-# 03 — GO PACKET COLLECTOR SPECIFICATION (`collector-go/`)
+# 03 — GO BIDIRECTIONAL ENDPOINT AGENT & PACKET COLLECTOR SPECIFICATION (`collector-go/`)
 **Language & Runtime:** Go 1.22+  
-**Primary Dependency:** `github.com/google/gopacket` (`pcap` and `layers` subpackages)  
-**Responsibility:** High-speed packet capture from `.pcap` files or live network interfaces, 100-packet tumbling window aggregation, Track A metadata extraction, and Track B 18-feature computation.
+**Primary Dependencies:** `github.com/google/gopacket` (`pcap` and `layers`), `github.com/gorilla/websocket`  
+**Responsibility:** High-speed packet capture from `.pcap` files or live network interfaces, 100-packet tumbling window aggregation, Track A metadata extraction, Track B 18-feature computation, and two-way endpoint agent registration, heartbeat reporting, and real-time Linux defense command execution.
 
 ---
 
@@ -13,11 +13,16 @@ The binary compiled from `collector-go/cmd/collector/main.go` **MUST** support t
   --mode <pcap|live> \
   --pcap <path-to-file.pcap> \
   --iface <network-interface-name, e.g., eth0, docker0, any> \
-  --api-url <http://localhost:8000/api/v1/ingest/windows> \
+  --server-url <http://localhost:8000> \
+  --api-url <optional-override, default: {server-url}/api/v1/ingest/windows> \
   --window-size 100 \
   --flush-timeout-ms 2000 \
   --batch-size 25 \
   --collector-id <string-identifier> \
+  --device-id <unique-device-id, e.g., "smart-camera-01"> \
+  --device-name <human-readable-name, e.g., "Smart Camera 01"> \
+  --token <enrollment-or-setup-token> \
+  --sandbox <true|false, if true: log iptables/DNS commands without modifying OS; if false inside Docker: execute real Linux commands> \
   --bpf <optional-bpf-filter, default: "ip or ip6">
 ```
 
@@ -208,3 +213,45 @@ Because a 100-packet window can contain packets from multiple hosts, `aggregator
 - Uses an `http.Client` with `Timeout: 10 * time.Second`.
 - Marshals `IngestBatchRequest` into JSON and sends `POST` to `--api-url` with header `Content-Type: application/json`.
 - Implements 3-attempt exponential backoff (`200ms`, `500ms`, `1000ms`) on HTTP `5xx` or network connection errors.
+
+---
+
+## 6. TWO-WAY GO SERVICE WITH FIREWALL, DNS, & KILL-SWITCH (`internal/agent/` & `internal/defense/`)
+
+When running in `--mode live`, `collector-go` operates as a two-way endpoint protection service alongside its 18-feature packet capture pipeline.
+- **Sandbox Mode (`--sandbox`):** If `--sandbox=true`, the Go service logs all `iptables` and `/etc/resolv.conf` commands and updates its in-memory state without modifying the host OS. If `--sandbox=false` (inside Docker containers with `NET_ADMIN` and `NET_RAW`), it executes the real Linux commands.
+
+### 6.1 Enrollment & 5-Second Heartbeat (`POST /api/devices/heartbeat`)
+- On startup, registers/enrolls via `POST {server-url}/api/devices/register` (if not already enrolled) and then sends a heartbeat (`POST {server-url}/api/devices/heartbeat`) every **5 seconds** containing:
+  - `device_id`: string (e.g., `"smart-camera-01"`)
+  - `device_name`: string (e.g., `"Smart Camera 01"`)
+  - `ip_address`: string (container/interface IPv4 address)
+  - `mac_address`: string (interface MAC address)
+  - `uptime_seconds`: int (elapsed service/host uptime in seconds)
+  - `internet_blocked`: bool (`true` when `BLOCK_ALL_INTERNET` kill switch is active)
+  - `auto_block_enabled`: bool (synced with FastAPI device setting)
+  - `current_dns`: `[]string` (list of active DNS IPs parsed from `/etc/resolv.conf`, e.g., `["1.1.1.1"]`)
+  - `blocked_ips`: `[]string` (list of currently blocked attacker IPs)
+
+### 6.2 Real-Time Control Channel (`WS /ws/agent/{device_id}`)
+- `internal/agent/ws_client.go` maintains a persistent WebSocket connection to `{ws-server-url}/ws/agent/{device_id}?token={token}` with automatic reconnect to receive and execute instant defense commands:
+  1. **`BLOCK_IP`**:
+     - Validates `<attacker_ip>` and runs `iptables -I INPUT 1 -s <attacker_ip> -j DROP` (if not already present) and adds `<attacker_ip>` to the device's `blocked_ips` state.
+  2. **`UNBLOCK_IP`**:
+     - Runs `iptables -D INPUT -s <attacker_ip> -j DROP` and removes `<attacker_ip>` from `blocked_ips`.
+  3. **`SET_DNS`**:
+     - Writes `nameserver <dns_ip>` to `/etc/resolv.conf` inside the container and updates `current_dns`.
+  4. **`BLOCK_ALL_INTERNET` ("Kill Switch")**:
+     - **CRITICAL ANTI-LOCKOUT RULE:** Before dropping traffic, the Go service **MUST** whitelist the FastAPI server IP and loopback so the device never cuts off its own management connection:
+       ```bash
+       iptables -I INPUT 1 -i lo -j ACCEPT
+       iptables -I OUTPUT 1 -o lo -j ACCEPT
+       iptables -I INPUT 1 -s <FASTAPI_SERVER_IP> -j ACCEPT
+       iptables -I OUTPUT 1 -d <FASTAPI_SERVER_IP> -j ACCEPT
+       iptables -P INPUT DROP
+       iptables -P OUTPUT DROP
+       ```
+     - Sets `internet_blocked = true`.
+  5. **`RESTORE_INTERNET`**:
+     - Resets default policies (`iptables -P INPUT ACCEPT && iptables -P OUTPUT ACCEPT`), while keeping any individual `blocked_ips` drop rules active, and sets `internet_blocked = false`.
+- Sends a command acknowledgement frame back over the WebSocket with `command_id`, `device_id`, `status` (`"SUCCESS"` or `"FAILED"`), `message`, and updated state (`blocked_ips`, `current_dns`, `internet_blocked`).

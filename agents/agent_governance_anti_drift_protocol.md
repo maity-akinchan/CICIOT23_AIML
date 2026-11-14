@@ -1,5 +1,6 @@
-# 01 — AGENT GOVERNANCE, QUALITY GATES & ANTI-DRIFT PROTOCOL
-**Applies To:** All AI Coding Assistants (Cursor, Claude Code, GitHub Copilot, Windsurf, Devin, OpenHands, etc.) and Human Contributors.
+# 01 — AGENT GOVERNANCE, QUALITY GATES & ANTI-DRIFT PROTOCOL (V2)
+**Applies To:** All AI Coding Assistants (Cursor, Claude Code, GitHub Copilot, Windsurf, Devin, OpenHands, etc.) and Human Contributors.  
+**Specification Version:** `v2.0.0` (Active Protection, Bidirectional Endpoint Agent, Device Management & Plain-English UI)
 
 ---
 
@@ -7,11 +8,12 @@
 Autonomous coding agents frequently fail on multi-service ML systems because they "simplify" feature extraction, invent new JSON field names, drop features they find inconvenient to calculate, or replace real algorithms with dummy mocks.
 
 **In this repository, improvisation is strictly forbidden.**
-1. You **MUST NOT** change any of the 22 feature names or their mathematical equations.
+1. You **MUST NOT** change any of the 22 internal feature names or their mathematical equations in Go (`features_18`), Python (`features_22`), or JSON/API payloads. *(Note: In the React UI, these internal keys MUST be mapped to Plain-English labels per `05` Section 1.4.)*
 2. You **MUST NOT** move the 4 derived ratio calculations into Go, nor move the 18 base packet calculations into Python (except inside `csv_replayer.py` where the 18 base features are already present in the CSV).
-3. You **MUST NOT** emit one security alert per window without passing through the stateful `IncidentDebouncer`.
-4. You **MUST NOT** use random number generators (`math/rand` or `random.uniform`) to fake ML predictions or packet features in production code.
+3. You **MUST NOT** emit one security alert per window without passing through the stateful `IncidentDebouncer` (and `AutoBlocker` when Auto-Block is enabled).
+4. You **MUST NOT** use random number generators (`math/rand` or `random.uniform`) to fake ML predictions, packet features, or device telemetry in production code.
 5. You **MUST NOT** write boilerplate stubs, dummy return values, `TODO` / `pass` placeholders, or comment-only skeletons into code files. A code file must either remain untouched until its implementation phase or be 100% fully implemented end-to-end.
+6. You **MUST NOT** violate the **Plain-English UI Policy** (`05` Section 1.4) in any React component, label, tooltip, or status message.
 
 ---
 
@@ -76,3 +78,16 @@ At the end of every implementation milestone, the agent must run and report the 
 1. `cd collector-go && go test -v ./...`
 2. `cd backend-fastapi && pytest -v`
 3. `cd frontend-react && npm run build` (verifying zero TypeScript or Vite bundling errors)
+
+### Tactic 8: Strict Plain-English UI Policy
+All user-facing text in `frontend-react/` (navigation tabs, buttons, KPIs, table headers, chart titles, tooltips, status badges, and feature labels) **MUST** follow the Plain-English Vocabulary & Feature Label Mapping in `05_REACT_SOC_DASHBOARD_UX_SPEC.md` Section 1.4:
+- Never use *"Autonomous SOAR / Heuristic Mitigation"* $\rightarrow$ Use **"Auto-Block Attacks"**.
+- Never use *"Telemetry Ingestion / 100-Packet Flow Windows"* $\rightarrow$ Use **"Live Network Traffic"**.
+- Never use *"Endpoint Quarantine / Network Isolation"* $\rightarrow$ Use **"Block All Internet (Kill Switch)"**.
+- Never use *"IQR Z-Score Anomaly Attribution"* $\rightarrow$ Use **"Why This Was Flagged"**.
+- Never use *"Stateful Debounced Incidents"* $\rightarrow$ Use **"Attack History"**.
+- Never use *"Inference Probability / Confidence Score"* $\rightarrow$ Use **"Model Confidence"**.
+- Internal JSON/API keys (`syn_ack_ratio`, `pkt_cv`, `Duration`, etc.) remain unchanged in Go, FastAPI, and TypeScript interfaces, and are always displayed with their friendly Plain-English labels in the UI (`frontend-react/src/utils/plainEnglish.ts`).
+
+### Tactic 9: Safe Kill-Switch & Anti-Lockout Firewall Guardrail
+When `collector-go` executes `BLOCK_ALL_INTERNET` (`Block All Internet`), it **MUST** whitelist loopback (`lo`) and the `<FASTAPI_SERVER_IP>` (`iptables -I INPUT 1 -i lo -j ACCEPT`, `iptables -I OUTPUT 1 -o lo -j ACCEPT`, `iptables -I INPUT 1 -s <FASTAPI_SERVER_IP> -j ACCEPT`, `iptables -I OUTPUT 1 -d <FASTAPI_SERVER_IP> -j ACCEPT`) **before** setting `iptables -P INPUT DROP` and `iptables -P OUTPUT DROP`. In local host development (`--sandbox=true`), `collector-go` logs the exact `iptables` and `/etc/resolv.conf` commands without mutating the developer's host OS network; inside Docker (`--sandbox=false` with `NET_ADMIN` / `NET_RAW`), it executes the real Linux commands.

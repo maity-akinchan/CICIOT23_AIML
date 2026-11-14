@@ -1,6 +1,7 @@
-# 04 — FASTAPI BACKEND, ML ENGINE & DATABASE SPECIFICATION (`backend-fastapi/`)
+# 04 — FASTAPI BACKEND, ML ENGINE, AUTO-BLOCK & DATABASE SPECIFICATION (`backend-fastapi/`)
 **Framework:** FastAPI + Uvicorn + SQLAlchemy 2.0 (SQLite WAL mode) + Pydantic v2  
-**Python Version:** 3.11+
+**Python Version:** 3.11+  
+**Specification Version:** `v2.0.0` (Active Protection, Auto-Block Engine, Agent Management & Onboarding)
 
 ---
 
@@ -8,18 +9,27 @@
 Use SQLite at `sqlite:///./sentinel_soc.db` with `PRAGMA journal_mode=WAL;` enabled on connection startup so concurrent reads and high-speed writes never lock.
 
 ### 1.1 Table `devices`
-Tracks every unique IoT endpoint observed in `src_ip` or `dst_ip` across PCAPs, live captures, or CSV replays.
+Tracks every registered endpoint agent and every unique IoT endpoint observed in `src_ip` or `dst_ip` across PCAPs, live captures, or CSV replays.
 | Column | Type | Constraints | Description |
 | :--- | :--- | :--- | :--- |
 | `id` | `Integer` | `PK, AutoIncrement` | Internal ID |
-| `ip_address` | `String(64)` | `Unique, Index, Not Null` | IPv4 or IPv6 address |
+| `device_id` | `String(64)` | `Unique, Index, Not Null` | Device identifier (e.g., `"smart-camera-01"`) |
+| `device_name` | `String(128)` | `Not Null` | Plain-English friendly name (e.g., `"Smart Camera 01"`) |
+| `token` | `String(128)` | `Nullable` | Setup/enrollment token generated via `POST /api/devices/register` |
+| `ip_address` | `String(64)` | `Index, Not Null` | IPv4 or IPv6 address |
 | `mac_address` | `String(32)` | `Not Null` | Ethernet MAC address |
-| `hostname` | `String(128)` | `Not Null` | Auto-assigned friendly name (e.g., `IoT-Cam-172.18.0.10`) |
+| `hostname` | `String(128)` | `Not Null` | Hostname or auto-assigned label |
 | `vendor` | `String(128)` | `Not Null` | OUI Vendor string |
-| `status` | `String(32)` | `Not Null, Default="HEALTHY"` | `"HEALTHY"`, `"UNDER_DOS"`, `"UNDER_DDOS"` |
+| `status` | `String(32)` | `Not Null, Default="OFFLINE"` | `"ONLINE"` or `"OFFLINE"` (based on 5s heartbeat) |
+| `uptime_seconds` | `Integer` | `Default=0` | Live uptime reported by Go service heartbeat |
+| `under_attack_status` | `String(32)` | `Not Null, Default="Normal"` | `"Normal"`, `"DoS Attack"`, `"DDoS Attack"` |
+| `auto_block_enabled` | `Boolean` | `Default=True` | Per-device **Auto-Block Attacks** toggle (`ON` / `OFF`, default `True`) |
+| `internet_blocked` | `Boolean` | `Default=False` | Whether **Block All Internet (Kill Switch)** is active |
+| `current_dns` | `Text` | `Default='["1.1.1.1"]'` | JSON list of active DNS server IPs on the device |
+| `blocked_ips` | `Text` | `Default='[]'` | JSON list of currently blocked attacker IPs |
 | `total_flows_seen` | `Integer` | `Default=0` | Cumulative windows involving this device |
 | `attack_flows_seen` | `Integer` | `Default=0` | Cumulative DoS/DDoS windows targeting/from this device |
-| `last_seen` | `DateTime` | `Not Null` | UTC timestamp of latest window |
+| `last_seen` | `DateTime` | `Not Null` | UTC timestamp of latest heartbeat or traffic window |
 
 ### 1.2 Table `flow_logs`
 Stores classified 100-packet windows (powers Module 2 Live Stream & Module 4 Flow Explorer).
@@ -78,6 +88,18 @@ Stores aggregated attack episodes (powers Module 6 Incident History).
 | `peak_rate_pps` | `Float` | `Default=0.0` | Maximum `Rate` observed during the incident |
 | `model_used` | `String(64)` | `Not Null` | Active model during detection |
 
+### 1.5 Table `device_actions`
+Records every manual (`ADMIN_MANUAL`) or AI-triggered (`AI_AUTO`) defense action on a connected device (surfaced in Attack History & Connected Devices).
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | `Integer` | `PK, AutoIncrement` | Action log ID |
+| `timestamp` | `DateTime` | `Index, Not Null` | UTC execution timestamp |
+| `device_id` | `String(64)` | `Index, Not Null` | Target `devices.device_id` |
+| `triggered_by` | `String(32)` | `Not Null` | `"AI_AUTO"` or `"ADMIN_MANUAL"` |
+| `action_type` | `String(32)` | `Not Null` | `"BLOCK_IP"`, `"UNBLOCK_IP"`, `"SET_DNS"`, `"BLOCK_ALL_INTERNET"`, `"RESTORE_INTERNET"` |
+| `target_value` | `String(128)` | `Not Null` | Attacker IP, DNS server IP, or `"ON"`/`"OFF"` |
+| `reason` | `String(256)` | `Not Null` | Plain-English reason (e.g., `"AI Auto-Blocked 172.18.0.50 due to DoS attack"`) |
+
 ---
 
 ## 2. STATEFUL INCIDENT DEBOUNCER SPECIFICATION (`app/services/incident_debouncer.py`)
@@ -99,6 +121,14 @@ To prevent the "Alert Storm" bug (where a 5-second `hping3` flood generates 500 
    - Update the target device's status in `devices` table to `"UNDER_DOS"` or `"UNDER_DDOS"`.
 4. **Auto-Cooldown Recovery:**
    - If a device receives `10` consecutive `"Benign"` windows and `now - incident.last_seen_at > 15.0` seconds, update the device's `status` back to `"HEALTHY"`.
+
+### 2.2 AI Auto-Block Logic (`app/services/incident_manager.py` & `app/services/auto_blocker.py`)
+When a target device has `auto_block_enabled == True` and an active `DoS` or `DDoS` incident triggers (`>= 10` attack windows within 5 seconds with average model confidence `>= 0.85`):
+1. **If `DoS` (single dominant attacker `src_ip`):**
+   - Automatically sends `BLOCK_IP` for that `src_ip` over `WS /ws/agent/{device_id}` (if not already in `blocked_ips`).
+   - Logs an `AI_AUTO` entry in `device_actions` and broadcasts a live notification to the React UI.
+2. **If `DDoS` (multiple attacker IPs flooding the device) and attack rate exceeds critical threshold:**
+   - Automatically blocks top offending IPs or triggers `BLOCK_ALL_INTERNET` if configured, logs an `AI_AUTO` entry in `device_actions`, and pushes a live notification to the React UI.
 
 ---
 
@@ -134,5 +164,17 @@ All REST routes must be prefixed with `/api/v1` and enable CORS (`allow_origins=
 | `POST` | `/api/v1/models/select` | Body: `{"model_id": "xgb" \| "brf" \| "svm" \| "lr"}`. Hot-swaps the active inference model in memory immediately without restarting FastAPI. |
 | `GET` | `/api/v1/models/{model_id}/analytics` | Returns full benchmark telemetry from the `.joblib` bundle: `test_accuracy`, `test_macro_f1`, `classes`, 3x3 `confusion_matrix`, per-class `classification_report`, and sorted 22-feature `feature_importances`. |
 
-### 3.4 WebSocket Route
+### 3.4 WebSocket Routes
 - `WS /ws/live`: Accepts persistent WebSocket connections from React. On initial connection, immediately sends a `"SNAPSHOT"` frame containing current KPIs and the latest 25 flows so the UI renders populated charts immediately.
+- `WS /ws/agent/{device_id}`: Accepts persistent WebSocket connections from `collector-go` endpoint services. Used by FastAPI to push real-time defense commands (`BLOCK_IP`, `UNBLOCK_IP`, `SET_DNS`, `BLOCK_ALL_INTERNET`, `RESTORE_INTERNET`) and receive execution acknowledgements.
+
+### 3.5 Device Management, Active Protection & Agent Download Routes
+| Method | Path | Purpose |
+| :--- | :--- | :--- |
+| `POST` | `/api/devices/register` | Generates a setup token and registers a new device entry (`device_id`, `device_name`, `token`). |
+| `POST` | `/api/devices/heartbeat` | Updates device `uptime_seconds`, `status="ONLINE"`, `internet_blocked`, `auto_block_enabled`, `current_dns`, and `blocked_ips`. |
+| `GET` | `/api/devices` (and `/api/v1/devices`) | Lists all registered/discovered devices with their live status, uptime, and attack summary. |
+| `GET` | `/api/devices/{device_id}/history` | Returns past DoS/DDoS attacks and `device_actions` (firewall/DNS/kill-switch history) for that specific device. |
+| `POST` | `/api/devices/{device_id}/action` | Sends a manual command (`BLOCK_IP`, `UNBLOCK_IP`, `SET_DNS`, `BLOCK_ALL_INTERNET`, `RESTORE_INTERNET`, or toggle `AUTO_BLOCK`) to the connected Go agent and logs an `ADMIN_MANUAL` row in `device_actions`. |
+| `GET` | `/api/downloads/agent/{arch}` | Downloads the compiled Go binary (`linux-amd64`, `linux-arm64`). |
+| `GET` | `/install.sh` | Serves a shell script so running `curl -sSL http://<server>:8000/install.sh \| sh -s -- --name="My-Device" --token="<token>"` inside any Linux container downloads the Go binary and starts monitoring immediately. |

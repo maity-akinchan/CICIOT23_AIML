@@ -19,10 +19,10 @@ All AI coding agents **MUST** read and strictly adhere to the specification docu
 | **00** | [`agents/master_architecture_integration_blueprint.md`](./agents/master_architecture_integration_blueprint.md) | End-to-end Dual-Track architecture, monorepo layout, JSON wire contracts (`POST /api/v1/ingest/windows`, `WS /ws/live`), Docker networking (`172.18.0.0/16`), and step-by-step build sequence. |
 | **01** | [`agents/agent_governance_anti_drift_protocol.md`](./agents/agent_governance_anti_drift_protocol.md) | **NON-NEGOTIABLE:** Zero architectural improvisation rules, Mandatory Override & Escalation warning block, Schema Parity Lock, synthetic 100-packet SYN flood math test gate, Self-Healing Bootstrap model fallback, NaN/div-by-zero firewall, and bounded ring buffers. |
 | **02** | [`agents/machine_learning_pipeline_22_feature_contract.md`](./agents/machine_learning_pipeline_22_feature_contract.md) | The locked 22-feature contract (18 Go base features + 4 Python derived ratios), exact casing/ordering (`0..21`), `.joblib` artifact schema (`xgb`, `brf`, `svm`, `lr`), and Top-3 Benign IQR Z-Score local explainability formula. |
-| **03** | [`agents/go_packet_collector_specification.md`](./agents/go_packet_collector_specification.md) | `collector-go` CLI flags (`--mode pcap\|live`), `gopacket` L2/L3/L4 parsing rules, exact float64 equations for the 18 base features, majority-vote Track A metadata aggregation, OUI lookup, and HTTP batch shipper with backoff. |
-| **04** | [`agents/fastapi_backend_ml_engine_database_specification.md`](./agents/fastapi_backend_ml_engine_database_specification.md) | `backend-fastapi` SQLite WAL database schema (`devices`, `flow_logs`, `security_alerts`, `incidents`), stateful `IncidentDebouncer` (5s window / 15s cooldown), `/api/v1/*` REST routes, and `WS /ws/live` streaming protocol. |
-| **05** | [`agents/react_soc_dashboard_ui_ux_specification.md`](./agents/react_soc_dashboard_ui_ux_specification.md) | `frontend-react` Carbon-Slate dark UI tokens (`#090D16`), tabular monospace typography, global command header, navigation dock, and functional requirements for all 6 SOC modules. |
-| **06** | [`agents/readme_quickstart_guide.md`](./agents/readme_quickstart_guide.md) | `.joblib` placement (`ml/artifacts/`), Docker Compose startup, and live `hping3` DoS verification workflow. |
+| **03** | [`agents/go_packet_collector_specification.md`](./agents/go_packet_collector_specification.md) | `collector-go` CLI flags (`--mode pcap\|live`, `--device-id`, `--device-name`, `--token`, `--sandbox`), `gopacket` L2/L3/L4 parsing rules, exact float64 equations for the 18 base features, 5s heartbeat (`POST /api/devices/heartbeat`), and `WS /ws/agent/{device_id}` active defense (`BLOCK_IP`, `UNBLOCK_IP`, `SET_DNS`, `BLOCK_ALL_INTERNET`, `RESTORE_INTERNET`). |
+| **04** | [`agents/fastapi_backend_ml_engine_database_specification.md`](./agents/fastapi_backend_ml_engine_database_specification.md) | `backend-fastapi` SQLite WAL database schema (`devices`, `device_actions`, `flow_logs`, `security_alerts`, `incidents`), stateful `IncidentDebouncer` + AI Auto-Block Engine (`>= 10` windows in 5s at `>= 0.85` confidence), `/api/v1/*` & `/api/devices/*` routes, `/install.sh`, and `WS /ws/live` + `WS /ws/agent/{device_id}`. |
+| **05** | [`agents/react_soc_dashboard_ui_ux_specification.md`](./agents/react_soc_dashboard_ui_ux_specification.md) | `frontend-react` Carbon-Slate dark UI tokens (`#090D16`), Strict Plain-English UI vocabulary & feature label translations, global command header, 8-page navigation dock, and functional requirements for all 8 pages (including Page 7 `ConnectedDevicesView.tsx` and Page 8 `DownloadServiceView.tsx`). |
+| **06** | [`agents/readme_quickstart_guide.md`](./agents/readme_quickstart_guide.md) | `.joblib` placement (`ml/artifacts/`), Docker Compose multi-device IoT fleet (`smart-camera-01`, `smart-thermostat-02`, `smart-plug-03`, `attacker-node`), and live `hping3` DoS + AI Auto-Block showcase. |
 
 ---
 
@@ -69,23 +69,25 @@ Per [`agents/agent_governance_anti_drift_protocol.md`](./agents/agent_governance
 
 When implementing each module end-to-end (with zero boilerplate stubs), follow the authoritative specifications in `agents/`:
 
-- **Go Collector (`collector-go/`):** Governed by [`agents/go_packet_collector_specification.md`](./agents/go_packet_collector_specification.md)
-  - `main.go` — CLI entrypoint & operational mode flags (`pcap` / `live`)
+- **Go Collector & Endpoint Service (`collector-go/`):** Governed by [`agents/go_packet_collector_specification.md`](./agents/go_packet_collector_specification.md)
+  - `main.go` — CLI entrypoint & operational mode flags (`pcap` / `live`, `--device-id`, `--device-name`, `--token`, `--sandbox`)
   - `internal/parser/packet.go` — `gopacket` L2/L3/L4 packet decoding & OUI vendor lookup
   - `internal/window/aggregator.go` — 100-packet tumbling window buffer, Track A majority-vote metadata, and Track B 18 base feature calculations
-  - `internal/shipper/client.go` — Batched HTTP POST client (`/api/v1/ingest/windows`) with exponential retry backoff
+  - `internal/shipper/client.go` — Batched HTTP POST client (`/api/v1/ingest/windows`), 5s heartbeat (`POST /api/devices/heartbeat`), and `WS /ws/agent/{device_id}` command listener
+  - `internal/defense/executor.go` — `iptables` (`BLOCK_IP`, `UNBLOCK_IP`, `BLOCK_ALL_INTERNET` with anti-lockout rules, `RESTORE_INTERNET`) & `/etc/resolv.conf` (`SET_DNS`) executor with `--sandbox` mode
 - **FastAPI Backend (`backend-fastapi/`):** Governed by [`agents/fastapi_backend_ml_engine_database_specification.md`](./agents/fastapi_backend_ml_engine_database_specification.md) & [`agents/machine_learning_pipeline_22_feature_contract.md`](./agents/machine_learning_pipeline_22_feature_contract.md)
-  - `app/main.py`, `app/config.py`, `app/database.py`, `app/schemas.py` — FastAPI app, settings, SQLite WAL engine/models, and 18/22-feature Pydantic contracts
+  - `app/main.py`, `app/config.py`, `app/database.py`, `app/schemas.py` — FastAPI app, settings, SQLite WAL engine/models (`devices`, `device_actions`, `flow_logs`, `security_alerts`, `incidents`), and 18/22-feature Pydantic contracts
   - `app/services/inference.py` — 18->22 feature adapter, `.joblib` model registry (`xgb`, `brf`, `svm`, `lr`) with bootstrap fallback, and IQR Z-score explainability
-  - `app/services/incident_manager.py` — Stateful `IncidentDebouncer`
+  - `app/services/incident_manager.py` — Stateful `IncidentDebouncer` + AI Auto-Block Engine (`>= 10` windows in 5s with avg confidence `>= 0.85`)
   - `app/services/pcap_runner.py` — Offline `.pcap`/`.pcapng` processor & `.csv` replay task
-  - `app/services/ws_manager.py` — `WS /ws/live` WebSocket broadcast manager
-  - `app/routers/ingest.py`, `pcap.py`, `incidents.py`, `analytics.py` — `/api/v1/*` REST API routers
-- **React SOC Frontend (`frontend-react/`):** Governed by [`agents/react_soc_dashboard_ui_ux_specification.md`](./agents/react_soc_dashboard_ui_ux_specification.md)
-  - `src/types/telemetry.ts` — Locked 22-feature TypeScript interfaces & WebSocket/REST payloads
+  - `app/services/ws_manager.py` — `WS /ws/live` (React UI) and `WS /ws/agent/{device_id}` (Go agent) WebSocket manager
+  - `app/routers/ingest.py`, `pcap.py`, `incidents.py`, `analytics.py`, `devices.py` — `/api/v1/*`, `/api/devices/*`, `/api/downloads/agent/{arch}`, and `/install.sh` routes
+- **React Plain-English Command Center (`frontend-react/`):** Governed by [`agents/react_soc_dashboard_ui_ux_specification.md`](./agents/react_soc_dashboard_ui_ux_specification.md)
+  - `src/types/telemetry.ts` — Locked 22-feature TypeScript interfaces, device/action models, & WebSocket/REST payloads
+  - `src/utils/plainEnglish.ts` — Mandatory Plain-English vocabulary & 22-feature label translations
   - `src/hooks/useLiveTelemetry.ts` — WebSocket client hook with 200-flow & 60-second ring buffers
-  - `src/components/layout/TopStatusBar.tsx` & `GlassDock.tsx` — Global command bar & 6-module navigation dock
-  - `src/components/modules/*` — All 6 SOC dashboard modules (`OverviewBento`, `LiveTrafficView`, `AttackAlertsPanel`, `FlowExplorerTable`, `ModelAnalyticsView`, `IncidentHistoryView`)
-- **Testbed & Orchestration (`docker-compose.yml`, `testbed/`):** Governed by [`agents/master_architecture_integration_blueprint.md`](./agents/master_architecture_integration_blueprint.md) & [`agents/readme_quickstart_guide.md`](./agents/readme_quickstart_guide.md)
+  - `src/components/layout/TopStatusBar.tsx` & `GlassDock.tsx` — Global command bar & 8-page navigation dock
+  - `src/components/modules/*` — All 8 Plain-English dashboard pages (`OverviewBento`, `LiveTrafficView`, `AttackAlertsPanel`, `FlowExplorerTable`, `ModelAnalyticsView`, `IncidentHistoryView`, `ConnectedDevicesView`, `DownloadServiceView`)
+- **Testbed & Multi-Device Fleet (`docker-compose.yml`, `testbed/`):** Governed by [`agents/master_architecture_integration_blueprint.md`](./agents/master_architecture_integration_blueprint.md) & [`agents/readme_quickstart_guide.md`](./agents/readme_quickstart_guide.md)
 
 Execute implementation step-by-step per [`agents/master_architecture_integration_blueprint.md`](./agents/master_architecture_integration_blueprint.md) Section 6. Ask the user which module (`backend-fastapi`, `collector-go`, or `frontend-react`) they want implemented first.

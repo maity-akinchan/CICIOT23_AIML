@@ -1,6 +1,6 @@
-# 00 — MASTER ARCHITECTURE & INTEGRATION BLUEPRINT
-**Project Name:** CICIoT23 Sentinel — Real-Time AI Network Intrusion Detection & SOC Command Center  
-**Document Status:** LOCKED SPECIFICATION (v1.0.0)  
+# 00 — MASTER ARCHITECTURE & INTEGRATION BLUEPRINT (V2)
+**Project Name:** CICIoT23 Sentinel — Real-Time AI Network Intrusion Detection, Active Protection & Device Command Center  
+**Document Status:** LOCKED SPECIFICATION (v2.0.0 — Active Protection & Plain-English UI)  
 **Target Readers:** Autonomous AI Coding Agents, Backend Engineers, Systems Programmers, Frontend Engineers
 
 ---
@@ -42,38 +42,43 @@ Because machine learning models trained on CICIoT2023 operate on **100-packet sl
                                           │ Raw Ethernet Frames / libpcap
                                           ▼
 ┌───────────────────────────────────────────────────────────────────────────────────┐
-│                     2. GO PACKET COLLECTOR (collector-go/)                        │
-│   • Built with google/gopacket (libpcap bindings)                                 │
+│               2. BIDIRECTIONAL GO ENDPOINT AGENT (collector-go/)                  │
+│   • Built with google/gopacket (libpcap bindings) + Linux defense executor        │
 │   • Tumbling window buffer: N = 100 packets (or 2000ms partial flush timeout)     │
-│   • Extracts Track A Metadata (IPs, MACs, OUI Vendor, Ports, Timestamps)          │
-│   • Computes Track B Base 18 Deterministic Features in float64                    │
-│   • Ships batched JSON payloads via HTTP POST to FastAPI (/api/v1/ingest/windows) │
-└─────────────────────────────────────────┬─────────────────────────────────────────┘
-                                          │ JSON over HTTP (Contract #1)
-                                          ▼
+│   • Extracts Track A Metadata + Computes Track B Base 18 Deterministic Features   │
+│   • Ships batched JSON payloads via HTTP POST (/api/v1/ingest/windows)            │
+│   • Registers device (POST /api/agents/register) & sends 5s Heartbeat             │
+│     (POST /api/agents/heartbeat: uptime, CPU/RAM, blocked IPs, DNS, kill-switch)  │
+│   • Listens on WS /ws/agent/{device_id} for BLOCK_IP, UNBLOCK_IP, SET_DNS,        │
+│     and RESTRICT_INTERNET (Block All Internet except FastAPI control plane)       │
+└─────────────────────────┬───────────────────────────────────▲─────────────────────┘
+                          │ JSON over HTTP (Contract #1 & #4) │ WS Commands (Contract #5)
+                          ▼                                   │
 ┌───────────────────────────────────────────────────────────────────────────────────┐
-│                   3. FASTAPI ML & INCIDENT ENGINE (backend-fastapi/)              │
+│              3. FASTAPI ML, AUTO-BLOCK & INCIDENT ENGINE (backend-fastapi/)       │
 │   • Validates 18 Base Features -> Computes 4 Derived Ratio Features (= 22 Total)  │
-│   • Hot-Swappable Model Registry:                                                 │
-│       1. ciciot_22f_xgb.joblib (XGBoost Classifier - Default)                     │
-│       2. ciciot_22f_brf.joblib (Balanced Random Forest)                           │
-│       3. ciciot_22f_svm.joblib (Scaled Nystroem RBF Calibrated SVM)               │
-│       4. ciciot_22f_lr.joblib  (Scaled Multinomial Logistic Regression)           │
-│   • Computes Local Explainability (Top 3 Anomalous Features via Benign IQR Z-Score)│
+│   • Hot-Swappable Model Registry (XGBoost, Balanced RF, Calibrated SVM, LogReg)   │
+│   • Computes Local Explainability ("Why This Was Flagged" via Benign IQR Z-Score) │
 │   • Stateful Incident Debouncer (5s Tumbling Window + 15s Cooldown per Target/Src)│
-│   • Persists Devices, Flows, Alerts, and Incidents to SQLite (WAL mode)           │
+│   • Auto-Block Engine: When ON & confidence >= 90% across >= 10 windows in 5s,    │
+│     dispatches BLOCK_IP (DoS) or rate-limit/restrict (DDoS) to the Go agent       │
+│   • Serves Agent Binary Downloads & 1-line install script (curl | sudo bash)      │
+│   • Persists Devices, Flows, Alerts, Incidents & Defense Actions to SQLite (WAL)  │
 └───────────────────┬───────────────────────────────────────────┬───────────────────┘
-                    │ REST API (/api/v1/*)                      │ WebSocket (/ws/live)
+                    │ REST API (/api/v1/* & /api/agents/*)      │ WebSocket (/ws/live)
                     │ (Contract #2)                             │ (Contract #3)
                     ▼                                           ▼
 ┌───────────────────────────────────────────────────────────────────────────────────┐
-│                   4. REACT SOC COMMAND CENTER (frontend-react/)                   │
-│   • Module 1: Security Overview Dashboard (KPI Bento, 60s Area Chart, Device Grid)│
-│   • Module 2: Live Traffic & PCAP Analyzer (Stream Table, Drag-and-Drop Uploader) │
-│   • Module 3: Attack Detection & Alerts (Severity Cards, IQR Explainability Pills)│
-│   • Module 4: Network Flow Explorer (Search/Filter Grid + 22-Feature Slide Drawer)│
-│   • Module 5: Model Performance Analytics (Confusion Matrix, Macro-F1, Importance)│
-│   • Module 6: Incident History & Reporting (Grouped Tickets, Resolve, CSV/JSON)   │
+│               4. REACT PLAIN-ENGLISH COMMAND CENTER (frontend-react/)             │
+│   • Page 1: Security Overview (KPI Bento, 60s Live Chart, Device Health Roster)   │
+│   • Page 2: Live Network Traffic & PCAP Analyzer (Stream Table, Drag-and-Drop)    │
+│   • Page 3: Attack Alerts (Severity Cards, "Why This Was Flagged" Pills)          │
+│   • Page 4: Flow Explorer (Search/Filter Grid + 22-Feature Plain-English Drawer)  │
+│   • Page 5: Model Performance (Confusion Matrix, Macro-F1, Feature Importance)    │
+│   • Page 6: Attack History (Grouped Episodes, Resolve, CSV/JSON Report Export)    │
+│   • Page 7: Connected Devices (Multi-Device Status, Firewall, DNS, Auto-Block,    │
+│             and "Block All Internet" Red Kill-Switch Button)                      │
+│   • Page 8: Add Device / Download Service (Platform Picker, Binary, 1-line curl)  │
 └───────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -124,8 +129,16 @@ ciciot23-sentinel/
 │       ├── window/
 │       │   ├── aggregator.go
 │       │   └── math.go
-│       └── shipper/
-│           └── http_shipper.go
+│       ├── shipper/
+│       │   └── http_shipper.go
+│       ├── agent/
+│       │   ├── register.go
+│       │   ├── heartbeat.go
+│       │   ├── metrics.go
+│       │   └── ws_client.go
+│       └── defense/
+│           ├── firewall.go
+│           └── dns.go
 │
 ├── backend-fastapi/
 │   ├── Dockerfile
@@ -143,6 +156,8 @@ ciciot23-sentinel/
 │   │   │   ├── ml_registry.py
 │   │   │   ├── explainability.py
 │   │   │   ├── incident_debouncer.py
+│   │   │   ├── auto_blocker.py
+│   │   │   ├── agent_manager.py
 │   │   │   ├── pcap_processor.py
 │   │   │   ├── csv_replayer.py
 │   │   │   └── ws_manager.py
@@ -155,10 +170,12 @@ ciciot23-sentinel/
 │   │       ├── alerts.py
 │   │       ├── incidents.py
 │   │       ├── devices.py
+│   │       ├── agents.py
 │   │       └── models_analytics.py
 │   └── tests/
 │       ├── test_feature_adapter.py
 │       ├── test_incident_debouncer.py
+│       ├── test_auto_blocker.py
 │       └── test_ingest_api.py
 │
 ├── frontend-react/
@@ -175,6 +192,8 @@ ciciot23-sentinel/
 │       │   └── client.ts
 │       ├── types/
 │       │   └── sentinel.ts
+│       ├── utils/
+│       │   └── plainEnglish.ts
 │       ├── context/
 │       │   └── TelemetryContext.tsx
 │       ├── hooks/
@@ -194,7 +213,9 @@ ciciot23-sentinel/
 │               ├── AttackAlertsView.tsx
 │               ├── FlowExplorerView.tsx
 │               ├── ModelAnalyticsView.tsx
-│               └── IncidentHistoryView.tsx
+│               ├── IncidentHistoryView.tsx
+│               ├── ConnectedDevicesView.tsx
+│               └── DownloadServiceView.tsx
 │
 └── testbed/
     ├── Dockerfile.iot-target
@@ -355,24 +376,68 @@ Every processed batch is broadcast to all connected React clients using this exa
 }
 ```
 
+### 4.4 Contract #4: Go Service $\rightarrow$ FastAPI Enrollment & Heartbeat
+- **Enrollment (`POST /api/devices/register`):**
+```json
+{
+  "device_id": "smart-camera-01",
+  "device_name": "Smart Camera 01",
+  "ip_address": "172.18.0.10",
+  "mac_address": "02:42:ac:12:00:0a"
+}
+```
+- **Heartbeat (`POST /api/devices/heartbeat` every 5 seconds):**
+```json
+{
+  "device_id": "smart-camera-01",
+  "device_name": "Smart Camera 01",
+  "ip_address": "172.18.0.10",
+  "mac_address": "02:42:ac:12:00:0a",
+  "uptime_seconds": 3842,
+  "internet_blocked": false,
+  "auto_block_enabled": true,
+  "current_dns": ["1.1.1.1"],
+  "blocked_ips": ["172.18.0.50"]
+}
+```
+
+### 4.5 Contract #5: FastAPI $\rightarrow$ Go Service Defense Commands (`WS /ws/agent/{device_id}`)
+FastAPI dispatches real-time defense commands over a persistent WebSocket to the Go service:
+```json
+{
+  "command_id": "cmd-8841a",
+  "action": "BLOCK_IP",
+  "payload": {
+    "ip": "172.18.0.50",
+    "reason": "AI Auto-Blocked 172.18.0.50 due to DoS attack"
+  }
+}
+```
+Supported `action` values: `"BLOCK_IP"`, `"UNBLOCK_IP"`, `"SET_DNS"`, `"BLOCK_ALL_INTERNET"`, `"RESTORE_INTERNET"`.
+
 ---
 
-## 5. PORT & NETWORKING ALLOCATION (`docker-compose.yml`)
+## 5. DOCKER-BASED MULTI-DEVICE FLEET ARCHITECTURE (`docker-compose.yml`)
 
-| Service Name | Container Name | Host / Internal Port | Network Mode | Role |
+- **Per-Device Container Topology:** Simulated IoT devices (`smart-camera-01`, `smart-thermostat-02`, `smart-plug-03`) run as lightweight Linux Docker containers (`alpine` + `iptables` + `iproute2` + `curl` + `nginx`) on a dedicated Docker bridge network (`sentinel-net`, `172.18.0.0/16`).
+- **Required Container Capabilities:** Every simulated IoT device container in `docker-compose.yml` **MUST** include `cap_add: ["NET_ADMIN", "NET_RAW"]` so the Go service running inside the container has permission to sniff packets (`gopacket`), modify firewall rules (`iptables`), and update `/etc/resolv.conf` DNS settings without affecting the host laptop's Wi-Fi/network.
+- **Attacker Container:** Includes an `attacker-node` container on `sentinel-net` pre-installed with `hping3` and `curl` to run live `DoS` and `DDoS` attack simulations against any connected device container.
+
+| Service Name | Container Name | Host / Internal Port | Network (`sentinel-net`) | Capabilities & Role |
 | :--- | :--- | :--- | :--- | :--- |
-| `backend-fastapi` | `sentinel-api` | `8000:8000` | `sentinel_net` (`172.18.0.0/16`) | FastAPI REST + WebSocket + ML Inference |
-| `frontend-react` | `sentinel-ui` | `5173:5173` | `sentinel_net` (`172.18.0.0/16`) | React Vite UI |
-| `collector-go` | `sentinel-collector` | N/A (Worker / CLI) | `network_mode: service:iot-target` | Sniffs `iot-target` interface natively |
-| `iot-target` | `smart-camera-01` | `8081:80` | `sentinel_net` (`172.18.0.10`) | Simulated IoT Camera (`nginx:alpine`) |
-| `iot-attacker` | `rogue-device-99` | N/A | `sentinel_net` (`172.18.0.50`) | Runs benign curl loop & `hping3` floods |
+| `backend-fastapi` | `sentinel-api` | `8000:8000` | `172.18.0.2` | FastAPI REST + WebSocket + ML Inference + Auto-Block Engine |
+| `frontend-react` | `sentinel-ui` | `5173:5173` | `172.18.0.3` | React Vite Plain-English Command Center (8 Pages) |
+| `smart-camera-01` | `smart-camera-01` | `8081:80` | `172.18.0.10` | `cap_add: [NET_ADMIN, NET_RAW]` — Alpine + nginx + Go Agent |
+| `smart-thermostat-02` | `smart-thermostat-02` | `8082:80` | `172.18.0.11` | `cap_add: [NET_ADMIN, NET_RAW]` — Alpine + nginx + Go Agent |
+| `smart-plug-03` | `smart-plug-03` | `8083:80` | `172.18.0.12` | `cap_add: [NET_ADMIN, NET_RAW]` — Alpine + nginx + Go Agent |
+| `attacker-node` | `attacker-node` | N/A | `172.18.0.50` | `cap_add: [NET_ADMIN, NET_RAW]` — `hping3` + `curl` DoS/DDoS simulator |
 
 ---
 
 ## 6. END-TO-END IMPLEMENTATION ORDER
 Any developer or AI agent building this system **MUST** implement and verify components in this exact sequence:
 1. **Step 1:** Verify/Generate `.joblib` artifacts in `ml/artifacts/` (or run `backend-fastapi`'s fallback synthetic bundle generator for CI testing).
-2. **Step 2:** Build `backend-fastapi` (Database models $\rightarrow$ Feature Adapter $\rightarrow$ ML Registry $\rightarrow$ Incident Debouncer $\rightarrow$ REST & WS endpoints) and run `pytest`.
-3. **Step 3:** Build `collector-go` (Packet decoder $\rightarrow$ 100-packet window aggregator $\rightarrow$ Exact 18-feature math $\rightarrow$ HTTP shipper) and run `go test ./...`.
-4. **Step 4:** Build `frontend-react` (TypeScript contracts $\rightarrow$ WebSocket context $\rightarrow$ 6 SOC Modules) and verify `tsc --noEmit`.
+2. **Step 2:** Build `backend-fastapi` (Database models $\rightarrow$ Feature Adapter $\rightarrow$ ML Registry $\rightarrow$ Incident Debouncer & Auto-Blocker $\rightarrow$ Agent Manager & REST/WS endpoints) and run `pytest`.
+3. **Step 3:** Build `collector-go` (Packet decoder $\rightarrow$ 100-packet window aggregator $\rightarrow$ Exact 18-feature math $\rightarrow$ HTTP shipper $\rightarrow$ Agent registration, 5s heartbeat, & WS defense executor) and run `go test ./...`.
+4. **Step 4:** Build `frontend-react` (TypeScript contracts $\rightarrow$ Plain-English label map $\rightarrow$ WebSocket context $\rightarrow$ 8 Plain-English Dashboard Pages) and verify `tsc --noEmit`.
 5. **Step 5:** Assemble `docker-compose.yml` and `testbed/` scripts to verify live `hping3` DoS detection end-to-end.
