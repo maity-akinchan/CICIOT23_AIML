@@ -16,7 +16,7 @@ from app.schemas import BASE_FEATURE_NAMES, FEATURE_NAMES, AnomalyExplanation, F
 logger = logging.getLogger(__name__)
 
 
-def _bootstrap_model() -> dict[str, Any]:
+def _bootstrap_model(model_id="lr") -> dict[str, Any]:
     rows: list[list[float]] = []
     labels: list[str] = []
     for label, syn, ack, rate, avg, std in (
@@ -24,7 +24,7 @@ def _bootstrap_model() -> dict[str, Any]:
         ("DoS", 1.0, 0.0, 10000.0, 54.0, 0.0),
         ("DDoS", 0.75, 0.05, 7000.0, 250.0, 180.0),
     ):
-        for multiplier in range(1, 41):
+        for multiplier in range(1, 101):
             rows.append([0.01 * multiplier, rate * (1 + multiplier / 1000), 40.0, 64.0,
                          0.0, syn, 0.0, 0.0, ack, ack * 100, syn * 100, 0.0, 0.0,
                          1.0, 0.0, 0.0, avg, std])
@@ -35,12 +35,28 @@ def _bootstrap_model() -> dict[str, Any]:
     frame["hdr_pkt_ratio"] = frame["Header_Length"] / (frame["AVG"] + 1e-5)
     frame["pkt_cv"] = frame["Std"] / (frame["AVG"] + 1e-5)
     model = make_pipeline(StandardScaler(), LogisticRegression(max_iter=1000, random_state=0))
-    model.fit(frame.loc[:, FEATURE_NAMES], labels)
+    if model_id == "brf":
+        from imblearn.ensemble import BalancedRandomForestClassifier
+        model = BalancedRandomForestClassifier(n_estimators=30, random_state=0)
+    elif model_id == "svm":
+        from sklearn.svm import LinearSVC
+        from sklearn.calibration import CalibratedClassifierCV
+        model = make_pipeline(StandardScaler(), CalibratedClassifierCV(LinearSVC(random_state=0), cv=3))
+    elif model_id == "xgb":
+        from xgboost import XGBClassifier
+        from sklearn.preprocessing import LabelEncoder
+        encoder = LabelEncoder().fit(labels)
+        model = XGBClassifier(n_estimators=30, max_depth=3, random_state=0, n_jobs=1)
+        model.fit(frame.loc[:, FEATURE_NAMES], encoder.transform(labels))
+    if model_id != "xgb":
+        model.fit(frame.loc[:, FEATURE_NAMES], labels)
     medians = frame.loc[:, FEATURE_NAMES].median().astype(float).to_dict()
-    iqr = (frame.loc[:, FEATURE_NAMES].quantile(0.75) - frame.loc[:, FEATURE_NAMES].quantile(0.25))
-    return {"model_id": "xgb", "model_name": "Deterministic Bootstrap Model", "model": model,
-            "feature_names": list(FEATURE_NAMES), "classes": list(model.classes_),
-            "impute_medians": medians, "benign_medians": medians,
+    benign = frame.loc[np.array(labels) == "Benign", FEATURE_NAMES]
+    iqr = benign.quantile(0.75) - benign.quantile(0.25)
+    return {"model_id": model_id, "model_name": f"Deterministic Bootstrap {model_id}", "model": model,
+            "label_encoder": encoder if model_id == "xgb" else None,
+            "feature_names": list(FEATURE_NAMES), "classes": list(encoder.classes_ if model_id == "xgb" else model.classes_),
+            "impute_medians": medians, "benign_medians": benign.median().astype(float).to_dict(),
             "benign_iqr": iqr.clip(lower=1e-6).astype(float).to_dict(), "is_bootstrap_model": True}
 
 
@@ -64,7 +80,7 @@ class InferenceEngine:
             self._normalize_bundle()
             logger.info("Loaded ML artifact from %s", self.artifact_path)
         else:
-            self.bundle = _bootstrap_model()
+            self.bundle = _bootstrap_model(self.artifact_path.stem.split("_")[-1])
             logger.warning("Artifact missing at %s; using deterministic bootstrap model", self.artifact_path)
 
     def _normalize_bundle(self) -> None:
@@ -79,6 +95,10 @@ class InferenceEngine:
         self.bundle.setdefault("model_id", "xgb")
         self.bundle.setdefault("model_name", self.bundle["model_id"])
         self.bundle.setdefault("is_bootstrap_model", False)
+        baseline = self.bundle.get("benign_baseline", {})
+        if baseline:
+            self.bundle.setdefault("benign_medians", {k: v["median"] for k,v in baseline.items()})
+            self.bundle.setdefault("benign_iqr", {k: v["iqr"] for k,v in baseline.items()})
         self.bundle.setdefault("impute_medians", {name: 0.0 for name in FEATURE_NAMES})
         self.bundle.setdefault("benign_medians", self.bundle["impute_medians"])
         self.bundle.setdefault("benign_iqr", {name: 1.0 for name in FEATURE_NAMES})
@@ -107,7 +127,8 @@ class InferenceEngine:
         results: list[PredictionResult] = []
         for index, payload in enumerate(payloads):
             row = {classes[col]: float(probabilities[index][col]) for col in range(min(len(classes), probabilities.shape[1]))}
-            predicted = str(predictions[index])
+            encoder = self.bundle.get("label_encoder", self.bundle.get("encoder"))
+            predicted = str(encoder.inverse_transform([int(predictions[index])])[0]) if encoder is not None else str(predictions[index])
             values = {name: float(frame.iloc[index][name]) for name in FEATURE_NAMES}
             results.append(PredictionResult(
                 window_id=payload.window_id, timestamp=payload.timestamp, src_ip=payload.src_ip, dst_ip=payload.dst_ip,
@@ -123,7 +144,7 @@ class InferenceEngine:
         medians = self.bundle["benign_medians"]
         iqrs = self.bundle["benign_iqr"]
         ranked = sorted(((abs(values[name] - float(medians.get(name, 0.0))) /
-                          max(float(iqrs.get(name, 1e-4)), 1e-4), name) for name in FEATURE_NAMES), reverse=True)
+                          max(float(iqrs.get(name, 1e-4)), 1e-4) * max(float(self.bundle.get("feature_importance", {}).get(name, 1.0)), 0.02), name) for name in FEATURE_NAMES), reverse=True)
         return [AnomalyExplanation(feature=name, value=round(values[name], 4),
                                    benign_median=round(float(medians.get(name, 0.0)), 4),
                                    z_iqr=round(float(score), 2),

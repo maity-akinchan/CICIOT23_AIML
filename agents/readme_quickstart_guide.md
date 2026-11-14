@@ -1,46 +1,68 @@
-# CICIoT23 Sentinel — Real-Time AI Network Intrusion Detection, Active Protection & Device Command Center
+# Current quickstart and demonstration checklist — v3
 
-An end-to-end Machine Learning Network Intrusion Detection & Active Protection System built on the **CICIoT2023** dataset. It pairs a two-way **Go (`gopacket` + `iptables`)** endpoint service with a **FastAPI** multi-model inference & AI Auto-Block engine, a multi-device **Docker IoT fleet** (`smart-camera-01`, `smart-thermostat-02`, `smart-plug-03`), and an 8-page Plain-English **React** Command Center.
+**Review date:** 2026-11-15. This guide distinguishes working prototype checks
+from future acceptance gates. Read [the audit](project_audit.md) first.
 
----
+## 1. Available artifacts and implementation
 
-## Specification Suite (Read First)
-All developers and AI coding agents **must** adhere strictly to the specification documents in `agents/`:
-1. [`00_MASTER_ARCHITECTURE_AND_INTEGRATION.md`](./master_architecture_integration_blueprint.md) — End-to-end topology, Docker multi-device fleet (`sentinel-net` + `NET_ADMIN`/`NET_RAW`), directory structure, and JSON wire contracts.
-2. [`01_AGENT_GOVERNANCE_AND_PROTOCOL.md`](./agent_governance_anti_drift_protocol.md) — Mandatory override protocol, Plain-English UI policy, anti-lockout firewall rules, and defensive engineering gates.
-3. [`02_ML_PIPELINE_AND_22_FEATURE_CONTRACT.md`](./machine_learning_pipeline_22_feature_contract.md) — The locked 22-feature schema (18 base + 4 derived ratios), leakage prevention, and `.joblib` bundle spec.
-4. [`03_GO_PACKET_COLLECTOR_SPEC.md`](./go_packet_collector_specification.md) — `gopacket` layer parsing, 100-packet window aggregation, 5s heartbeat, and `WS /ws/agent/{device_id}` firewall/DNS/kill-switch execution.
-5. [`04_FASTAPI_BACKEND_AND_DB_SPEC.md`](./fastapi_backend_ml_engine_database_specification.md) — SQLite WAL database models (`devices`, `device_actions`, `flow_logs`, `security_alerts`, `incidents`), AI Auto-Block engine, `/api/devices/*` routes, and `/install.sh`.
-6. [`05_REACT_SOC_DASHBOARD_UX_SPEC.md`](./react_soc_dashboard_ui_ux_specification.md) — Visual design tokens, Strict Plain-English UI vocabulary/feature labels, and functional specs for all 8 dashboard pages.
+- Uploaded notebook: `ml/notebooks/ciciot23_training.ipynb` (preserved).
+- Uploaded XGBoost bundle: `ml/artifacts/ciciot_22f_xgb.joblib` (preserved).
+- Other trained bundles: not supplied. The prototype currently generates
+  synthetic fallbacks; v3 requires replacing this with unavailable status outside
+  explicit test mode.
+- `ml/sample_data/test_sample_500.csv`: seven rows, not the notebook's exported
+  500-row test sample. No verified dataset provenance; use only as a fixture.
+- FastAPI: partial implementation, with known data-integrity and authorization
+  gaps. Go collector and React entry points: empty. Docker full-stack demonstration:
+  not ready. A generic three-class smoke prediction does not close these gaps.
 
----
+## 2. Inspect the current backend locally
 
-## Quickstart Guide
+From the repository root, with a compatible Python environment:
 
-### 1. Place Trained Model Bundles
-Drop your trained `.joblib` artifacts generated from the notebooks in `ml/notebooks/` into `ml/artifacts/`:
-- `ml/artifacts/ciciot_22f_xgb.joblib`
-- `ml/artifacts/ciciot_22f_brf.joblib`
-- `ml/artifacts/ciciot_22f_svm.joblib`
-- `ml/artifacts/ciciot_22f_lr.joblib`
-
-*(Note: If you start the backend before copying your Kaggle `.joblib` files, FastAPI automatically builds physics-aligned bootstrap models so you can test the entire UI, PCAP uploader, and live `hping3` pipeline immediately.)*
-
-### 2. Run with Docker Compose (Full Stack + Simulated Multi-Device IoT Fleet)
-```bash
-docker compose up --build
+```sh
+python -m venv .venv
+. .venv/bin/activate
+python -m pip install -r backend-fastapi/requirements.txt
+cd backend-fastapi
+python -m pytest -v
+uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
-- **React Command Center:** `http://localhost:5173`
-- **FastAPI Swagger Docs:** `http://localhost:8000/docs`
-- **Simulated IoT Device Fleet (`sentinel-net`):**
-  - `smart-camera-01` (`172.18.0.10`)
-  - `smart-thermostat-02` (`172.18.0.11`)
-  - `smart-plug-03` (`172.18.0.12`)
-- **Attacker Container:** `attacker-node` (`172.18.0.50`)
 
-### 3. Trigger a Live DoS Attack & Watch AI Auto-Block (`hping3` Showcase)
-With the dashboard open at `http://localhost:5173`, trigger a live TCP SYN flood from `attacker-node` against `smart-camera-01`:
-```bash
-docker exec -it attacker-node sh /testbed/trigger_dos_flood.sh
-```
-Watch `collector-go` stream 100-packet windows in real time, FastAPI classify them as **`DoS`**, and—when **Auto-Block Attacks** is `ON`—automatically send `BLOCK_IP` over `WS /ws/agent/smart-camera-01` to drop the attacker's IP via `iptables` inside the container!
+Open `http://127.0.0.1:8000/docs` and inspect `/health`, `/api/v1/models` and
+`/api/v1/models/xgb/analytics`. This runs the prototype, not the revised v3 design.
+Do not expose the current unauthenticated mutation endpoints on a shared network.
+
+`DATABASE_URL` overrides the prototype database location. Other production-style
+settings and a locked tested dependency set still need implementation. The
+artifact records Python 3.13.16, scikit-learn 1.6.1 and XGBoost 3.4.1; a different
+runtime needs load and golden-prediction parity tests, not merely successful pip
+installation. Training dependencies are not fully specified by serving requirements.
+
+The current four pytest tests pass in the reviewed environment. They cover
+selected synthetic extraction, inference, enrollment/dispatch and incident
+behaviors. They do not establish live detection accuracy or complete integration.
+
+## 3. Honest demonstration sequence
+
+1. Show the notebook, dataset/split limitations and the exact model hash.
+2. Use real exported held-out rows to prove notebook/API prediction parity.
+   Request/export those rows from the training run; do not substitute the
+   seven-row fixture and describe it as held-out evaluation.
+3. Demonstrate CSV analysis in the completed dashboard, visibly marked dataset
+   features. Show independent labels, errors and reproducible metric output.
+4. For a real-packet claim, show extractor provenance/parity or the new capture-
+   based training experiment, then run labeled recorded captures end to end.
+5. Run held-out benign and attack lab sessions with the same approved extractor
+   and model. Record false alerts, missed episodes, coverage and total latency.
+6. Present limitations and failure cases. Optional sandbox actions come last;
+   they are not necessary to demonstrate application of ML.
+
+## 4. Before the final presentation
+
+Use a clean checkout, pinned dependencies, prebuilt images, an identified real
+artifact and a source manifest. Verify one-command startup only after the empty
+collector/UI files are implemented. Re-run the browser flow and selected lab
+scenarios on the actual demonstration machine. Keep recorded-capture replay as a
+clearly labeled fallback if live capture is unavailable. Do not call `docker
+compose up` a successful setup procedure until it has passed these checks.

@@ -1,13 +1,44 @@
-# CICIoT23 Sentinel: AI-Powered Network Security & Active Protection Command Center
+# CICIoT23 Sentinel
 
-An end-to-end Machine Learning pipeline, active endpoint defense system, and Plain-English network monitoring dashboard that detects and blocks DoS and DDoS attacks using the CICIoT2023 dataset.
+An AIML project demonstrating how a trained CICIoT2023 classifier can be served
+through FastAPI and used in a traffic-analysis application.
 
-## Architecture Overview (V2)
-1. **collector-go**: Two-way Go endpoint service using `gopacket` + Linux `iptables`. Captures raw PCAPs or live interface traffic, groups them into 100-packet windows, computes 18 deterministic base features, sends 5-second heartbeats (`POST /api/devices/heartbeat`), and executes real-time defense commands (`BLOCK_IP`, `UNBLOCK_IP`, `SET_DNS`, `BLOCK_ALL_INTERNET`, `RESTORE_INTERNET`) over `WS /ws/agent/{device_id}`.
-2. **backend-fastapi**: Python ML, Auto-Block & Incident engine. Receives 18 features from Go, computes 4 ratio features in-memory (`= 22 features`), runs inference via `.joblib` models (XGBoost, BalancedRF, SVM, LogReg), debounces alerts into Attack History episodes, automatically blocks attacking IPs when **Auto-Block Attacks** is `ON`, and serves agent binaries & `/install.sh`.
-3. **frontend-react**: 8-page Plain-English React + Vite + Tailwind Command Center providing real-time WebSocket telemetry, PCAP drag-and-drop analysis, Model Performance metrics, **Connected Devices** management (Firewall, DNS, Auto-Block, Kill Switch), and **Add Device / Download Service** onboarding.
-4. **testbed & docker-compose**: Multi-device simulated IoT fleet (`smart-camera-01`, `smart-thermostat-02`, `smart-plug-03`) with `NET_ADMIN`/`NET_RAW` capabilities plus `attacker-node` (`hping3` / `curl`) on `sentinel-net`.
-5. **ml**: Training notebooks that output the `.joblib` production bundles.
+**Current status:** the uploaded XGBoost model and training notebook are present;
+the backend has partial functionality and known defects. The Go collector and
+React app entry points are empty. The full-stack live demonstration is not yet
+implemented or validated.
 
-## Getting Started
-See [`agents/readme_quickstart_guide.md`](./agents/readme_quickstart_guide.md) and [`Agents.md`](./Agents.md) for the complete specification suite.
+The key outstanding scientific issue is feature compatibility: the supplied
+model was trained on pre-extracted CSV rows whose measurements differ from the
+proposed 100-packet extractor. Identical feature names do not establish parity.
+Use the existing artifact for compatible dataset features; verify the original
+extractor or retrain with a shared capture extractor before claiming live accuracy.
+
+## Review and plan
+
+- [Evidence-based project audit and prioritized fixes](agents/project_audit.md)
+- [Architecture and milestones](agents/master_architecture_integration_blueprint.md)
+- [Training, evaluation and feature contracts](agents/machine_learning_pipeline_22_feature_contract.md)
+- [Current quickstart](agents/readme_quickstart_guide.md)
+- [Coding-agent instructions](AGENTS.md)
+
+The v3 plan prioritizes one real model, correct inference, three useful dashboard
+views, and independent capture evaluation. Fleet management, firewall/DNS changes
+and automatic blocking are optional later extensions. The specifications describe
+target behavior; the prototype does not yet enforce all of their gates.
+
+## Supplied experiment
+
+Notebook: `ml/notebooks/ciciot23_training.ipynb`.
+Model: `ml/artifacts/ciciot_22f_xgb.joblib`.
+
+The bundle records test accuracy **89.37%** and macro-F1 **90.16%** on its cleaned
+CSV test split. These are saved training-run results, not newly measured live
+performance. The notebook explicitly leaves packet-window provenance and capture-
+group independence unverified. Other trained model bundles were not supplied.
+The repository's `test_sample_500.csv` has seven fixture rows, not a verified
+500-row held-out test set.
+
+See the quickstart for local backend inspection and the steps required for an
+honest dataset-replay, PCAP and live demonstration. Do not treat the current
+Compose file as a working one-command full-stack deployment.

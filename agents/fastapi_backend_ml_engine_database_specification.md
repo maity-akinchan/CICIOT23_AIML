@@ -1,180 +1,171 @@
-# 04 — FASTAPI BACKEND, ML ENGINE, AUTO-BLOCK & DATABASE SPECIFICATION (`backend-fastapi/`)
-**Framework:** FastAPI + Uvicorn + SQLAlchemy 2.0 (SQLite WAL mode) + Pydantic v2  
-**Python Version:** 3.11+  
-**Specification Version:** `v2.0.0` (Active Protection, Auto-Block Engine, Agent Management & Onboarding)
+# FastAPI serving and persistence — v3
 
----
+**Status:** target design. The prototype implements parts of these paths but has
+known defects listed in [the audit](project_audit.md). Core scope is model-backed
+analysis; managed-device protection is optional.
 
-## 1. DATABASE SCHEMA (`app/models.py` & `app/database.py`)
-Use SQLite at `sqlite:///./sentinel_soc.db` with `PRAGMA journal_mode=WAL;` enabled on connection startup so concurrent reads and high-speed writes never lock.
+## 1. Service boundaries
 
-### 1.1 Table `devices`
-Tracks every registered endpoint agent and every unique IoT endpoint observed in `src_ip` or `dst_ip` across PCAPs, live captures, or CSV replays.
-| Column | Type | Constraints | Description |
-| :--- | :--- | :--- | :--- |
-| `id` | `Integer` | `PK, AutoIncrement` | Internal ID |
-| `device_id` | `String(64)` | `Unique, Index, Not Null` | Device identifier (e.g., `"smart-camera-01"`) |
-| `device_name` | `String(128)` | `Not Null` | Plain-English friendly name (e.g., `"Smart Camera 01"`) |
-| `token` | `String(128)` | `Nullable` | Setup/enrollment token generated via `POST /api/devices/register` |
-| `ip_address` | `String(64)` | `Index, Not Null` | IPv4 or IPv6 address |
-| `mac_address` | `String(32)` | `Not Null` | Ethernet MAC address |
-| `hostname` | `String(128)` | `Not Null` | Hostname or auto-assigned label |
-| `vendor` | `String(128)` | `Not Null` | OUI Vendor string |
-| `status` | `String(32)` | `Not Null, Default="OFFLINE"` | `"ONLINE"` or `"OFFLINE"` (based on 5s heartbeat) |
-| `uptime_seconds` | `Integer` | `Default=0` | Live uptime reported by Go service heartbeat |
-| `under_attack_status` | `String(32)` | `Not Null, Default="Normal"` | `"Normal"`, `"DoS Attack"`, `"DDoS Attack"` |
-| `auto_block_enabled` | `Boolean` | `Default=True` | Per-device **Auto-Block Attacks** toggle (`ON` / `OFF`, default `True`) |
-| `internet_blocked` | `Boolean` | `Default=False` | Whether **Block All Internet (Kill Switch)** is active |
-| `current_dns` | `Text` | `Default='["1.1.1.1"]'` | JSON list of active DNS server IPs on the device |
-| `blocked_ips` | `Text` | `Default='[]'` | JSON list of currently blocked attacker IPs |
-| `total_flows_seen` | `Integer` | `Default=0` | Cumulative windows involving this device |
-| `attack_flows_seen` | `Integer` | `Default=0` | Cumulative DoS/DDoS windows targeting/from this device |
-| `last_seen` | `DateTime` | `Not Null` | UTC timestamp of latest heartbeat or traffic window |
+Use FastAPI/Pydantic for HTTP validation, an inference service for shared
+preprocessing and prediction, a registry for artifact validation/selection,
+a persistence service for transactions, and session-scoped ingestion/incident
+services. Upload/replay must call the service layer rather than import a private
+function from another router. Settings belong in `app/config.py`; keep DB/model
+paths, allowed origins, limits and operating mode explicit and testable.
 
-### 1.2 Table `flow_logs`
-Stores classified 100-packet windows (powers Module 2 Live Stream & Module 4 Flow Explorer).
-| Column | Type | Constraints | Description |
-| :--- | :--- | :--- | :--- |
-| `id` | `Integer` | `PK, AutoIncrement` | Flow record ID |
-| `window_id` | `String(64)` | `Index, Not Null` | UUID from collector/replayer |
-| `timestamp` | `DateTime` | `Index, Not Null` | Window end UTC timestamp |
-| `capture_mode` | `String(32)` | `Not Null` | `"LIVE_INTERFACE"`, `"PCAP_UPLOAD"`, or `"CSV_REPLAY"` |
-| `src_ip` | `String(64)` | `Index, Not Null` | Source IP |
-| `dst_ip` | `String(64)` | `Index, Not Null` | Destination IP |
-| `src_mac` | `String(32)` | `Not Null` | Source MAC |
-| `dst_mac` | `String(32)` | `Not Null` | Destination MAC |
-| `src_port` | `Integer` | `Not Null` | Source port |
-| `dst_port` | `Integer` | `Not Null` | Destination port |
-| `protocol` | `String(16)` | `Index, Not Null` | `"TCP"`, `"UDP"`, `"ICMP"` |
-| `packet_count` | `Integer` | `Not Null` | Number of packets in window |
-| `predicted_class` | `String(16)` | `Index, Not Null` | `"Benign"`, `"DoS"`, `"DDoS"` |
-| `confidence` | `Float` | `Index, Not Null` | Top class probability $[0.0, 1.0]$ |
-| `probabilities_json` | `Text` | `Not Null` | JSON dict `{"Benign": p0, "DoS": p1, "DDoS": p2}` |
-| `model_used` | `String(64)` | `Not Null` | Model name that produced prediction |
-| `top_anomalies_json` | `Text` | `Not Null` | JSON list of Top 3 IQR anomalous features |
-| `features_22_json` | `Text` | `Not Null` | JSON dict of all 22 deterministic features |
+Provide an app factory with lifespan-owned services for isolated tests and clean
+shutdown. Avoid global WebSocket registries shared across app instances. Use one
+worker until live connections and session state are externalized or made durable.
 
-### 1.3 Table `security_alerts`
-Stores debounced security alerts (powers Module 3 Attack Detection & Alerts).
-| Column | Type | Constraints | Description |
-| :--- | :--- | :--- | :--- |
-| `id` | `Integer` | `PK, AutoIncrement` | Alert ID |
-| `incident_id` | `Integer` | `FK(incidents.id), Index` | Parent Incident ID |
-| `timestamp` | `DateTime` | `Index, Not Null` | UTC detection timestamp |
-| `attack_type` | `String(16)` | `Not Null` | `"DoS"` or `"DDoS"` |
-| `severity` | `String(16)` | `Not Null` | `"HIGH"` (for DoS) or `"CRITICAL"` (for DDoS) |
-| `src_ip` | `String(64)` | `Not Null` | Attacking IP (or `"Multiple Botnet Sources"` if DDoS) |
-| `dst_ip` | `String(64)` | `Not Null` | Targeted IoT Device IP |
-| `protocol` | `String(16)` | `Not Null` | Dominant attack protocol |
-| `confidence` | `Float` | `Not Null` | Mean model confidence across triggering windows |
-| `top_anomalies_json` | `Text` | `Not Null` | JSON array of Top 3 anomalous features |
-| `acknowledged` | `Boolean` | `Default=False, Index` | Operator acknowledgement flag |
+## 2. Model availability and provenance gate
 
-### 1.4 Table `incidents`
-Stores aggregated attack episodes (powers Module 6 Incident History).
-| Column | Type | Constraints | Description |
-| :--- | :--- | :--- | :--- |
-| `id` | `Integer` | `PK, AutoIncrement` | Incident Ticket ID |
-| `title` | `String(256)` | `Not Null` | E.g., `"TCP DoS Flood targeting 172.18.0.10"` |
-| `attack_category` | `String(16)` | `Not Null` | `"DoS"` or `"DDoS"` |
-| `severity` | `String(16)` | `Not Null` | `"HIGH"` or `"CRITICAL"` |
-| `target_ip` | `String(64)` | `Index, Not Null` | Victim device IP |
-| `source_ips_json` | `Text` | `Not Null` | JSON list of unique attacking source IPs |
-| `started_at` | `DateTime` | `Not Null` | Timestamp of first malicious window in episode |
-| `last_seen_at` | `DateTime` | `Not Null` | Timestamp of latest malicious window in episode |
-| `resolved_at` | `DateTime` | `Nullable` | Timestamp when marked resolved |
-| `status` | `String(32)` | `Index, Default="ACTIVE"` | `"ACTIVE"` or `"RESOLVED"` |
-| `affected_flows_count` | `Integer` | `Default=1` | Total malicious windows absorbed into this incident |
-| `peak_rate_pps` | `Float` | `Default=0.0` | Maximum `Rate` observed during the incident |
-| `model_used` | `String(64)` | `Not Null` | Active model during detection |
+- Load the supplied real XGBoost bundle; advertise other slots as unavailable
+  until their actual trained bundles are present. Never silently train a fallback
+  classifier during normal startup.
+- Test-mode synthetic bundles are explicit, isolated and excluded from benchmark
+  comparisons, assessed demonstrations and all device actions.
+- Keep `/health` for liveness and expose readiness by capability: model loaded,
+  artifact identity, allowed contracts/input modes and unavailable reason.
+  A CSV-ready model is not automatically PCAP/live-ready.
+- Validate the incoming contract and provenance before inference. Legacy CSV
+  experiments may produce predictions with their limitations displayed. The
+  proposed packet vectors require a compatible trained artifact or verified
+  legacy-extractor parity; otherwise return an explicit compatibility error.
+- Select one immutable model handle for a whole upload/replay session. A model
+  switch starts a new session/revision; an awaited broadcast must not cause half
+  an uploaded file to use a different model.
+- Persist artifact SHA-256, contract and preprocessing versions with every
+  prediction. Current `model_used` display names alone are insufficient.
 
-### 1.5 Table `device_actions`
-Records every manual (`ADMIN_MANUAL`) or AI-triggered (`AI_AUTO`) defense action on a connected device (surfaced in Attack History & Connected Devices).
-| Column | Type | Constraints | Description |
-| :--- | :--- | :--- | :--- |
-| `id` | `Integer` | `PK, AutoIncrement` | Action log ID |
-| `timestamp` | `DateTime` | `Index, Not Null` | UTC execution timestamp |
-| `device_id` | `String(64)` | `Index, Not Null` | Target `devices.device_id` |
-| `triggered_by` | `String(32)` | `Not Null` | `"AI_AUTO"` or `"ADMIN_MANUAL"` |
-| `action_type` | `String(32)` | `Not Null` | `"BLOCK_IP"`, `"UNBLOCK_IP"`, `"SET_DNS"`, `"BLOCK_ALL_INTERNET"`, `"RESTORE_INTERNET"` |
-| `target_value` | `String(128)` | `Not Null` | Attacker IP, DNS server IP, or `"ON"`/`"OFF"` |
-| `reason` | `String(256)` | `Not Null` | Plain-English reason (e.g., `"AI Auto-Blocked 172.18.0.50 due to DoS attack"`) |
+## 3. Input and preprocessing validation
 
----
+Apply the shared, versioned preprocessing described in the ML specification.
+Validate class/probability correspondence, finite results and expected feature
+count/order. Do not silently truncate class arrays or replace corrupt results
+with zero. Reject invalid legacy inputs when no trained imputation policy exists.
+Numeric constraints must match the selected contract, not generic guesses based
+on feature names. Validate addresses, modes, lengths and timestamps separately.
 
-## 2. STATEFUL INCIDENT DEBOUNCER SPECIFICATION (`app/services/incident_debouncer.py`)
+Keep source metadata honest. Dataset CSV rows lack packet-count/endpoints unless
+provided by a verified source manifest; these fields remain nullable and tagged
+`dataset` rather than becoming discovered devices. Protocol derived from feature
+shares must be marked derived and permit mixed/unknown; do not default UDP to TCP.
 
-To prevent the "Alert Storm" bug (where a 5-second `hping3` flood generates 500 separate alerts and freezes the UI), `IncidentDebouncer` maintains an in-memory dictionary keyed by `(dst_ip, predicted_class)` for `"DoS"` and `"DDoS"` predictions:
+Ground-truth labels are accepted only by an evaluation workflow and stored
+separately from prediction inputs. Import the notebook's `label` column explicitly;
+legacy fixtures may use `attack_class`, with a documented adapter. Never turn a
+predicted class into a label for accuracy reporting or retraining.
 
-### 2.1 Debouncing Rules
-1. **Trigger Threshold:**
-   - In `"LIVE_INTERFACE"` or `"CSV_REPLAY"` mode: When $\ge 3$ malicious windows of the same `predicted_class` target `dst_ip` within a `5.0`-second window (or immediately on $\ge 1$ malicious window in `"PCAP_UPLOAD"` mode so small PCAPs always trigger visible alerts), check if an `"ACTIVE"` incident already exists for `(dst_ip, predicted_class)` where `now - incident.last_seen_at <= 15.0` seconds.
-2. **Existing Active Incident Found (Absorption):**
-   - Increment `incident.affected_flows_count += count`.
-   - Update `incident.last_seen_at = now`.
-   - Update `incident.peak_rate_pps = max(incident.peak_rate_pps, window_rate)`.
-   - Append `src_ip` to `incident.source_ips_json` if not already present.
-   - **Do NOT create a duplicate `security_alerts` row** unless `affected_flows_count` crosses a power-of-10 milestone (`100`, `1000`), keeping the Alert feed clean and actionable.
-3. **No Active Incident Found (New Incident + New Alert):**
-   - Create a new `incidents` row with `status="ACTIVE"`.
-   - Create a new `security_alerts` row linked via `incident_id`.
-   - Update the target device's status in `devices` table to `"UNDER_DOS"` or `"UNDER_DDOS"`.
-4. **Auto-Cooldown Recovery:**
-   - If a device receives `10` consecutive `"Benign"` windows and `now - incident.last_seen_at > 15.0` seconds, update the device's `status` back to `"HEALTHY"`.
+## 4. Persistence and identity
 
-### 2.2 AI Auto-Block Logic (`app/services/incident_manager.py` & `app/services/auto_blocker.py`)
-When a target device has `auto_block_enabled == True` and an active `DoS` or `DDoS` incident triggers (`>= 10` attack windows within 5 seconds with average model confidence `>= 0.85`):
-1. **If `DoS` (single dominant attacker `src_ip`):**
-   - Automatically sends `BLOCK_IP` for that `src_ip` over `WS /ws/agent/{device_id}` (if not already in `blocked_ips`).
-   - Logs an `AI_AUTO` entry in `device_actions` and broadcasts a live notification to the React UI.
-2. **If `DDoS` (multiple attacker IPs flooding the device) and attack rate exceeds critical threshold:**
-   - Automatically blocks top offending IPs or triggers `BLOCK_ALL_INTERNET` if configured, logs an `AI_AUTO` entry in `device_actions`, and pushes a live notification to the React UI.
+SQLite WAL is adequate for a single-process project demo with bounded writes;
+it is not a guarantee against locks. Use short transactions, busy timeout,
+foreign keys, constraints, indexes and explicit migration/version management.
 
----
+Logical records required by the target:
 
-## 3. COMPLETE FASTAPI REST & WEBSOCKET ROUTES
+| Record | Identity and purpose |
+| --- | --- |
+| Analysis session | Source kind, source hash/manifest, capture/sensor identity, contract, chosen model hash, lifecycle, counts and errors |
+| Observation | Stable `(session_id, collector_id, window_id)` uniqueness, event and receipt time, measured features/metadata and validation flags |
+| Prediction | Observation reference plus model/preprocessor identity, class scores, prediction, latency and descriptive baseline deviations |
+| Evaluation run | Separate true labels, split provenance, metrics and exact evaluated observation IDs |
+| Incident/alert | Session-scoped observations, target and predicted category, lifecycle and acknowledgement |
+| Registered device | Enrolment identity, separate heartbeat clock and observed-traffic clock; never inferred merely from an arbitrary CSV IP |
+| Optional command | Stable command ID, authorization/evidence, dispatch/ACK lifecycle and reconciliation |
 
-All REST routes must be prefixed with `/api/v1` and enable CORS (`allow_origins=["*"]`).
+Existing `flow_logs`, `devices`, `incidents`, `security_alerts` and `device_actions`
+need migrations to represent these identities. Enforce required non-null fields;
+current `mapped_column` declarations without `nullable=False` do not enforce the
+old table specification. Return the existing result for duplicate observation
+retries; count it once and do not duplicate incident/command effects.
 
-### 3.1 Ingestion & Traffic Generation Routes
-| Method | Path | Purpose |
-| :--- | :--- | :--- |
-| `POST` | `/api/v1/ingest/windows` | Accepts `IngestBatchRequest` from `collector-go`, computes 4 derived ratios, runs batch inference, updates DB + IncidentDebouncer, broadcasts over `/ws/live`, and returns summary counts. |
-| `POST` | `/api/v1/pcap/upload` | Accepts `multipart/form-data` `.pcap`, `.pcapng`, or `.csv` file upload from React UI. If `.pcap`/`.pcapng`, invokes `collector-go --mode pcap` subprocess (or pure-Python `dpkt` fallback if Go binary isn't compiled yet in local dev) to extract windows and run full pipeline. Returns `{processed_windows, benign_count, dos_count, ddos_count, alerts_triggered}`. |
-| `POST` | `/api/v1/replay/control` | Body: `{"action": "start" \| "stop", "speed_fps": 10}`. Starts or stops an async background task (`csv_replayer.py`) that streams rows from `ml/sample_data/test_sample_500.csv`, synthesizes realistic IoT device metadata (`172.18.0.10`–`172.18.0.18`), and feeds them through the exact ingestion pipeline. |
-| `GET` | `/api/v1/replay/status` | Returns `{"is_running": bool, "speed_fps": int, "rows_streamed": int}`. |
+Normalize timezone-aware event times to UTC before storage. Never remove an
+offset with `replace(tzinfo=None)` before conversion. Keep receipt time separate
+from capture time; historical PCAPs must not overwrite live device heartbeat state.
 
-### 3.2 SOC Dashboard Query & Action Routes
-| Method | Path | Purpose |
-| :--- | :--- | :--- |
-| `GET` | `/api/v1/overview/summary` | Returns KPIs (`total_flows`, `benign_count`, `dos_count`, `ddos_count`, `attack_percentage`, `active_incidents_count`), recent 10 alerts, and protocol distribution (`TCP`, `UDP`, `ICMP` counts). |
-| `GET` | `/api/v1/flows` | Query params: `limit=100`, `offset=0`, `predicted_class`, `protocol`, `ip_search`, `min_confidence`. Returns paginated `flow_logs` including `features_22` and `top_anomalies`. |
-| `GET` | `/api/v1/alerts` | Query params: `acknowledged` (`true`/`false`/optional), `severity`, `limit=50`. Returns `security_alerts`. |
-| `PATCH` | `/api/v1/alerts/{alert_id}/acknowledge` | Sets `acknowledged = True` on the alert and broadcasts update over WebSocket. |
-| `GET` | `/api/v1/incidents` | Query params: `status` (`"ACTIVE"`/`"RESOLVED"`/optional). Returns all `incidents` ordered by `last_seen_at DESC`. |
-| `PATCH` | `/api/v1/incidents/{incident_id}/resolve` | Sets `status = "RESOLVED"`, `resolved_at = utcnow()`, resets target device status to `"HEALTHY"`, and broadcasts update. |
-| `GET` | `/api/v1/incidents/{incident_id}/export` | Query param: `format=json|csv`. Returns a downloadable incident forensic report containing incident metadata and all associated `security_alerts`. |
-| `GET` | `/api/v1/devices` | Returns all discovered IoT devices in `devices` table ordered by `attack_flows_seen DESC`. |
-| `POST` | `/api/v1/system/reset` | Clears `flow_logs`, `security_alerts`, and `incidents` tables for a fresh live demo run. |
+## 5. Ingestion, uploads and replay
 
-### 3.3 Model Registry & Analytics Routes (Module 5)
-| Method | Path | Purpose |
-| :--- | :--- | :--- |
-| `GET` | `/api/v1/models` | Returns list of all 4 available models (`xgb`, `brf`, `svm`, `lr`), which one is currently active, whether it is loaded from a real Kaggle `.joblib` or bootstrap fallback, and its summary `test_accuracy` and `test_macro_f1`. |
-| `POST` | `/api/v1/models/select` | Body: `{"model_id": "xgb" \| "brf" \| "svm" \| "lr"}`. Hot-swaps the active inference model in memory immediately without restarting FastAPI. |
-| `GET` | `/api/v1/models/{model_id}/analytics` | Returns full benchmark telemetry from the `.joblib` bundle: `test_accuracy`, `test_macro_f1`, `classes`, 3x3 `confusion_matrix`, per-class `classification_report`, and sorted 22-feature `feature_importances`. |
+Preserve current API paths when compatible; version breaking nullable metadata,
+identity and response-shape changes as described in the architecture document.
 
-### 3.4 WebSocket Routes
-- `WS /ws/live`: Accepts persistent WebSocket connections from React. On initial connection, immediately sends a `"SNAPSHOT"` frame containing current KPIs and the latest 25 flows so the UI renders populated charts immediately.
-- `WS /ws/agent/{device_id}`: Accepts persistent WebSocket connections from `collector-go` endpoint services. Used by FastAPI to push real-time defense commands (`BLOCK_IP`, `UNBLOCK_IP`, `SET_DNS`, `BLOCK_ALL_INTERNET`, `RESTORE_INTERNET`) and receive execution acknowledgements.
+| Path family | Target behavior |
+| --- | --- |
+| `/api/v1/predict/batch` | Pure inference with explicit artifact/contract; no device actions or silent session mutation |
+| `/api/v1/ingest/windows` | Legacy adapter until a versioned, authenticated, idempotent ingestion contract replaces it |
+| `/api/v1/pcap/upload` | Bounded CSV/PCAP upload with contract check, explicit session/progress/error accounting |
+| `/api/v1/replay/control`, `/replay/status` | Start/stop a session with pinned model, speed, rows read, failures and terminal status |
+| `/api/v1/models`, `/models/select`, `/models/{id}/analytics` | Real model availability and metric provenance, not four fabricated available choices |
+| `/api/v1/overview/summary`, `/flows`, `/alerts`, `/incidents` | Session/source filters, pagination and canonical serializations |
+| `/api/v1/system/reset` | Stop/quiesce the chosen session and clear its data/state atomically; preserve device/control audit records |
+| `/ws/live` | Consistent snapshot/event schemas, sequence/session identifiers, bounded client queues and reconnect behavior |
 
-### 3.5 Device Management, Active Protection & Agent Download Routes
-| Method | Path | Purpose |
-| :--- | :--- | :--- |
-| `POST` | `/api/devices/register` | Generates a setup token and registers a new device entry (`device_id`, `device_name`, `token`). |
-| `POST` | `/api/devices/heartbeat` | Updates device `uptime_seconds`, `status="ONLINE"`, `internet_blocked`, `auto_block_enabled`, `current_dns`, and `blocked_ips`. |
-| `GET` | `/api/devices` (and `/api/v1/devices`) | Lists all registered/discovered devices with their live status, uptime, and attack summary. |
-| `GET` | `/api/devices/{device_id}/history` | Returns past DoS/DDoS attacks and `device_actions` (firewall/DNS/kill-switch history) for that specific device. |
-| `POST` | `/api/devices/{device_id}/action` | Sends a manual command (`BLOCK_IP`, `UNBLOCK_IP`, `SET_DNS`, `BLOCK_ALL_INTERNET`, `RESTORE_INTERNET`, or toggle `AUTO_BLOCK`) to the connected Go agent and logs an `ADMIN_MANUAL` row in `device_actions`. |
-| `GET` | `/api/downloads/agent/{arch}` | Downloads the compiled Go binary (`linux-amd64`, `linux-arm64`). |
-| `GET` | `/install.sh` | Serves a shell script so running `curl -sSL http://<server>:8000/install.sh \| sh -s -- --name="My-Device" --token="<token>"` inside any Linux container downloads the Go binary and starts monitoring immediately. |
+For small uploads, validate/stage all rows before publishing results. For larger
+jobs, expose explicit partial-job states, committed/rejected counts and a resume
+policy. A generic 422 after publishing the first 100 rows is not an acceptable
+all-or-nothing result. Catch parser errors and close files on every path.
+
+Perform parsing/inference in a bounded worker executor, not inline on the event
+loop. Serialize session state updates through a single writer/lock. Database
+commit precedes an event enqueue; a disconnected UI must not turn committed
+inference into a failed request that gets retried and double-counted. Slow
+WebSocket clients have a timeout/drop/reconnect policy. Broadcast work must not
+hold database transactions or delay the ingest acknowledgement indefinitely.
+
+Replay timestamps and speed affect presentation only. Incident analytics use
+source event time in that session; speeding replay must not invent a higher
+attack rate. If dataset rows lack meaningful times, mark simulated timing and do
+not use it for measured live detection latency. Background failures are retained
+as a failed job/status and cancelled tasks are awaited at shutdown.
+
+## 6. Incident lifecycle and reset
+
+Scope state by session, sensor/observation domain, target and class. Never merge
+an uploaded capture, CSV replay and live feed just because they share an IP.
+The former three-windows/five-seconds and fifteen-second cooldown are candidate
+presentation settings; evaluate their precision and delay rather than treating
+them as statistically justified thresholds.
+
+Absorb observations once, maintain source lists from actual attribution and
+resolve/close stale episodes through a defined event-time lifecycle. Resolve and
+reset clear corresponding pending state. Reset also clears benign counters,
+auto-block queues and cooldowns for that session, and cannot race a replay task.
+Expiry and global capacity limits apply to keys as well as individual queues.
+After restart, reconstruct state or start an explicitly new session; do not imply
+continuous incident history if the necessary state was lost.
+
+Device health describes recent observed traffic; offline status is based on
+heartbeats. A quiet period is not proof that a device is secure. Status labels
+must keep classification, connection and command-execution states distinct.
+
+## 7. Authentication and optional actions
+
+Default target behavior is observe-only and `auto_block_enabled=false`.
+Before a lab network deployment, require operator authorization for registration,
+model changes, uploads/replay, reset, incident mutation and manual actions;
+authenticate collectors and read/WebSocket access as appropriate to exposure.
+Use a simple scoped bearer/session scheme suitable for the project; wildcard
+CORS is not authentication. Restrict origins to configured dashboard locations.
+
+Do not enable auto-block until every condition is satisfied: explicitly enabled
+lab device, authenticated live source, compatible real trained artifact, recent
+validated observation, reliable endpoint attribution, validated threshold and
+policy, reachable control channel and protected management addresses.
+CSV replay, offline captures, synthetic models, unsupported inputs and pure
+prediction calls never issue actions. An average class score of .85 is not a
+calibrated risk threshold and cannot override these gates.
+
+Persist a command before dispatch and correlate its ACK to device/command ID.
+Track `PENDING`, `DISPATCHED`, `SUCCEEDED`, `FAILED`, `TIMED_OUT`, or `SIMULATED`
+with reason/timestamps. Reconcile with authenticated heartbeats; do not count a
+sent command as successful. Use idempotent command execution and bounded retries.
+The current ACK handler only broadcasts arbitrary messages and is insufficient.
+
+## 8. Definition of done
+
+The core demo needs golden-row model parity, deterministic feature tests,
+contract rejection, retry idempotency, source isolation, UTC normalization,
+malformed-upload recovery, lifecycle/reset tests, bounded/concurrent processing,
+model-unavailable tests and one complete browser flow. Model accuracy requires
+independent labeled data in addition to these software tests. Optional control
+features require their own authorization and command-state acceptance tests.
