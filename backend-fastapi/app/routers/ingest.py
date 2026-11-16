@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
-
 from fastapi import APIRouter, HTTPException, Request
 
 from app.schemas import BatchPredictionRequest, BatchPredictionResponse, IngestBatchRequest, PredictionResult
@@ -25,14 +23,14 @@ async def _predict(request: Request, payloads) -> BatchPredictionResponse:
         predictions = engine.predict_batch(payloads)
     except (RuntimeError, ValueError) as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
-    await request.app.state.ws_manager.broadcast({
-        "event_type": "TELEMETRY_BATCH",
-        "server_timestamp": datetime.now(timezone.utc).isoformat(),
-        "active_model_id": engine.bundle.get("model_id", "xgb"),
-        "flows": [prediction.model_dump(mode="json") for prediction in predictions],
-        "new_alerts": [],
-        "updated_incidents": [],
-    })
+    new_alerts = await request.app.state.incident_manager.process(predictions)
+    alert_sources = {alert["src_ip"] for alert in new_alerts}
+    telemetry = []
+    for prediction in predictions:
+        flow = prediction.model_dump(mode="json")
+        flow["new_alert"] = prediction.src_ip in alert_sources
+        telemetry.append(flow)
+    request.app.state.ws_manager.enqueue(telemetry)
     return _response(predictions)
 
 

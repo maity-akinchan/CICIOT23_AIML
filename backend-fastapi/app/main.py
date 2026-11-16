@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -10,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.routers import ingest, websockets
+from app.services.incident_manager import IncidentManager
 from app.services.inference import InferenceEngine
 from app.services.ws_manager import manager
 
@@ -28,7 +30,22 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         raise
     app.state.inference_engine = engine
     app.state.ws_manager = manager
-    yield
+    app.state.incident_manager = IncidentManager()
+    stop_event = asyncio.Event()
+    incident_cleanup_task = asyncio.create_task(
+        app.state.incident_manager.cleanup_loop(stop_event)
+    )
+    broadcaster_task = asyncio.create_task(manager.websocket_broadcaster(stop_event))
+    app.state.background_stop_event = stop_event
+    app.state.incident_cleanup_task = incident_cleanup_task
+    app.state.websocket_broadcaster_task = broadcaster_task
+    try:
+        yield
+    finally:
+        stop_event.set()
+        for task in (incident_cleanup_task, broadcaster_task):
+            task.cancel()
+        await asyncio.gather(incident_cleanup_task, broadcaster_task, return_exceptions=True)
 
 
 app = FastAPI(title="CICIoT23 Sentinel", version="1.0.0", lifespan=lifespan)
