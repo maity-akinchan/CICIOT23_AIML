@@ -10,7 +10,8 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.routers import ingest, websockets
+from app.routers import ingest, websockets, analytics, incidents
+from app.database import initialize
 from app.services.incident_manager import IncidentManager
 from app.services.inference import InferenceEngine
 from app.services.ws_manager import manager
@@ -28,24 +29,27 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     except Exception:
         logger.exception("Unable to load the configured ML artifact")
         raise
+    app.state.db_engine, app.state.sessions = initialize()
+    app.state.incidents = IncidentManager()
+    from app.services.auto_blocker import AutoBlocker
+    app.state.auto_blocker = AutoBlocker()
+    app.state.registry = {}
+    for model_id in ("xgb", "brf", "svm", "lr"):
+        candidate = engine if model_id == "xgb" else InferenceEngine(artifact.with_name(f"ciciot_22f_{model_id}.joblib"))
+        if model_id != "xgb": candidate.load()
+        candidate.bundle["model_id"] = model_id
+        app.state.registry[model_id] = candidate
     app.state.inference_engine = engine
     app.state.ws_manager = manager
-    app.state.incident_manager = IncidentManager()
-    stop_event = asyncio.Event()
-    incident_cleanup_task = asyncio.create_task(
-        app.state.incident_manager.cleanup_loop(stop_event)
-    )
-    broadcaster_task = asyncio.create_task(manager.websocket_broadcaster(stop_event))
-    app.state.background_stop_event = stop_event
-    app.state.incident_cleanup_task = incident_cleanup_task
-    app.state.websocket_broadcaster_task = broadcaster_task
-    try:
-        yield
-    finally:
-        stop_event.set()
-        for task in (incident_cleanup_task, broadcaster_task):
-            task.cancel()
-        await asyncio.gather(incident_cleanup_task, broadcaster_task, return_exceptions=True)
+    app.state.replay = dict(is_running=False, speed_fps=10, rows_streamed=0)
+    app.state.replay_task = None
+    yield
+    if app.state.replay_task:
+        app.state.replay_task.cancel()
+        import asyncio
+        try: await app.state.replay_task
+        except asyncio.CancelledError: pass
+    app.state.db_engine.dispose()
 
 
 app = FastAPI(title="CICIoT23 Sentinel", version="1.0.0", lifespan=lifespan)
@@ -70,3 +74,13 @@ app.include_router(ingest.router, prefix="/api/v1")
 
 
 app.include_router(websockets.router)
+
+app.include_router(analytics.router, prefix="/api/v1")
+app.include_router(incidents.router, prefix="/api/v1")
+from app.routers import devices
+app.include_router(devices.router)
+from app.routers import pcap
+app.include_router(pcap.router,prefix='/api/v1')
+
+from app.routers import replay
+app.include_router(replay.router,prefix="/api/v1")

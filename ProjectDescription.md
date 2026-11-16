@@ -1,40 +1,39 @@
-# Project Description & Specifications
+# Project objective
 
-## The Goal
-Build an industry-grade ML engineering demonstration that takes trained CICIoT2023 models and deploys them into a real-time SOC (Security Operations Center) dashboard.
+Demonstrate an AIML workflow that connects a reproducible trained classifier to a
+useful traffic-analysis application, and evaluate the limits of its performance.
 
-## The 22-Feature Contract (CRITICAL)
-The system strictly relies on 22 features to differentiate Benign, DoS, and DDoS traffic. 
-**Base 18 Features (Extracted by Go in 100-packet windows):**
-1. `flow_duration` (seconds)
-2. `Rate` (packets per second)
-3. `Header_Length` (mean bytes)
-4. `Duration` (mean TTL/HopLimit)
-5. `fin_flag_number` (ratio 0-1)
-6. `syn_flag_number` (ratio 0-1)
-7. `rst_flag_number` (ratio 0-1)
-8. `psh_flag_number` (ratio 0-1)
-9. `ack_flag_number` (ratio 0-1)
-10. `ack_count` (raw count)
-11. `syn_count` (raw count)
-12. `fin_count` (raw count)
-13. `rst_count` (raw count)
-14. `TCP` (ratio 0-1)
-15. `UDP` (ratio 0-1)
-16. `ICMP` (ratio 0-1)
-17. `AVG` (mean packet size)
-18. `Std` (std dev of packet size)
+## Core deliverable
 
-**4 Derived Features (Computed by FastAPI in-memory before prediction):**
-19. `bytes_per_sec` = Rate * AVG
-20. `syn_ack_ratio` = (syn_count + 1) / (ack_count + 1)
-21. `hdr_pkt_ratio` = Header_Length / (AVG + 1e-5)
-22. `pkt_cv` = Std / (AVG + 1e-5)
+A real trained XGBoost artifact is loaded by FastAPI, receives inputs validated
+against its training contract, and produces traceable predictions in a small
+React dashboard. Users can inspect inputs, class scores, source/model identity,
+recorded evaluation results and alert/session history.
 
-## Expected Modules
-1. **Security Overview Dashboard:** High-level KPIs and recent alerts.
-2. **Live Traffic Monitoring:** Streaming table of flows with confidence scores.
-3. **Attack Detection & Alerts:** Stateful alerts highlighting the top 3 anomalous features.
-4. **Network Flow Explorer:** Searchable grid mapping IPs/MACs to predicted classes.
-5. **Model Performance Analytics:** Renders the static test-set benchmark stats from the .joblib file (Confusion Matrix, Macro-F1).
-6. **Incident History:** DoS/DDoS flows aggregated over time into distinct incident tickets.
+The current experiment classifies selected Benign, DoS and DDoS dataset traffic.
+It is not evidence of universal attack detection. CSV replay demonstrates model
+serving; a real-packet/live claim additionally requires validated extraction
+compatibility and independent labeled capture evaluation.
+
+## Scientific priority
+
+The supplied CSV-trained model and the proposed raw-packet statistics are not
+currently compatible. Preserve the historical notebook/model. Recover the
+original extractor with parity evidence or retrain using a documented extractor
+shared by training and serving. Use capture-grouped splits and do not let held-out
+test labels determine training-data cleaning.
+
+Measure class precision/recall and macro-F1, false alerts, missed episodes,
+latency, throughput and capture loss. Keep ground truth separate from predictions
+and distinguish saved benchmarks from evaluations actually run in the application.
+
+## Scope and source of truth
+
+First complete model serving, dataset analysis and three UI views. Then validate
+PCAP and live inference. Go capture optimization, extra model comparisons,
+managed fleets and network-changing controls are optional extensions.
+
+The [v3 architecture](agents/master_architecture_integration_blueprint.md),
+[ML specification](agents/machine_learning_pipeline_22_feature_contract.md), and
+[current audit](agents/project_audit.md) govern the plan. These documents describe
+work to be completed; they do not certify the current prototype.

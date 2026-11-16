@@ -1,109 +1,97 @@
-from __future__ import annotations
-
-import asyncio
-import logging
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import Any
-
-from app.schemas import PredictionResult
-
-logger = logging.getLogger(__name__)
+"""Transactional flow persistence and incident aggregation."""
+import json
+from collections import defaultdict, deque
+from datetime import timedelta
+from uuid import uuid4
+from sqlalchemy import select
+from app.models import Flow, Device, Incident, Alert
 
 
-def _as_utc(value: datetime) -> datetime:
-    if value.tzinfo is None:
-        return value.replace(tzinfo=timezone.utc)
-    return value.astimezone(timezone.utc)
-
-
-@dataclass
-class Incident:
-    src_ip: str
-    attack_type: str
-    dst_ip: str
-    started_at: datetime
-    last_seen_timestamp: datetime
-    flow_count: int = 1
-    status: str = "Active"
-    source_ips: set[str] = field(default_factory=set)
-
-    def as_dict(self) -> dict[str, Any]:
-        return {
-            "src_ip": self.src_ip,
-            "attack_type": self.attack_type,
-            "dst_ip": self.dst_ip,
-            "started_at": self.started_at.isoformat(),
-            "last_seen_timestamp": self.last_seen_timestamp.isoformat(),
-            "flow_count": self.flow_count,
-            "status": self.status,
-            "source_ips": sorted(self.source_ips),
-        }
-
+def serialize(row):
+    result = {}
+    for column in row.__table__.columns:
+        if column.name == 'token':
+            continue
+        value = getattr(row, column.name)
+        if column.name.endswith('_json'):
+            result[column.name[:-5]] = json.loads(value)
+        elif column.name in ('blocked_ips', 'current_dns'):
+            result[column.name] = json.loads(value)
+        else:
+            result[column.name] = value.isoformat() if hasattr(value, 'isoformat') else value
+    return result
 
 class IncidentManager:
-    """Debounces malicious windows into one active incident per source IP."""
+    def __init__(self):
+        self.benign_counts = {}
+        self.pending = defaultdict(lambda: deque(maxlen=10000))
 
-    def __init__(self, resolve_after_seconds: float = 15.0) -> None:
-        self.resolve_after_seconds = resolve_after_seconds
-        self.active_incidents: dict[str, Incident] = {}
-        self.resolved_incidents: list[dict[str, Any]] = []
-        self._lock = asyncio.Lock()
-
-    async def process(self, predictions: list[PredictionResult]) -> list[dict[str, Any]]:
-        new_alerts: list[dict[str, Any]] = []
-        async with self._lock:
-            for prediction in predictions:
-                if prediction.predicted_class not in {"DoS", "DDoS"}:
-                    continue
-                now = _as_utc(prediction.timestamp)
-                incident = self.active_incidents.get(prediction.src_ip)
-                if incident is None:
-                    incident = Incident(
-                        src_ip=prediction.src_ip,
-                        attack_type=prediction.predicted_class,
-                        dst_ip=prediction.dst_ip,
-                        started_at=now,
-                        last_seen_timestamp=now,
-                        source_ips={prediction.src_ip},
-                    )
-                    self.active_incidents[prediction.src_ip] = incident
-                    new_alerts.append({
-                        "src_ip": prediction.src_ip,
-                        "dst_ip": prediction.dst_ip,
-                        "attack_type": prediction.predicted_class,
-                        "incident": incident.as_dict(),
-                    })
-                else:
-                    incident.flow_count += 1
-                    incident.last_seen_timestamp = now
-                    incident.status = "Active"
-        return new_alerts
-
-    async def cleanup_once(self, now: datetime | None = None) -> list[dict[str, Any]]:
-        current_time = _as_utc(now or datetime.now(timezone.utc))
-        resolved: list[dict[str, Any]] = []
-        async with self._lock:
-            for src_ip, incident in tuple(self.active_incidents.items()):
-                age = (current_time - incident.last_seen_timestamp).total_seconds()
-                if age <= self.resolve_after_seconds:
-                    continue
-                incident.status = "Resolved"
-                incident.last_seen_timestamp = current_time
-                resolved_record = incident.as_dict()
-                self.resolved_incidents.append(resolved_record)
-                resolved.append(resolved_record)
-                del self.active_incidents[src_ip]
-        if resolved:
-            logger.info("Resolved %d inactive incidents", len(resolved))
-        return resolved
-
-    async def cleanup_loop(self, stop_event: asyncio.Event) -> None:
-        try:
-            while not stop_event.is_set():
-                try:
-                    await asyncio.wait_for(stop_event.wait(), timeout=10.0)
-                except asyncio.TimeoutError:
-                    await self.cleanup_once()
-        except asyncio.CancelledError:
-            raise
+    def record(self, db, payloads, predictions):
+        flows, alerts, incidents = [], [], []
+        for payload, prediction in zip(payloads, predictions):
+            p = prediction.model_dump(mode='json')
+            now = payload.timestamp.replace(tzinfo=None)
+            flow = Flow(window_id=payload.window_id or str(uuid4()), timestamp=now,
+                capture_mode=payload.capture_mode, src_ip=payload.src_ip, dst_ip=payload.dst_ip,
+                src_mac=payload.src_mac, dst_mac=payload.dst_mac, src_port=payload.src_port,
+                dst_port=payload.dst_port, protocol=payload.dominant_protocol, packet_count=payload.packet_count,
+                predicted_class=prediction.predicted_class, confidence=prediction.confidence_score,
+                model_used=prediction.model_used, probabilities_json=json.dumps(p['probabilities']),
+                top_anomalies_json=json.dumps(p['top_anomalies']), features_22_json=json.dumps(p['features_22']))
+            db.add(flow)
+            for ip, mac in {(payload.src_ip, payload.src_mac), (payload.dst_ip, payload.dst_mac)}:
+                device = db.scalar(select(Device).where(Device.ip_address == ip))
+                if device is None:
+                    device = Device(device_id='observed-' + ip, ip_address=ip, mac_address=mac,
+                                    total_flows_seen=0, attack_flows_seen=0)
+                    db.add(device)
+                device.total_flows_seen += 1
+                device.attack_flows_seen += int(prediction.is_anomaly)
+                device.last_seen = now
+            if prediction.is_anomaly:
+                self.benign_counts[payload.dst_ip] = 0
+                key = (payload.dst_ip, prediction.predicted_class)
+                queue = self.pending[key]
+                queue.append(flow)
+                while queue and (now - queue[0].timestamp).total_seconds() > 5:
+                    queue.popleft()
+                incident = db.scalar(select(Incident).where(Incident.target_ip == key[0],
+                    Incident.attack_category == key[1], Incident.status == 'ACTIVE',
+                    Incident.last_seen_at >= now - timedelta(seconds=15)).order_by(Incident.id.desc()))
+                if incident or len(queue) >= (1 if payload.capture_mode == 'PCAP_UPLOAD' else 3):
+                    batch = list(queue)
+                    queue.clear()
+                    fresh = incident is None
+                    if fresh:
+                        incident = Incident(title=f'{flow.protocol} {key[1]} Flood targeting {key[0]}',
+                            attack_category=key[1], severity='CRITICAL' if key[1]=='DDoS' else 'HIGH',
+                            target_ip=key[0], source_ips_json='[]', started_at=batch[0].timestamp,
+                            last_seen_at=now, affected_flows_count=0, peak_rate_pps=0, model_used=flow.model_used)
+                        db.add(incident)
+                    before = incident.affected_flows_count
+                    incident.affected_flows_count += len(batch)
+                    incident.last_seen_at = now
+                    incident.source_ips_json = json.dumps(sorted(set(json.loads(incident.source_ips_json)) | {f.src_ip for f in batch}))
+                    incident.peak_rate_pps = max(incident.peak_rate_pps, *(json.loads(f.features_22_json)['Rate'] for f in batch))
+                    db.flush()
+                    if fresh or any(before < n <= incident.affected_flows_count for n in (100,1000,10000,100000)):
+                        alert = Alert(incident_id=incident.id, timestamp=now, attack_type=key[1],
+                            severity=incident.severity, src_ip=flow.src_ip, dst_ip=key[0], protocol=flow.protocol,
+                            confidence=sum(f.confidence for f in batch)/len(batch), top_anomalies_json=flow.top_anomalies_json)
+                        db.add(alert)
+                        db.flush()
+                        alerts.append(serialize(alert))
+                    target = db.scalar(select(Device).where(Device.ip_address == key[0]))
+                    target.under_attack_status = key[1] + ' Attack'
+                    incidents.append(serialize(incident))
+            else:
+                self.benign_counts[payload.dst_ip] = self.benign_counts.get(payload.dst_ip, 0) + 1
+                if self.benign_counts[payload.dst_ip] >= 10:
+                    recent = db.scalar(select(Incident).where(Incident.target_ip == payload.dst_ip,
+                        Incident.status == 'ACTIVE', Incident.last_seen_at >= now - timedelta(seconds=15)))
+                    if recent is None:
+                        for target in db.scalars(select(Device).where(Device.ip_address == payload.dst_ip)):
+                            target.under_attack_status = 'Normal'
+            db.flush()
+            flows.append(serialize(flow))
+        return flows, alerts, incidents

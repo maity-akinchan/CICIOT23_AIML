@@ -23,14 +23,19 @@ async def _predict(request: Request, payloads) -> BatchPredictionResponse:
         predictions = engine.predict_batch(payloads)
     except (RuntimeError, ValueError) as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
-    new_alerts = await request.app.state.incident_manager.process(predictions)
-    alert_sources = {alert["src_ip"] for alert in new_alerts}
-    telemetry = []
-    for prediction in predictions:
-        flow = prediction.model_dump(mode="json")
-        flow["new_alert"] = prediction.src_ip in alert_sources
-        telemetry.append(flow)
-    request.app.state.ws_manager.enqueue(telemetry)
+    with request.app.state.sessions.begin() as db:
+        flows, alerts, incidents = request.app.state.incidents.record(db, payloads, predictions)
+    await request.app.state.auto_blocker.process(request.app, payloads, predictions)
+    from app.routers.analytics import overview
+    await request.app.state.ws_manager.broadcast({
+        "kpis": overview(request),
+        "event_type": "TELEMETRY_BATCH",
+        "server_timestamp": datetime.now(timezone.utc).isoformat(),
+        "active_model_id": engine.bundle.get("model_id", "xgb"),
+        "flows": flows,
+        "new_alerts": alerts,
+        "updated_incidents": incidents,
+    })
     return _response(predictions)
 
 

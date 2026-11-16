@@ -21,6 +21,7 @@ class FlowWindowPayload(BaseModel):
     src_ip: str = Field(min_length=1, max_length=64)
     dst_ip: str = Field(min_length=1, max_length=64)
     src_mac: str = Field(default="", max_length=32)
+    dst_mac: str = ""
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     window_id: str | None = Field(default=None, max_length=64)
     packet_count: int = Field(default=100, ge=1)
@@ -99,6 +100,7 @@ class Features18Payload(BaseModel):
 class CollectorWindow(BaseModel):
     model_config = ConfigDict(extra="forbid")
     window_id: str
+    timestamp_start: datetime | None = None
     timestamp_end: datetime
     packet_count: int = Field(ge=1)
     metadata: CollectorMetadata
@@ -108,7 +110,7 @@ class CollectorWindow(BaseModel):
         metadata = self.metadata
         return FlowWindowPayload(
             **self.features_18.model_dump(),
-            src_ip=metadata.src_ip, dst_ip=metadata.dst_ip, src_mac=metadata.src_mac,
+            src_ip=metadata.src_ip, dst_ip=metadata.dst_ip, src_mac=metadata.src_mac, dst_mac=metadata.dst_mac,
             timestamp=self.timestamp_end, window_id=self.window_id,
             packet_count=self.packet_count, capture_mode=capture_mode,
             src_port=metadata.src_port, dst_port=metadata.dst_port,

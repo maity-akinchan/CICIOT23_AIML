@@ -78,3 +78,6 @@ pnpm-debug.log*
 
 # Keep empty placeholder markers tracked
 !.gitkeep
+
+# User-provided production XGBoost bundle
+!ml/artifacts/ciciot_22f_xgb.joblib

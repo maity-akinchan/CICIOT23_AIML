@@ -1,210 +1,102 @@
-# 03 — GO PACKET COLLECTOR SPECIFICATION (`collector-go/`)
-**Language & Runtime:** Go 1.22+  
-**Primary Dependency:** `github.com/google/gopacket` (`pcap` and `layers` subpackages)  
-**Responsibility:** High-speed packet capture from `.pcap` files or live network interfaces, 100-packet tumbling window aggregation, Track A metadata extraction, and Track B 18-feature computation.
+# Capture collector and Go integration — v3
 
----
+**Status:** target for M3/M4; current Go source files are empty. A collector is a
+measurement source, not proof of compatibility with the trained CSV model.
 
-## 1. CLI FLAGS & OPERATIONAL MODES
-The binary compiled from `collector-go/cmd/collector/main.go` **MUST** support the following command-line flags:
+## 1. Implement after defining the measurement contract
 
-```bash
-./collector \
-  --mode <pcap|live> \
-  --pcap <path-to-file.pcap> \
-  --iface <network-interface-name, e.g., eth0, docker0, any> \
-  --api-url <http://localhost:8000/api/v1/ingest/windows> \
-  --window-size 100 \
-  --flush-timeout-ms 2000 \
-  --batch-size 25 \
-  --collector-id <string-identifier> \
-  --bpf <optional-bpf-filter, default: "ip or ip6">
-```
+Read [the ML contract](machine_learning_pipeline_22_feature_contract.md) first.
+For the existing CSV model, reproducing an original extractor requires source
+provenance and parity evidence. The candidate `sentinel-pcap22-v2` equations are
+for new training, not a translation of CICIoT2023 CSV column names.
 
-### 1.1 Execution Behavior by Mode
-1. **`--mode pcap` (Offline File Analysis):**
-   - Opens the file specified by `--pcap` via `pcap.OpenOffline(pcapPath)`.
-   - Reads all packets sequentially at native speed.
-   - Every `--window-size` (default `100`) valid IP packets, emits a `WindowPayload`.
-   - At `EOF`, if the remaining buffer has $\ge 5$ packets, flushes that partial window so small PCAP files still produce predictions.
-   - Ships batches of up to `--batch-size` windows via HTTP POST to `--api-url`, logs total windows shipped, and exits with code `0`.
+A shared Python reference can support the first PCAP experiment. If Go is used
+for live capture, it must match the reference on identical packets, timestamps,
+window boundaries, partial-window handling, feature precision and metadata.
+Do not maintain two independently evolving definitions.
 
-2. **`--mode live` (Real-Time Interface Sniffing):**
-   - Opens `--iface` via `pcap.OpenLive(iface, 65535, true, pcap.BlockForever)`.
-   - Applies `--bpf` filter (default `"ip or ip6"` to ignore non-IP layer-2 noise that lacks TTL/IP headers).
-   - Continuously reads packets. Whenever the active window reaches `100` packets **OR** `--flush-timeout-ms` (`2000ms`) elapses with $\ge 2$ packets in the buffer, flushes the window to the HTTP shipper channel.
-   - Handles `SIGINT` / `SIGTERM` gracefully by flushing any in-flight batches before exiting.
+## 2. Capture modes and data integrity
 
----
+Implement offline PCAP first, then live capture from the target's actual
+interface/network namespace. Configuration includes mode, source/interface,
+server URL, sensor/session identity, credentials and the declared contract ID.
+The collector must not choose a contract by the class it expects to predict.
 
-## 2. PER-PACKET PARSING SPECIFICATION (`internal/parser/decoder.go`)
+- Group by the contract's directed endpoint/protocol key. Source and destination
+  must come from an observed tuple. An interface-wide majority pair is not a flow.
+- Offline extraction and live timeout behavior must have equivalent definitions.
+  Preserve event time, UTC offset normalization and per-session ordering. Record
+  late/out-of-order packets and apply one explicit policy in training and serving.
+- Use original wire length from capture metadata. Detect `caplen < wirelen`; do
+  not silently change the feature to captured length. Reject/flag headers that
+  cannot be parsed completely.
+- Ethernet and raw IPv4/IPv6 support may be the first tested subset. Advertise the
+  supported link types. Linux cooked capture, VLANs, IPv6 extension chains,
+  fragments and unsupported transport types require explicit handling or a clear
+  unsupported status. An unknown IP protocol must not default to TCP.
+- Keep MAC addresses nullable when absent. Never invent vendor identities or
+  topology. Packet metadata is not a classifier feature unless a new model was
+  explicitly trained to use it.
+- Bound concurrent flow keys and queue size; expire keys. Count received,
+  accepted, skipped, truncated and dropped packets/windows. Expose backlog and
+  loss to the backend so low throughput cannot look like successful detection.
 
-For every raw packet read from `gopacket.NewPacketSource`, extract a lightweight struct `ParsedPacket`:
+Candidate window size/timeout/minimum are defined in the ML specification.
+Changing them is a scientific experiment requiring a new contract, not a hidden
+runtime convenience flag.
 
-```go
-type ParsedPacket struct {
-    Timestamp     time.Time
-    WireLength    float64 // float64(pkt.Metadata().CaptureInfo.Length)
-    HeaderLength  float64 // IP Header Length + Transport Header Length in bytes
-    TTL           float64 // IPv4.TTL or IPv6.HopLimit (0-255)
-    SrcMAC        string
-    DstMAC        string
-    SrcIP         string
-    DstIP         string
-    SrcPort       uint16
-    DstPort       uint16
-    IsTCP         bool
-    IsUDP         bool
-    IsICMP        bool
-    FlagFIN       bool
-    FlagSYN       bool
-    FlagRST       bool
-    FlagPSH       bool
-    FlagACK       bool
-}
-```
+## 3. Transport
 
-### 2.1 Layer Extraction Rules
-1. **Link Layer (`layers.LayerTypeEthernet`):**
-   - Extract `SrcMAC = eth.SrcMAC.String()`, `DstMAC = eth.DstMAC.String()`.
-   - If capturing on Linux `any` cooked socket (`LayerTypeLinuxSLL`) or Raw IP, fallback `SrcMAC = "00:00:00:00:00:00"`, `DstMAC = "00:00:00:00:00:00"`.
-2. **Network Layer (`layers.LayerTypeIPv4` or `layers.LayerTypeIPv6`):**
-   - If neither IPv4 nor IPv6 is present, **skip the packet**.
-   - For **IPv4**:
-     - `SrcIP = ip4.SrcIP.String()`, `DstIP = ip4.DstIP.String()`
-     - `TTL = float64(ip4.TTL)`
-     - `ipHeaderBytes = float64(ip4.IHL) * 4.0` (typically `20.0` bytes)
-   - For **IPv6**:
-     - `SrcIP = ip6.SrcIP.String()`, `DstIP = ip6.DstIP.String()`
-     - `TTL = float64(ip6.HopLimit)`
-     - `ipHeaderBytes = 40.0`
-3. **Transport Layer:**
-   - **`layers.LayerTypeTCP`**:
-     - `IsTCP = true`
-     - `SrcPort = uint16(tcp.SrcPort)`, `DstPort = uint16(tcp.DstPort)`
-     - `transportHeaderBytes = float64(tcp.DataOffset) * 4.0` (typically `20.0`–`60.0` bytes)
-     - Extract flags: `FlagFIN = tcp.FIN`, `FlagSYN = tcp.SYN`, `FlagRST = tcp.RST`, `FlagPSH = tcp.PSH`, `FlagACK = tcp.ACK`
-   - **`layers.LayerTypeUDP`**:
-     - `IsUDP = true`
-     - `SrcPort = uint16(udp.SrcPort)`, `DstPort = uint16(udp.DstPort)`
-     - `transportHeaderBytes = 8.0`
-   - **`layers.LayerTypeICMPv4` or `layers.LayerTypeICMPv6`**:
-     - `IsICMP = true`
-     - `SrcPort = 0`, `DstPort = 0`
-     - `transportHeaderBytes = 8.0`
-   - **Other IP Protocols**:
-     - `transportHeaderBytes = 0.0`
-4. **Total Header Length for Packet $k$:**
-   - `HeaderLength = ipHeaderBytes + transportHeaderBytes`
-5. **Total Packet Wire Length for Packet $k$:**
-   - `WireLength = float64(pkt.Metadata().Length)` (if `0`, fallback to `float64(len(pkt.Data()))`).
+Use bounded batches of at most 100 observations, stable IDs across retries and
+finite HTTP timeouts. Retry transient failures with bounded backoff; surface
+permanent validation/authentication errors. The backend must deduplicate before
+incrementing counters or updating incidents. Preserve source/session identifiers
+through persistence and UI events.
 
----
+Authenticate the collector independently from the operator. Bind its token to
+the permitted sensor, source mode and targets. Do not accept an untrusted client
+claiming `LIVE_INTERFACE` as evidence that data can drive device actions.
+Ship only base features; the shared serving preprocessor derives the four ratios.
+At startup, verify the backend accepts this extractor contract. Stop inference
+shipping on incompatibility and expose the error rather than silently switching
+models.
 
-## 3. EXACT DETERMINISTIC EQUATIONS FOR THE 18 BASE FEATURES (`internal/window/math.go`)
+## 4. Acceptance fixtures
 
-Given a slice of $N$ packets $P = [p_1, p_2, \dots, p_N]$ where $N \ge 1$ (standard $N = 100$):
+Use hand-verifiable packets plus realistic captures:
 
-### 3.1 Timing & Rate Features
-1. **`flow_duration`** (in seconds):
-   $$
-   \Delta t = p_N.\text{Timestamp.Sub}(p_1.\text{Timestamp}).\text{Seconds}()
-   $$
-   - **Clamping Rule:** If $\Delta t < 10^{-6}$ (e.g., all packets captured in the same microsecond burst or $N=1$), set:
-     $$
-     \text{flow\_duration} = 10^{-6}
-     $$
-2. **`Rate`** (packets per second):
-   $$
-   \text{Rate} = \frac{\text{float64}(N)}{\text{flow\_duration}}
-   $$
+- 100 TCP SYN packets: 54 wire bytes, 40 network+TCP header bytes, TTL 64,
+  0.0001-second spacing. Expected duration 0.0099, rate 100/0.0099,
+  SYN count 100, SYN share 1, standard deviation 0.
+- UDP, ICMP, IPv6, TCP options, zero-duration timestamps, truncation, small files,
+  EOF and timeout partials, unsupported link types and malformed captures.
+- Mixed endpoint pairs proving no invented source/destination association.
+- Reference/Go parity for each supported fixture, including partial windows and
+  original wire lengths. Set numeric tolerances per feature and dtype.
+- Retry/disconnect tests demonstrating one persisted observation and no doubled
+  alerts; bounded-buffer tests with a slow/unavailable backend.
 
-### 3.2 Header & TTL Features
-3. **`Header_Length`**:
-   $$
-   \text{Header\_Length} = \frac{1}{N} \sum_{k=1}^{N} p_k.\text{HeaderLength}
-   $$
-4. **`Duration`** (CICIoT2023's column name for mean TTL):
-   $$
-   \text{Duration} = \frac{1}{N} \sum_{k=1}^{N} p_k.\text{TTL}
-   $$
+These tests establish extraction correctness under this contract only. A
+successful synthetic SYN prediction does not validate learned attack detection.
 
-### 3.3 TCP Flag Counts & Proportions
-Let $\mathbb{I}(\cdot) \in \{0, 1\}$ be the indicator function:
-5. **`ack_count`**:
-   $$
-   \text{ack\_count} = \sum_{k=1}^{N} \mathbb{I}(p_k.\text{FlagACK})
-   $$
-6. **`syn_count`**:
-   $$
-   \text{syn\_count} = \sum_{k=1}^{N} \mathbb{I}(p_k.\text{FlagSYN})
-   $$
-7. **`fin_count`**:
-   $$
-   \text{fin\_count} = \sum_{k=1}^{N} \mathbb{I}(p_k.\text{FlagFIN})
-   $$
-8. **`rst_count`**:
-   $$
-   \text{rst\_count} = \sum_{k=1}^{N} \mathbb{I}(p_k.\text{FlagRST})
-   $$
-9. **`fin_flag_number`**:
-   $$
-   \text{fin\_flag\_number} = \frac{\text{fin\_count}}{\text{float64}(N)}
-   $$
-10. **`syn_flag_number`**:
-    $$
-    \text{syn\_flag\_number} = \frac{\text{syn\_count}}{\text{float64}(N)}
-    $$
-11. **`rst_flag_number`**:
-    $$
-    \text{rst\_flag\_number} = \frac{\text{rst\_count}}{\text{float64}(N)}
-    $$
-12. **`psh_flag_number`**:
-    $$
-    \text{psh\_flag\_number} = \frac{1}{N} \sum_{k=1}^{N} \mathbb{I}(p_k.\text{FlagPSH})
-    $$
-13. **`ack_flag_number`**:
-    $$
-    \text{ack\_flag\_number} = \frac{\text{ack\_count}}{\text{float64}(N)}
-    $$
+## 5. Optional endpoint management (M5)
 
-### 3.4 Protocol Proportions
-14. **`TCP`**:
-    $$
-    \text{TCP} = \frac{1}{N} \sum_{k=1}^{N} \mathbb{I}(p_k.\text{IsTCP})
-    $$
-15. **`UDP`**:
-    $$
-    \text{UDP} = \frac{1}{N} \sum_{k=1}^{N} \mathbb{I}(p_k.\text{IsUDP})
-    $$
-16. **`ICMP`**:
-    $$
-    \text{ICMP} = \frac{1}{N} \sum_{k=1}^{N} \mathbb{I}(p_k.\text{IsICMP})
-    $$
+Preserve legacy integration route names only through documented adapters:
+`/api/devices/register`, `/api/devices/heartbeat`, and `/ws/agent/{device_id}`.
+Enrolment is operator-authorized; a setup token is not an unrestricted admin key.
+Prefer authorization headers; if a compatibility query token is required for a
+WebSocket client, redact URL logs and use secure transport outside the local lab.
 
-### 3.5 Packet Length Statistics
-17. **`AVG`**:
-    $$
-    \text{AVG} = \frac{1}{N} \sum_{k=1}^{N} p_k.\text{WireLength}
-    $$
-18. **`Std`** (Population Standard Deviation matching `numpy.std` / `dpkt` window extractor):
-    $$
-    \text{Std} = \sqrt{\frac{1}{N} \sum_{k=1}^{N} \left(p_k.\text{WireLength} - \text{AVG}\right)^2}
-    $$
+A command ledger includes `command_id`, device/session, action, payload, actor,
+reason, model/evidence reference, timestamp, deadline and lifecycle status.
+Only acknowledge success after execution and state inspection. Retried command
+IDs are idempotent; duplicate/foreign/stale ACKs cannot mark a new command complete.
+Sandbox reports **simulated**, never **executed**.
 
----
-
-## 4. TRACK A METADATA AGGREGATION RULES (`internal/window/aggregator.go`)
-Because a 100-packet window can contain packets from multiple hosts, `aggregator.go` determines the window's primary `metadata` object using **Majority Vote (Mode)**:
-- **`src_ip` & `src_mac`:** The most frequent `SrcIP` in the 100-packet window, and its associated `SrcMAC`.
-- **`dst_ip` & `dst_mac`:** The most frequent `DstIP` in the 100-packet window, and its associated `DstMAC`.
-- **`src_port` & `dst_port`:** The most frequent `SrcPort` and `DstPort` in the window.
-- **`dominant_protocol`:** `"TCP"` if $\text{TCP} \ge \text{UDP}$ and $\text{TCP} \ge \text{ICMP}$; else `"UDP"` if $\text{UDP} \ge \text{ICMP}$; else `"ICMP"`.
-- **`device_vendor`:** Determined via a built-in OUI prefix map (`internal/parser/oui.go`) matching the first 3 octets of `src_mac` or `dst_mac` (e.g., `02:42:AC` $\rightarrow$ `"Docker Virtual IoT"`, `B8:27:EB` / `DC:A6:32` $\rightarrow$ `"Raspberry Pi Foundation"`, `24:FD:5B` $\rightarrow$ `"Smart Camera Corp"`, fallback $\rightarrow$ `"Generic IoT Endpoint"`).
-
----
-
-## 5. HTTP SHIPPER & RETRY SPECIFICATION (`internal/shipper/http_shipper.go`)
-- Uses an `http.Client` with `Timeout: 10 * time.Second`.
-- Marshals `IngestBatchRequest` into JSON and sends `POST` to `--api-url` with header `Content-Type: application/json`.
-- Implements 3-attempt exponential backoff (`200ms`, `500ms`, `1000ms`) on HTTP `5xx` or network connection errors.
+Keep firewall/DNS/kill-switch controls disabled in the core demo. If added later,
+default to sandbox, use argument arrays and validated addresses, isolate the lab,
+protect loopback and backend control traffic before firewall changes, and provide
+rollback. IPv4-only iptables does not establish IPv6 blocking. Downloads must
+include architecture, OS/library requirements, version and checksum; cross-build
+libpcap/CGO dependencies must be tested. A file path existing is not proof that
+an executable works on its advertised platform.
