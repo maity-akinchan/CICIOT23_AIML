@@ -1,0 +1,61 @@
+import socket
+from pathlib import Path
+import dpkt
+from fastapi.testclient import TestClient
+from app.main import app
+
+
+def test_large_upload_and_enrollment(monkeypatch,tmp_path):
+    monkeypatch.setenv('DATABASE_URL',f'sqlite:///{tmp_path}/large.db')
+    monkeypatch.delenv('SENTINEL_AUTH_DISABLED',raising=False)
+    monkeypatch.setenv('SENTINEL_OPERATOR_TOKEN','operator-upload-test')
+    headers={'Authorization':'Bearer operator-upload-test'}
+    path=tmp_path/'large.pcap'
+    with path.open('wb') as stream:
+        writer=dpkt.pcap.Writer(stream)
+        tcp=dpkt.tcp.TCP(sport=1234,dport=80,flags=2,off=5,data=b'x'*60000)
+        ip=dpkt.ip.IP(src=socket.inet_aton('192.0.2.1'),dst=socket.inet_aton('192.0.2.2'),p=6,ttl=64,data=tcp);ip.len=len(ip)
+        packet=bytes(dpkt.ethernet.Ethernet(src=b'\x00'*6,dst=b'\x01'*6,type=2048,data=ip))
+        for i in range(600):writer.writepkt(packet,ts=i*.0001)
+    assert path.stat().st_size>32*1024*1024
+    with TestClient(app) as client:
+        with path.open('rb') as stream:
+            result=client.post('/api/v1/pcap/upload',headers=headers,files={'file':('large.pcap',stream)})
+        assert result.status_code==200,result.text
+        assert result.json()['processed_windows']==6
+        before=client.get('/api/v1/flows',headers=headers).json()['total']
+        with path.open('ab') as stream:stream.write(b'invalid-record')
+        with path.open('rb') as stream:
+            bad=client.post('/api/v1/pcap/upload',headers=headers,files={'file':('large.pcap',stream)})
+        assert bad.status_code==422
+        assert client.get('/api/v1/flows',headers=headers).json()['total']==before
+        assert client.get('/api/v1/captures',headers=headers).json()['total']==1
+        code=client.post('/api/v1/services/enrollments',headers=headers,json={'collector_id':'device-one'}).json()['code']
+        token=client.post('/api/v1/services/enroll',json={'code':code})
+        assert token.status_code==200,token.text
+        assert token.json()['collector_id']=='device-one'
+        assert client.post('/api/v1/services/enroll',json={'code':code}).status_code==401
+        device={'Authorization':'Bearer '+token.json()['token']}
+        assert client.post('/api/v1/services/verify',headers=device,json={'collector_id':'device-one'}).status_code==200
+        assert client.get('/api/v1/flows',headers=device).status_code==403
+        assert client.get('/api/v1/install.sh').status_code==200
+
+
+def test_upload_crosses_batch_boundary(monkeypatch,tmp_path):
+    from test_pipeline import capture
+    from app.services.pcap_runner import pcap_windows
+    from app.routers import pcap
+    from uuid import uuid4
+    monkeypatch.setenv('SENTINEL_AUTH_DISABLED','1')
+    monkeypatch.setenv('DATABASE_URL',f'sqlite:///{tmp_path}/batches.db')
+    path=tmp_path/'small.pcap';capture(path)
+    with path.open('rb') as stream:sample=next(pcap_windows(stream))
+    def windows(_):
+        for i in range(513):
+            yield sample.model_copy(update={'window_id':str(uuid4())},deep=True)
+    monkeypatch.setattr(pcap,'pcap_windows',windows)
+    with TestClient(app) as client:
+        r=client.post('/api/v1/pcap/upload',files={'file':('small.pcap',path.read_bytes())})
+        assert r.status_code==200,r.text
+        assert r.json()['processed_windows']==513
+        assert client.get('/api/v1/flows').json()['total']==513

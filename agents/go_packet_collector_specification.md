@@ -33,3 +33,11 @@ and Analysis history remain separate. Alerts use persisted server records and
 acknowledgement endpoints. Capture history stores metadata and original model
 identity but never raw packets. See agents/remaining_components.md for validation
 limits and README for deployment, credential rotation and uninstall instructions.
+
+Simplified deployment: scripts/setup-server.sh builds/runs deploy/compose.yml,
+including the live binary and same-origin HTTPS website. Device setup is served
+from /api/v1/install.sh and uses one-use, 15-minute enrollment codes. Credentials
+are generated on redemption and stored root-only by the installer. Keep probes
+and synthetic browser traffic removed. PCAP upload has no fixed size/window cap;
+use disk spooling, bounded batches, atomic persistence and paginated results.
+The browser must send multipart PCAP, never parse it as CSV or silently zero data.

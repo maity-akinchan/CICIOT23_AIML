@@ -35,7 +35,7 @@ keeps supplied splits and reports overlap; capture independence is unknown.
 
 The Go/HTTP test uses the real model with a synthetic Ethernet/IPv4/TCP fixture.
 Other protocol combinations and real-interface traffic still need validation.
-FastAPI uploads support a restricted classic-PCAP subset and a 32 MiB limit.
+FastAPI uploads support a restricted classic-PCAP subset with no fixed application file-size limit.
 Go can replay captures incrementally; neither path requires storing training PCAPs.
 
 Device/firewall actions remain disabled. Authentication and public deployment

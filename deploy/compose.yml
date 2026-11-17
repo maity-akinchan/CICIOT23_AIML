@@ -1,0 +1,37 @@
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+      target: api
+    restart: unless-stopped
+    environment:
+      SENTINEL_OPERATOR_TOKEN: ${SENTINEL_OPERATOR_TOKEN:?Run server setup}
+      DATABASE_URL: sqlite:////data/sentinel.db
+    volumes:
+      - data:/data
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request,json; d=json.load(urllib.request.urlopen('http://localhost:8000/health')); assert d['model_loaded'],d.get('reason')"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+  web:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+      target: web
+    restart: unless-stopped
+    environment:
+      SENTINEL_DOMAIN: ${SENTINEL_DOMAIN:?Run server setup}
+    ports: ['80:80', '443:443']
+    volumes:
+      - certificates:/data
+      - caddy_config:/config
+    depends_on:
+      api:
+        condition: service_healthy
+volumes:
+  data:
+  certificates:
+  caddy_config:

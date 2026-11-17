@@ -111,3 +111,10 @@ class CaptureSession(Base):
     benign_count = mapped_column(Integer)
     dos_count = mapped_column(Integer)
     ddos_count = mapped_column(Integer)
+
+class Enrollment(Base):
+    __tablename__ = 'service_enrollments'
+    token_hash = mapped_column(String(64), primary_key=True)
+    collector_id = mapped_column(String(64))
+    expires_at = mapped_column(DateTime)
+    used = mapped_column(Boolean, default=False)

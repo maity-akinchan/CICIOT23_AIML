@@ -12,29 +12,42 @@ async def upload(request:Request,file:UploadFile):
     if engine.is_loaded:
         if not engine.bundle.get("is_legacy"): raise HTTPException(422,"PCAP extraction has not been verified against the Kaggle CSV measurements; use CSV upload")
     if not engine.is_loaded:raise HTTPException(503,engine.error)
-    try:data=await file.read(32*1024*1024+1)
-    finally:await file.close()
-    if len(data)>32*1024*1024:raise HTTPException(413,'Maximum upload size is 32 MiB')
-    if not (file.filename or '').lower().endswith('.pcap'):raise HTTPException(415,'Only classic Ethernet PCAP is supported by this contract')
+    if not (file.filename or '').lower().endswith('.pcap'):
+        await file.close()
+        raise HTTPException(415,'Choose a classic .pcap file; PCAPNG is not supported')
     session=str(uuid4())
     def analyze():
-        windows=list(pcap_windows(io.BytesIO(data)))
-        if len(windows)>10000:raise ValueError('Upload exceeds 10,000 windows')
-        for window in windows:window.capture_session_id=session
-        predictions=engine.predict_batch(windows) if windows else []
-        result=_response(predictions)
-        from app.models import CaptureSession
+        # UploadFile is disk-spooled by Starlette. Never read the entire capture.
         import hashlib
+        from itertools import islice
+        from app.models import CaptureSession
+        from app.services.incident_manager import IncidentManager
+        digest=hashlib.sha256();size=0
+        file.file.seek(0)
+        while chunk:=file.file.read(1024*1024):digest.update(chunk);size+=len(chunk)
+        file.file.seek(0)
+        # Isolate transient incident state so a malformed file cannot pollute live state.
+        incidents=IncidentManager()
+        counts=dict(processed_windows=0,benign_count=0,dos_count=0,ddos_count=0)
+        windows=iter(pcap_windows(file.file))
         with request.app.state.sessions.begin() as db:
-            request.app.state.incidents.record(db,windows,predictions)
+            while batch:=list(islice(windows,256)):
+                for window in batch:window.capture_session_id=session
+                predictions=engine.predict_batch(batch)
+                result=_response(predictions)
+                for key in counts:counts[key]+=getattr(result,key)
+                incidents.record(db,batch,predictions)
+                db.flush();db.expunge_all()
+                incidents.pending.clear();incidents.benign_counts.clear()
             db.add(CaptureSession(id=session,filename=(file.filename or 'capture.pcap')[:255],
-                file_sha256=hashlib.sha256(data).hexdigest(),size_bytes=len(data),
-                artifact_sha256=engine.bundle['artifact_sha256'],processed_windows=result.processed_windows,
-                benign_count=result.benign_count,dos_count=result.dos_count,ddos_count=result.ddos_count))
-        return {k:getattr(result,k) for k in ('processed_windows','benign_count','dos_count','ddos_count')} | {'capture_session_id':session,'artifact_sha256':engine.bundle['artifact_sha256']}
-    async with request.app.state.ingest_lock:
-        try:return await run_in_threadpool(analyze)
-        except ValueError as exc:raise HTTPException(422,str(exc)) from exc
+                file_sha256=digest.hexdigest(),size_bytes=size,
+                artifact_sha256=engine.bundle['artifact_sha256'],**counts))
+        return counts|{'capture_session_id':session,'artifact_sha256':engine.bundle['artifact_sha256']}
+    try:
+        async with request.app.state.ingest_lock:
+            return await run_in_threadpool(analyze)
+    except (ValueError,EOFError) as exc:raise HTTPException(422,str(exc)) from exc
+    finally:await file.close()
 
 
 @router.post('/csv/upload')

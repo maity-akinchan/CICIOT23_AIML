@@ -11,3 +11,7 @@ def download(name:str):
     allowed={'SHA256SUMS','LIVE-SHA256SUMS','sentinel-service-linux-amd64','sentinel-service-linux-arm64'}|{f'collector-{os}-{arch}'+('.exe' if os=='windows' else '') for os in ('linux','darwin','windows') for arch in ('amd64','arm64')}
     if name not in allowed or not (ROOT/name).is_file():raise HTTPException(404,'Build artifact unavailable')
     return FileResponse(ROOT/name,filename=name)
+
+@router.get('/install.sh')
+def installer():
+    return FileResponse(Path(__file__).resolve().parents[3]/'scripts/install-device.sh',media_type='text/x-shellscript',filename='install.sh')

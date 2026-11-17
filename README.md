@@ -1,3 +1,57 @@
+# Sentinel: quick setup
+
+The **server** runs the website and trained model. The **monitoring service** runs
+on the Linux device and sends measurements to that server. Capture uploads go
+straight through the website; device software is not needed to analyze a file.
+
+## Server administrator — one command
+
+With this repository checked out and Docker Engine + Compose installed:
+
+```bash
+bash scripts/setup-server.sh
+```
+
+Enter a public DNS hostname pointing to the server. Ports 80 and 443 must be
+reachable for HTTPS certificate issuance. Setup generates and preserves the sign-in
+token in `deploy/.env`, builds the UI/backend/live binary, starts the containers,
+and waits for the model to load. It prints the website address and sign-in token.
+Only this hostname is needed by users; there are no separate UI/API port settings.
+Rerun the same command after pulling updates. Data and certificates use volumes.
+If startup fails: `docker compose --env-file deploy/.env -f deploy/compose.yml logs api`.
+
+## Monitored device — one command
+
+Open **Monitoring service**, enter a device name and select **Prepare device setup**.
+Copy the command shown onto that device. The command downloads the installer and
+runs it; paste the one-use setup code when prompted. It installs dependencies,
+selects the architecture, verifies the binary checksum, asks which interface to
+monitor and starts a background service. No repository, Go compiler, operator token,
+or manual environment configuration is required on the device.
+
+Linux with systemd is supported; Debian/Ubuntu and Fedora dependency installation
+is automated. A build for the device architecture must be available. Server setup
+builds its native architecture; CI can build the other Linux architecture.
+Setup codes expire after 15 minutes; device credentials expire after a year and
+can be revoked in the advanced access panel. Keep the code private until redeemed.
+
+## Capture analysis
+
+Use **PCAP analysis** to upload a classic Ethernet/IPv4 `.pcap` file. There is no
+fixed application file-size or window-count cap. Uploads spool to disk; extraction
+and prediction run in batches, and results are paginated. Available disk space,
+processing time, and any independently configured proxy limits still apply.
+Keep the page open while processing; results are saved in Analysis history.
+PCAPNG, truncated packets and unsupported protocols produce an explicit error.
+CSV upload retains its separate limits; the original model is used without retraining.
+
+The latest upload regression was a CSV-only frontend handler accidentally replacing
+the PCAP handler. The client now uses multipart PCAP upload and displays server
+errors (including missing model/authentication) directly. The packaged server
+checks model readiness before exposing the website.
+
+---
+
 # CICIoT23 Sentinel — Go + FastAPI prototype
 
 The supplied trained XGBoost is used directly; retraining is optional. The active

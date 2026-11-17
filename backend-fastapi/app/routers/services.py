@@ -34,3 +34,27 @@ def verify(payload:Issue,request:Request):
     expected=getattr(request.state,'collector_id',None)
     if expected is None or payload.collector_id!=expected:raise HTTPException(403,'Use a device-bound service credential for this service ID')
     return {'authorized':True,'collector_id':expected}
+
+class Redeem(BaseModel):
+    code:str=Field(min_length=32,max_length=128)
+
+@router.post('/services/enrollments',status_code=201)
+def enrollment(payload:Issue,request:Request):
+    from app.models import Enrollment
+    code=secrets.token_urlsafe(32)
+    with request.app.state.sessions.begin() as db:
+        db.add(Enrollment(token_hash=hashlib.sha256(code.encode()).hexdigest(),collector_id=payload.collector_id,expires_at=datetime.utcnow()+timedelta(minutes=15)))
+    return {'code':code,'collector_id':payload.collector_id,'expires_in_seconds':900}
+
+@router.post('/services/enroll')
+def enroll(payload:Redeem,request:Request):
+    from sqlalchemy import update
+    from app.models import Enrollment
+    digest=hashlib.sha256(payload.code.encode()).hexdigest()
+    with request.app.state.sessions.begin() as db:
+        claimed=db.execute(update(Enrollment).where(Enrollment.token_hash==digest,Enrollment.used==False,Enrollment.expires_at>datetime.utcnow()).values(used=True))
+        if claimed.rowcount!=1:raise HTTPException(401,'Setup code expired, already used, or invalid. Generate a new code in Monitoring service.')
+        e=db.get(Enrollment,digest)
+        token=secrets.token_urlsafe(48)
+        db.add(ServiceCredential(id=str(uuid4()),collector_id=e.collector_id,token_hash=hashlib.sha256(token.encode()).hexdigest(),expires_at=datetime.utcnow()+timedelta(days=365)))
+        return {'collector_id':e.collector_id,'token':token}
