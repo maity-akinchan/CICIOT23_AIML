@@ -99,6 +99,7 @@ func (s *shipper) post(batch []Window) error {
 
 func encodeBatch(cfg Config, collectorID, captureMode, session, linkName string, stats *Stats, batch []Window) ([]byte, error) {
 	payload := ingestRequest{
+		FeatureContractID: contractID, ContractHash: contractHash, CaptureSessionID: session,
 		CollectorID: collectorID,
 		CaptureMode: captureMode,
 		SourceRef:   cfg.sourceRef(session, linkName, stats),
@@ -239,6 +240,12 @@ func checkHealth(ctx context.Context, health string, cfg Config) error {
 }
 
 func contractsCompatible(doc map[string]any, captureMode string) error {
+	if ready, ok := doc["model_loaded"].(bool); ok && !ready {
+		return &stopShippingError{msg: "backend has no loaded model"}
+	}
+	if hash, ok := doc["contract_hash"].(string); ok && hash != contractHash {
+		return &stopShippingError{msg: "backend approximation contract hash differs"}
+	}
 	if raw, ok := doc["allowed_contracts"]; ok {
 		if !jsonListContains(raw, contractID) {
 			return &stopShippingError{msg: "backend allowed_contracts does not include " + contractID}

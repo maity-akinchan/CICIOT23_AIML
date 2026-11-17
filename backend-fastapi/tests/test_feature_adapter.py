@@ -20,7 +20,8 @@ def test_syn_capture_math():
     assert row.flow_duration==pytest.approx(.0099,abs=1e-5)
     assert row.Rate==pytest.approx(100/.0099,abs=1e-5)
     assert row.AVG==54
-    assert row.Header_Length==40
+    assert row.Header_Length==20  # TCP header only; Ethernet and IPv4 excluded
+    assert row.input_representation=='packet_approximation'
     assert row.Duration==64
     assert row.syn_count==100
     assert row.ack_count==0

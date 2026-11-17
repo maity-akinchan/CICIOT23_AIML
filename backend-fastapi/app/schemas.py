@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 BASE_FEATURE_NAMES = (
     "flow_duration", "Rate", "Header_Length", "Duration", "fin_flag_number",
@@ -13,13 +13,16 @@ BASE_FEATURE_NAMES = (
 )
 DERIVED_FEATURE_NAMES = ("bytes_per_sec", "syn_ack_ratio", "hdr_pkt_ratio", "pkt_cv")
 FEATURE_NAMES = BASE_FEATURE_NAMES + DERIVED_FEATURE_NAMES
-FiniteFloat = float
+from pydantic import StrictFloat
+FiniteFloat = StrictFloat
 
 
 class FlowWindowPayload(BaseModel):
     model_config = ConfigDict(extra="forbid")
+    capture_session_id: str = ""
     src_ip: str = Field(min_length=1, max_length=64)
     dst_ip: str = Field(min_length=1, max_length=64)
+    input_representation: str = "dataset_features"
     src_mac: str = Field(default="", max_length=32)
     dst_mac: str = ""
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -48,6 +51,12 @@ class FlowWindowPayload(BaseModel):
     AVG: FiniteFloat
     Std: FiniteFloat
 
+    @field_validator('timestamp')
+    @classmethod
+    def aware_timestamp(cls,value):
+        if value.tzinfo is None: raise ValueError('Timestamp must include UTC offset')
+        return value
+
     @field_validator(*BASE_FEATURE_NAMES)
     @classmethod
     def validate_finite(cls, value: float) -> float:
@@ -66,6 +75,7 @@ class CollectorMetadata(BaseModel):
     dst_port: int = Field(default=0, ge=0, le=65535)
     dominant_protocol: Literal["TCP", "UDP", "ICMP"] = "TCP"
     device_vendor: str = ""
+    transport_header_mean: float | None = None
 
 
 class Features18Payload(BaseModel):
@@ -106,6 +116,13 @@ class CollectorWindow(BaseModel):
     metadata: CollectorMetadata
     features_18: Features18Payload
 
+    @model_validator(mode='after')
+    def consistent_packet_count(self):
+        import math
+        if not math.isclose(self.features_18.Rate*self.features_18.flow_duration,self.packet_count,rel_tol=1e-6,abs_tol=1e-5):
+            raise ValueError('Packet count disagrees with measured rate and duration')
+        return self
+
     def to_flow_payload(self, capture_mode: str) -> FlowWindowPayload:
         metadata = self.metadata
         return FlowWindowPayload(
@@ -120,6 +137,9 @@ class CollectorWindow(BaseModel):
 
 class IngestBatchRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
+    feature_contract_id: str
+    contract_hash: str
+    capture_session_id: str = Field(min_length=1,max_length=64)
     collector_id: str
     capture_mode: str = "LIVE_INTERFACE"
     source_ref: str = ""
@@ -128,6 +148,8 @@ class IngestBatchRequest(BaseModel):
 
 class BatchPredictionRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
+    feature_contract_id: str
+    contract_hash: str
     data: list[FlowWindowPayload] = Field(min_length=1, max_length=100)
 
 
@@ -148,6 +170,9 @@ class PredictionResult(BaseModel):
     confidence_score: float
     is_anomaly: bool
     probabilities: dict[str, float]
+    input_representation: str = "dataset_features"
+    compatibility_warning: str | None = None
+    artifact_sha256: str = ""
     model_used: str
     features_22: dict[str, float]
     top_anomalies: list[AnomalyExplanation] = Field(default_factory=list)

@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CICIoT23 Sentinel - Live Traffic &amp; PCAP</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+          "secondary-fixed-dim": "#c0c1ff",
+          "primary": "#b4c5ff",
+          "primary-container": "#2563eb",
+          "on-background": "#e5e0ed",
+          "on-error-container": "#ffdad6",
+          "inverse-primary": "#0053db",
+          "outline-variant": "#434655",
+          "secondary": "#c0c1ff",
+          "inverse-on-surface": "#312f38",
+          "on-surface": "#e5e0ed",
+          "surface-container-low": "#1c1b23",
+          "on-tertiary": "#003824",
+          "border-highlight": "#3B3854",
+          "background": "#13121b",
+          "surface-bright": "#3a3841",
+          "on-primary-container": "#eeefff",
+          "surface-container-high": "#2a2932",
+          "sidebar-surface": "#100F18",
+          "error-container": "#93000a",
+          "surface-card": "#13121D",
+          "canvas-bg": "#0D0C14",
+          "text-primary": "#F8FAFC",
+          "chart-track": "#1E1D2B",
+          "text-muted": "#8E8CA3",
+          "surface-container-lowest": "#0e0d15",
+          "on-tertiary-fixed-variant": "#005236",
+          "surface-container": "#201f27",
+          "error": "#ffb4ab",
+          "on-secondary-container": "#b0b2ff",
+          "tertiary-fixed": "#6ffbbe",
+          "error-critical": "#EF4444",
+          "surface-variant": "#35343d",
+          "primary-fixed": "#dbe1ff",
+          "surface": "#13121b",
+          "surface-tint": "#b4c5ff",
+          "on-error": "#690005",
+          "on-primary-fixed": "#00174b",
+          "on-primary": "#002a78",
+          "accent-cyan": "#06B6D4",
+          "primary-fixed-dim": "#b4c5ff",
+          "on-secondary": "#1000a9",
+          "tertiary-container": "#007d55",
+          "warning": "#F59E0B",
+          "surface-elevated": "#1A1826",
+          "on-tertiary-container": "#bdffdb",
+          "on-primary-fixed-variant": "#003ea8",
+          "border-subtle": "#222030",
+          "inverse-surface": "#e5e0ed",
+          "on-tertiary-fixed": "#002113",
+          "on-surface-variant": "#c3c6d7",
+          "outline": "#8d90a0",
+          "on-secondary-fixed": "#07006c",
+          "on-secondary-fixed-variant": "#2f2ebe",
+          "secondary-fixed": "#e1e0ff",
+          "secondary-container": "#3131c0",
+          "surface-dim": "#13121b",
+          "tertiary": "#4edea3",
+          "surface-container-highest": "#35343d",
+          "tertiary-fixed-dim": "#4edea3",
+          "danger-coral": "#F97316"
+        },
+        "borderRadius": {
+          "DEFAULT": "0.25rem",
+          "lg": "0.5rem",
+          "xl": "0.75rem",
+          "full": "9999px"
+        },
+        "spacing": {
+          "gutter-desktop": "1.5rem",
+          "space-xs": "0.25rem",
+          "gutter": "1rem",
+          "space-sm": "0.5rem",
+          "space-xl": "2rem",
+          "space-md": "1rem",
+          "margin": "1rem",
+          "space-lg": "1.5rem",
+          "margin-desktop": "1.5rem"
+        },
+        "fontFamily": {
+          "body-sm": ["Plus Jakarta Sans"],
+          "caption": ["Plus Jakarta Sans"],
+          "body-md-medium": ["Plus Jakarta Sans"],
+          "body-md": ["Plus Jakarta Sans"],
+          "headline-sm": ["Plus Jakarta Sans"],
+          "headline-lg": ["Plus Jakarta Sans"],
+          "headline-lg-mobile": ["Plus Jakarta Sans"],
+          "display-kpi": ["Plus Jakarta Sans"],
+          "headline-md": ["Plus Jakarta Sans"]
+        },
+        "fontSize": {
+          "body-sm": ["13px", { "lineHeight": "18px", "fontWeight": "500" }],
+          "caption": ["11px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+          "body-md-medium": ["14px", { "lineHeight": "22px", "fontWeight": "500" }],
+          "body-md": ["14px", { "lineHeight": "22px", "fontWeight": "400" }],
+          "headline-sm": ["16px", { "lineHeight": "24px", "fontWeight": "600" }],
+          "headline-lg": ["28px", { "lineHeight": "36px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+          "headline-lg-mobile": ["22px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+          "display-kpi": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+          "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }]
+        }
+      }
+    }
+  }
+</script>
+<style>
+  @layer base {
+    html {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #0D0C14;
+      color: #F8FAFC;
+      overscroll-behavior: none;
+    }
+  }
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #0D0C14;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #222030;
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #3B3854;
+  }
+</style>
+<meta content="web_dashboard" name="shell-type"/>
+</head>
+<body class="bg-[#0D0C14] text-[#F8FAFC] min-h-screen text-body-md font-body-md">
+<!-- LEFT SIDEBAR (240px fixed) -->
+<aside class="fixed top-0 left-0 w-[240px] h-screen bg-[#100F18] border-r border-[#222030] flex flex-col justify-between select-none z-30">
+<div>
+<!-- Top Brand Header -->
+<div class="h-[68px] px-5 flex items-center gap-3 border-b border-[#222030]/60">
+<div class="w-9 h-9 rounded-lg bg-[#6366F1] flex items-center justify-center shadow-lg shadow-[#6366F1]/20 flex-shrink-0">
+<svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</div>
+<div class="overflow-hidden">
+<h1 class="text-[15px] font-bold tracking-tight text-[#F8FAFC] truncate">CICIoT23 Sentinel</h1>
+<p class="text-[9.5px] font-semibold tracking-wider text-[#8E8CA3] uppercase truncate">Network Defense SOC</p>
+</div>
+</div>
+<!-- Navigation Links -->
+<div class="px-3 py-4 space-y-6">
+<!-- Section: MONITORING -->
+<div>
+<div class="px-3 mb-2 text-[10px] font-bold tracking-wider text-[#8E8CA3] uppercase">Monitoring</div>
+<nav class="space-y-1" data-active-classes="bg-[#1A1826] text-[#F8FAFC] border border-[#222030] shadow-sm">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-[#8E8CA3] hover:text-[#F8FAFC] hover:bg-[#13121D] text-[13px] font-medium transition-colors" data-path="security-overview" href="#">
+<svg class="w-4 h-4 text-[#8E8CA3]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span>Security Overview</span>
+</a>
+<!-- Active Item: Live Traffic & PCAP -->
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg bg-[#1A1826] text-[#F8FAFC] border border-[#222030] shadow-sm text-[13px] font-medium transition-colors" data-path="live-traffic-pcap" href="#">
+<svg class="w-4 h-4 text-[#6366F1]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M13 10V3L4 14h7v7l9-11h-7z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span>Live Traffic &amp; PCAP</span>
+</a>
+<a class="flex items-center justify-between px-3 py-2 rounded-lg text-[#8E8CA3] hover:text-[#F8FAFC] hover:bg-[#13121D] text-[13px] font-medium transition-colors" data-path="connected-devices" href="#">
+<div class="flex items-center gap-3">
+<svg class="w-4 h-4 text-[#8E8CA3]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span>Connected Devices</span>
+</div>
+<span class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[#222030] text-[#8E8CA3]">4</span>
+</a>
+</nav>
+</div>
+<!-- Section: INTELLIGENCE -->
+<div>
+<div class="px-3 mb-2 text-[10px] font-bold tracking-wider text-[#8E8CA3] uppercase">Intelligence</div>
+<nav class="space-y-1" data-active-classes="bg-[#1A1826] text-[#F8FAFC] border border-[#222030] shadow-sm">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-[#8E8CA3] hover:text-[#F8FAFC] hover:bg-[#13121D] text-[13px] font-medium transition-colors" data-path="model-comparison" href="#">
+<svg class="w-4 h-4 text-[#8E8CA3]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span>Model Comparison</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-[#8E8CA3] hover:text-[#F8FAFC] hover:bg-[#13121D] text-[13px] font-medium transition-colors" data-path="add-device-cli" href="#">
+<svg class="w-4 h-4 text-[#8E8CA3]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span>Add Device (CLI)</span>
+</a>
+</nav>
+</div>
+</div>
+</div>
+<!-- Bottom Sidebar Controls -->
+<div class="p-3 border-t border-[#222030] space-y-1">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-[#8E8CA3] hover:text-[#F8FAFC] hover:bg-[#13121D] text-[13px] font-medium transition-colors" data-path="settings" href="#">
+<svg class="w-4 h-4 text-[#8E8CA3]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+<path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span>Settings</span>
+</a>
+<button class="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-[#EF4444]/10 border border-[#EF4444]/30 text-[#EF4444] hover:bg-[#EF4444]/20 text-[13px] font-semibold transition-all" data-action="lockdown">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-[#EF4444] animate-pulse"></span>
+<span>Lockdown Mode</span>
+</div>
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</button>
+</div>
+</aside>
+<!-- MAIN CONTENT CONTAINER WITH FIXED LEFT SIDEBAR OFFSET AND TELEMETRY FOOTER BUFFER -->
+<div class="pl-[240px] flex flex-col min-h-screen">
+<!-- TOP HEADER BAR (56px) -->
+<header class="sticky top-0 h-[56px] px-6 bg-[#0D0C14] border-b border-[#222030] flex items-center justify-between z-20">
+<!-- Left: Fleet Selector & Sub-navigation -->
+<div class="flex items-center gap-6">
+<button class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#13121D] border border-[#222030] text-[13px] font-semibold text-[#F8FAFC] hover:border-[#3B3854] transition-colors">
+<span class="w-2 h-2 rounded-full bg-[#10B981]"></span>
+<span>Sentinel Fleet</span>
+<svg class="w-3.5 h-3.5 text-[#8E8CA3]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M19 9l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</button>
+<!-- Sub-nav Tabs -->
+<nav class="flex items-center gap-1" data-active-classes="text-[#F8FAFC] border-b-2 border-[#6366F1]">
+<a class="px-3 py-1.5 text-[13px] font-medium text-[#8E8CA3] hover:text-[#F8FAFC] transition-colors" data-path="overview" href="#">Overview</a>
+<a class="px-3 py-1.5 text-[13px] font-medium text-[#F8FAFC] border-b-2 border-[#6366F1]" data-path="anomalies" href="#">Anomalies</a>
+<a class="px-3 py-1.5 text-[13px] font-medium text-[#8E8CA3] hover:text-[#F8FAFC] transition-colors" data-path="active-rules" href="#">Active Rules</a>
+</nav>
+</div>
+<!-- Right: Search, Model Badge, SOC Lead Profile -->
+<div class="flex items-center gap-4">
+<!-- Search Input -->
+<div class="relative w-64">
+<svg class="w-4 h-4 text-[#8E8CA3] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<input class="w-full h-[34px] pl-9 pr-3 rounded-lg bg-[#13121D] border border-[#222030] text-[12.5px] text-[#F8FAFC] placeholder-[#8E8CA3] focus:outline-none focus:border-[#6366F1] transition-all" placeholder="Search IPs, devices, or alerts..." type="text"/>
+</div>
+<!-- Model Badge -->
+<div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#1A1826] border border-[#222030] text-[12px]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#10B981]"></span>
+<span class="text-[#8E8CA3]">Model:</span>
+<span class="font-semibold text-[#F8FAFC] tabular-nums">XGBoost (91.4%)</span>
+</div>
+<!-- Notification Bell -->
+<button class="relative p-2 rounded-lg bg-[#13121D] border border-[#222030] text-[#8E8CA3] hover:text-[#F8FAFC] hover:border-[#3B3854] transition-colors">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-[#F97316]"></span>
+</button>
+<!-- SOC Profile -->
+<div class="flex items-center gap-2.5 pl-2 border-l border-[#222030]">
+<div class="w-8 h-8 rounded-full bg-gradient-to-tr from-[#2563EB] to-[#6366F1] flex items-center justify-center text-[12px] font-bold text-white shadow-md">
+  AM
+</div>
+<div class="text-left leading-tight hidden lg:block">
+<div class="text-[12.5px] font-semibold text-[#F8FAFC]">A. Maity</div>
+<div class="text-[10px] font-medium text-[#8E8CA3]">SOC Lead</div>
+</div>
+</div>
+</div>
+</header>
+<!-- SCROLLABLE DASHBOARD CONTENT AREA -->
+<main class="flex-1 p-6 pb-14 space-y-5">
+<div class="flex flex-col w-full">
+<!-- MAIN TWO-COLUMN WORKSPACE WRAPPER -->
+<div class="flex flex-col xl:flex-row items-start gap-6 w-full">
+<!-- ==================== LEFT MAIN WORKSPACE ==================== -->
+<div class="flex-1 min-w-0 w-full flex flex-col gap-5">
+<!-- TOP ROW: PCAP DROPZONE & PACKET RATE SPLINE (45% / 55% DESKTOP) -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-5 w-full">
+<!-- 1. PCAP Dropzone Card (lg:col-span-5) -->
+<div class="lg:col-span-5 bg-surface-card rounded-xl p-5 shadow-sm flex flex-col justify-between">
+<div>
+<!-- Header Source Segmented Switch -->
+<div class="flex items-center justify-between gap-2 mb-4">
+<span class="font-headline-sm text-headline-sm text-text-primary">Source Stream</span>
+<div class="flex items-center bg-surface-elevated p-1 rounded-lg">
+<button class="px-2.5 py-1 rounded text-caption font-caption bg-surface-variant text-text-primary transition-all" type="button">All Traffic</button>
+<button class="px-2.5 py-1 rounded text-caption font-caption text-text-muted hover:text-text-primary transition-colors" type="button">Live Devices</button>
+<button class="px-2.5 py-1 rounded text-caption font-caption text-text-muted hover:text-text-primary transition-colors" type="button">PCAP Files</button>
+</div>
+</div>
+<!-- Upload Dropzone Area -->
+<div class="relative group cursor-pointer rounded-lg bg-surface-container-lowest/80 p-5 text-center flex flex-col items-center justify-center gap-2.5 transition-all hover:bg-surface-elevated/60">
+<input accept=".pcap,.pcapng,.cap" class="absolute inset-0 opacity-0 cursor-pointer z-10" type="file"/>
+<div class="w-12 h-12 rounded-xl bg-primary-container/15 flex items-center justify-center text-primary-container group-hover:scale-105 transition-transform shadow-inner">
+<span class="material-symbols-outlined text-3xl">cloud_upload</span>
+</div>
+<div class="space-y-0.5">
+<div class="font-body-md-medium text-body-md-medium text-text-primary">
+                  Drop a <span class="text-primary font-mono font-semibold">.pcap</span> file here
+                </div>
+<div class="font-caption text-caption text-text-muted">
+                  Auto-extracts sliding 100-packet windows &amp; runs XGBoost
+                </div>
+</div>
+<button class="mt-1 px-4 py-2 rounded-lg bg-primary-container hover:bg-primary text-on-primary font-body-sm text-body-sm font-semibold shadow-sm transition-all flex items-center gap-1.5" type="button">
+<span class="material-symbols-outlined text-base">folder_open</span>
+<span>Select .pcap File</span>
+</button>
+</div>
+</div>
+<!-- Extraction Telemetry Status Bar -->
+<div class="mt-3.5 pt-3 flex items-center justify-between text-caption font-caption text-text-muted">
+<div class="flex items-center gap-1.5 truncate">
+<span class="material-symbols-outlined text-sm text-accent-cyan">check_circle</span>
+<span class="truncate">syn_flood_capture.pcap</span>
+</div>
+<div class="tabular-nums font-mono text-danger-coral shrink-0 ml-2">142 win · 98.4% DoS</div>
+</div>
+</div>
+<!-- 2. Packet Rate Curved Spline Wave Graph (lg:col-span-7) -->
+<div class="lg:col-span-7 bg-surface-card rounded-xl p-5 shadow-sm flex flex-col justify-between">
+<!-- Graph Header & Legends -->
+<div class="flex flex-wrap items-center justify-between gap-3 mb-2">
+<div>
+<div class="flex items-center gap-2">
+<h2 class="font-headline-sm text-headline-sm text-text-primary">Packet Rate Stream</h2>
+<span class="font-caption text-caption text-text-muted uppercase tracking-wider">(pkt/sec)</span>
+</div>
+<div class="font-caption text-caption text-text-muted">Real-time sliding ingestion telemetry</div>
+</div>
+<!-- Legend Pills & Live Pulse -->
+<div class="flex items-center gap-3">
+<div class="flex items-center gap-1.5 font-caption text-caption text-text-muted">
+<span class="w-2.5 h-2.5 rounded-full bg-primary-container inline-block"></span>
+<span>Normal</span>
+</div>
+<div class="flex items-center gap-1.5 font-caption text-caption text-text-muted">
+<span class="w-2.5 h-2.5 rounded-full bg-danger-coral inline-block"></span>
+<span>Attack Flood</span>
+</div>
+<div class="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-tertiary-container/20 text-tertiary font-caption text-caption">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary animate-ping"></span>
+<span class="font-semibold">LIVE</span>
+</div>
+</div>
+</div>
+<!-- Custom Spline Wave SVG Chart -->
+<div class="relative w-full h-[185px] mt-1 select-none">
+<svg class="w-full h-full overflow-visible" preserveaspectratio="none" viewbox="0 0 680 180">
+<defs>
+<!-- Area gradient for baseline normal traffic -->
+<lineargradient id="normalGrad" x1="0%" x2="0%" y1="0%" y2="100%">
+<stop offset="0%" stop-color="#2563eb" stop-opacity="0.28"></stop>
+<stop offset="100%" stop-color="#2563eb" stop-opacity="0.0"></stop>
+</lineargradient>
+<!-- Area gradient for attack flood surge -->
+<lineargradient id="attackGrad" x1="0%" x2="0%" y1="0%" y2="100%">
+<stop offset="0%" stop-color="#F97316" stop-opacity="0.35"></stop>
+<stop offset="100%" stop-color="#F97316" stop-opacity="0.0"></stop>
+</lineargradient>
+<!-- Glow filters for high visual impact lines -->
+<filter height="140%" id="glowAttack" width="140%" x="-20%" y="-20%">
+<fedropshadow dx="0" dy="0" flood-color="#F97316" flood-opacity="0.45" stddeviation="4"></fedropshadow>
+</filter>
+<filter height="140%" id="glowNormal" width="140%" x="-20%" y="-20%">
+<fedropshadow dx="0" dy="0" flood-color="#2563eb" flood-opacity="0.3" stddeviation="3"></fedropshadow>
+</filter>
+</defs>
+<!-- Subtle Horizontal Dash Gridlines (No borders) -->
+<line stroke="#222030" stroke-dasharray="4 4" stroke-width="1" x1="0" x2="680" y1="20" y2="20"></line>
+<line stroke="#222030" stroke-dasharray="4 4" stroke-width="1" x1="0" x2="680" y1="65" y2="65"></line>
+<line stroke="#222030" stroke-dasharray="4 4" stroke-width="1" x1="0" x2="680" y1="110" y2="110"></line>
+<line stroke="#222030" stroke-width="1" x1="0" x2="680" y1="155" y2="155"></line>
+<!-- Y-Axis Value Labels (Embedded SVG) -->
+<text class="tabular-nums" fill="#8E8CA3" font-family="Plus Jakarta Sans" font-size="9" font-weight="600" x="6" y="24">15k</text>
+<text class="tabular-nums" fill="#8E8CA3" font-family="Plus Jakarta Sans" font-size="9" font-weight="600" x="6" y="69">10k</text>
+<text class="tabular-nums" fill="#8E8CA3" font-family="Plus Jakarta Sans" font-size="9" font-weight="600" x="6" y="114">5k</text>
+<text class="tabular-nums" fill="#8E8CA3" font-family="Plus Jakarta Sans" font-size="9" font-weight="600" x="6" y="152">0</text>
+<!-- Normal Traffic Spline Area Fill (Cubic Bezier) -->
+<path d="M 30,145 C 90,140 140,150 200,142 C 260,135 320,120 380,138 C 440,152 500,144 560,146 C 620,148 650,144 680,145 L 680,155 L 30,155 Z" fill="url(#normalGrad)"></path>
+<!-- Attack Flood Area Fill (Surges on right) -->
+<path d="M 30,152 C 120,152 220,150 320,148 C 380,145 420,135 460,95 C 500,55 540,22 580,24 C 620,26 650,45 680,50 L 680,155 L 30,155 Z" fill="url(#attackGrad)"></path>
+<!-- Baseline Normal Traffic Spline Wave (5px stroke) -->
+<path d="M 30,145 C 90,140 140,150 200,142 C 260,135 320,120 380,138 C 440,152 500,144 560,146 C 620,148 650,144 680,145" fill="none" filter="url(#glowNormal)" stroke="#2563eb" stroke-linecap="round" stroke-linejoin="round" stroke-width="4.5"></path>
+<!-- Attack Flood Spline Wave (6px stroke, dramatic surge upward to 14.2k) -->
+<path d="M 30,152 C 120,152 220,150 320,148 C 380,145 420,135 460,95 C 500,55 540,22 580,24 C 620,26 650,45 680,50" fill="none" filter="url(#glowAttack)" stroke="#F97316" stroke-linecap="round" stroke-linejoin="round" stroke-width="5.5"></path>
+<!-- Current Attack Peak Marker -->
+<circle cx="580" cy="24" fill="#EF4444" r="5" stroke="#0D0C14" stroke-width="2"></circle>
+<circle class="animate-ping" cx="580" cy="24" fill="none" opacity="0.6" r="9" stroke="#EF4444" stroke-width="1.5"></circle>
+</svg>
+</div>
+<!-- Graph X-Axis Timestamps -->
+<div class="flex items-center justify-between text-caption font-caption text-text-muted px-2 tabular-nums mt-1">
+<span>12:08:10</span>
+<span>12:08:40</span>
+<span>12:09:10</span>
+<span>12:09:40</span>
+<span>12:10:10</span>
+<span class="text-danger-coral font-bold">12:10:44 (PEAK)</span>
+<span class="text-tertiary">LIVE</span>
+</div>
+</div>
+</div>
+<!-- MIDDLE SEARCH, FILTER & INGESTION CONTROL STRIP -->
+<div class="bg-surface-card rounded-xl p-3.5 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+<!-- Left Filter Controls -->
+<div class="flex flex-wrap items-center gap-2.5 flex-1 min-w-0">
+<!-- Live Filter Input -->
+<div class="relative min-w-[220px] flex-1 max-w-sm">
+<span class="material-symbols-outlined text-text-muted text-base absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">search</span>
+<input class="w-full h-[36px] pl-9 pr-3 rounded-lg bg-surface-elevated text-text-primary text-body-sm font-body-sm placeholder-text-muted focus:outline-none transition-all shadow-inner" id="tableFilterInput" placeholder="Filter window #, IP, protocol..." type="text"/>
+</div>
+<!-- Device Dropdown Pill -->
+<div class="relative">
+<button class="h-[36px] px-3 rounded-lg bg-surface-elevated text-text-primary text-body-sm font-body-sm flex items-center gap-2 hover:bg-surface-variant transition-colors shadow-sm" type="button">
+<span class="material-symbols-outlined text-sm text-text-muted">memory</span>
+<span>All Devices (4)</span>
+<span class="material-symbols-outlined text-sm text-text-muted">expand_more</span>
+</button>
+</div>
+<!-- Attack / Status Category Pills -->
+<div class="flex items-center bg-surface-elevated p-1 rounded-lg gap-0.5">
+<button class="px-2.5 py-1 rounded text-caption font-caption bg-surface-variant text-text-primary font-semibold" type="button">All</button>
+<button class="px-2.5 py-1 rounded text-caption font-caption text-text-muted hover:text-text-primary flex items-center gap-1 transition-colors" type="button">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+<span>Normal</span>
+</button>
+<button class="px-2.5 py-1 rounded text-caption font-caption text-text-muted hover:text-text-primary flex items-center gap-1 transition-colors" type="button">
+<span class="w-1.5 h-1.5 rounded-full bg-error-critical"></span>
+<span>DoS Attack</span>
+</button>
+<button class="px-2.5 py-1 rounded text-caption font-caption text-text-muted hover:text-text-primary flex items-center gap-1 transition-colors" type="button">
+<span class="w-1.5 h-1.5 rounded-full bg-danger-coral"></span>
+<span>DDoS</span>
+</button>
+</div>
+</div>
+<!-- Right Playback & Scroll Toggles -->
+<div class="flex items-center gap-2.5 shrink-0 self-end md:self-auto">
+<button class="h-[36px] px-3.5 rounded-lg bg-surface-elevated hover:bg-surface-variant text-text-primary text-body-sm font-body-sm font-medium flex items-center gap-2 shadow-sm transition-all" id="pauseBtn" type="button">
+<span class="material-symbols-outlined text-base text-warning">pause</span>
+<span id="pauseBtnText">Pause Stream</span>
+</button>
+<div class="h-[36px] px-3 rounded-lg bg-surface-elevated flex items-center gap-2 text-caption font-caption">
+<span class="text-text-muted uppercase">Auto-Scroll:</span>
+<span class="font-bold text-tertiary uppercase flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span> ON
+            </span>
+</div>
+</div>
+</div>
+<!-- BOTTOM TRAFFIC WINDOWS TABLE -->
+<div class="bg-surface-card rounded-xl shadow-sm overflow-hidden flex flex-col">
+<!-- Table Toolbar -->
+<div class="px-5 py-4 flex flex-wrap items-center justify-between gap-3 bg-surface-card">
+<div class="flex items-center gap-3">
+<div class="w-2.5 h-2.5 rounded-[2px] bg-primary-container"></div>
+<h3 class="font-headline-sm text-headline-sm text-text-primary">Live 100-Packet Ingestion Windows</h3>
+<span class="font-caption text-caption text-text-muted tabular-nums px-2 py-0.5 rounded bg-surface-elevated">Showing 5 of 1,420 windows</span>
+</div>
+<div class="flex items-center gap-2">
+<button class="h-8 px-3 rounded-lg bg-surface-elevated hover:bg-surface-variant text-text-primary text-caption font-caption flex items-center gap-1.5 transition-colors" type="button">
+<span class="material-symbols-outlined text-sm">tune</span>
+<span>Filter Columns</span>
+</button>
+<button class="h-8 px-3 rounded-lg bg-primary-container hover:bg-primary text-on-primary text-caption font-caption font-semibold flex items-center gap-1.5 shadow-sm transition-all" type="button">
+<span class="material-symbols-outlined text-sm">download</span>
+<span>Export PCAP</span>
+</button>
+</div>
+</div>
+<!-- Responsive Table Surface -->
+<div class="overflow-x-auto w-full">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-elevated/70 text-text-muted font-caption text-caption tracking-wider uppercase select-none">
+<th class="py-3 px-4">Time</th>
+<th class="py-3 px-4">Source Device</th>
+<th class="py-3 px-4">Source IP → Target IP</th>
+<th class="py-3 px-4">Protocol</th>
+<th class="py-3 px-4">Packet Rate</th>
+<th class="py-3 px-4">SYN / ACK</th>
+<th class="py-3 px-4">Result &amp; Confidence</th>
+<th class="py-3 px-3 text-right">Inspect</th>
+</tr>
+</thead>
+<tbody class="font-body-sm text-body-sm">
+<!-- ROW 1 (SELECTED / ACTIVE HIGHLIGHTED ATTACK WINDOW) -->
+<tr class="bg-surface-elevated text-text-primary shadow-inner cursor-pointer hover:bg-surface-variant transition-colors group">
+<td class="py-3.5 px-4 font-mono tabular-nums text-text-primary font-semibold">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-error-critical animate-pulse"></span>
+<span>12:10:44.201</span>
+</div>
+</td>
+<td class="py-3.5 px-4">
+<div class="flex items-center gap-2.5">
+<div class="w-7 h-7 rounded-lg bg-error-container/40 text-error flex items-center justify-center font-bold text-caption font-caption shrink-0">SC</div>
+<span class="font-body-md-medium text-body-md-medium text-text-primary truncate">smart-camera-01</span>
+</div>
+</td>
+<td class="py-3.5 px-4 font-mono tabular-nums text-text-muted text-caption">
+<span class="text-error font-semibold">172.17.0.99</span>
+<span class="text-text-muted px-1">→</span>
+<span class="text-text-primary">172.17.0.2</span>
+</td>
+<td class="py-3.5 px-4">
+<span class="px-2 py-0.5 rounded font-caption text-caption bg-error-container/30 text-error font-semibold">TCP (SYN Flood)</span>
+</td>
+<td class="py-3.5 px-4 font-mono font-bold tabular-nums text-error">
+                  14,200 <span class="font-caption text-caption font-normal text-text-muted">pkt/s</span>
+</td>
+<td class="py-3.5 px-4 font-mono tabular-nums text-text-primary font-medium">
+<span class="text-error font-bold">100</span> / 0
+                </td>
+<td class="py-3.5 px-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-error-critical text-on-error font-caption text-caption font-bold shadow-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-white"></span>
+<span>DoS Attack 98.4%</span>
+</span>
+</td>
+<td class="py-3.5 px-3 text-right">
+<span class="material-symbols-outlined text-primary text-lg group-hover:translate-x-0.5 transition-transform">chevron_right</span>
+</td>
+</tr>
+<!-- ROW 2: DDoS Attack -->
+<tr class="bg-surface-card hover:bg-surface-elevated/50 text-text-primary cursor-pointer transition-colors group">
+<td class="py-3.5 px-4 font-mono tabular-nums text-text-muted">
+<div class="flex items-center gap-2">
+<span class="w-1.5 h-1.5 rounded-full bg-danger-coral"></span>
+<span>12:10:42.850</span>
+</div>
+</td>
+<td class="py-3.5 px-4">
+<div class="flex items-center gap-2.5">
+<div class="w-7 h-7 rounded-lg bg-surface-elevated text-danger-coral flex items-center justify-center font-bold text-caption font-caption shrink-0">SP</div>
+<span class="font-body-md-medium text-body-md-medium text-text-primary truncate">smart-plug-03</span>
+</div>
+</td>
+<td class="py-3.5 px-4 font-mono tabular-nums text-text-muted text-caption">
+<span class="text-danger-coral font-medium">172.17.0.84</span>
+<span class="text-text-muted px-1">→</span>
+<span class="text-text-primary">172.17.0.4</span>
+</td>
+<td class="py-3.5 px-4">
+<span class="px-2 py-0.5 rounded font-caption text-caption bg-surface-elevated text-danger-coral font-medium">TCP (ACK Flood)</span>
+</td>
+<td class="py-3.5 px-4 font-mono font-bold tabular-nums text-danger-coral">
+                  8,450 <span class="font-caption text-caption font-normal text-text-muted">pkt/s</span>
+</td>
+<td class="py-3.5 px-4 font-mono tabular-nums text-text-muted">
+                  12 / 94
+                </td>
+<td class="py-3.5 px-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-danger-coral text-on-error font-caption text-caption font-bold shadow-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-white"></span>
+<span>DDoS Attack 94.1%</span>
+</span>
+</td>
+<td class="py-3.5 px-3 text-right">
+<span class="material-symbols-outlined text-text-muted text-lg group-hover:text-text-primary transition-colors">chevron_right</span>
+</td>
+</tr>
+<!-- ROW 3: ICMP DoS -->
+<tr class="bg-surface-card hover:bg-surface-elevated/50 text-text-primary cursor-pointer transition-colors group">
+<td class="py-3.5 px-4 font-mono tabular-nums text-text-muted">
+<div class="flex items-center gap-2">
+<span class="w-1.5 h-1.5 rounded-full bg-warning"></span>
+<span>12:10:39.112</span>
+</div>
+</td>
+<td class="py-3.5 px-4">
+<div class="flex items-center gap-2.5">
+<div class="w-7 h-7 rounded-lg bg-surface-elevated text-warning flex items-center justify-center font-bold text-caption font-caption shrink-0">ST</div>
+<span class="font-body-md-medium text-body-md-medium text-text-primary truncate">smart-thermostat-02</span>
+</div>
+</td>
+<td class="py-3.5 px-4 font-mono tabular-nums text-text-muted text-caption">
+<span class="text-warning font-medium">172.17.0.99</span>
+<span class="text-text-muted px-1">→</span>
+<span class="text-text-primary">172.17.0.3</span>
+</td>
+<td class="py-3.5 px-4">
+<span class="px-2 py-0.5 rounded font-caption text-caption bg-surface-elevated text-warning font-medium">ICMP Echo</span>
+</td>
+<td class="py-3.5 px-4 font-mono font-bold tabular-nums text-warning">
+                  3,890 <span class="font-caption text-caption font-normal text-text-muted">pkt/s</span>
+</td>
+<td class="py-3.5 px-4 font-mono tabular-nums text-text-muted">
+                  0 / 0
+                </td>
+<td class="py-3.5 px-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-warning text-on-error font-caption text-caption font-bold shadow-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-black/40"></span>
+<span>DoS Attack 91.7%</span>
+</span>
+</td>
+<td class="py-3.5 px-3 text-right">
+<span class="material-symbols-outlined text-text-muted text-lg group-hover:text-text-primary transition-colors">chevron_right</span>
+</td>
+</tr>
+<!-- ROW 4: Normal Traffic -->
+<tr class="bg-surface-card hover:bg-surface-elevated/50 text-text-primary cursor-pointer transition-colors group">
+<td class="py-3.5 px-4 font-mono tabular-nums text-text-muted">
+<div class="flex items-center gap-2">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+<span>12:10:35.004</span>
+</div>
+</td>
+<td class="py-3.5 px-4">
+<div class="flex items-center gap-2.5">
+<div class="w-7 h-7 rounded-lg bg-surface-elevated text-tertiary flex items-center justify-center font-bold text-caption font-caption shrink-0">SL</div>
+<span class="font-body-md-medium text-body-md-medium text-text-primary truncate">smart-lock-04</span>
+</div>
+</td>
+<td class="py-3.5 px-4 font-mono tabular-nums text-text-muted text-caption">
+<span class="text-text-primary">172.17.0.1</span>
+<span class="text-text-muted px-1">→</span>
+<span class="text-text-primary">172.17.0.5</span>
+</td>
+<td class="py-3.5 px-4">
+<span class="px-2 py-0.5 rounded font-caption text-caption bg-surface-elevated text-text-muted">TCP Handshake</span>
+</td>
+<td class="py-3.5 px-4 font-mono tabular-nums text-text-primary">
+                  42 <span class="font-caption text-caption font-normal text-text-muted">pkt/s</span>
+</td>
+<td class="py-3.5 px-4 font-mono tabular-nums text-text-muted">
+                  3 / 3
+                </td>
+<td class="py-3.5 px-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-tertiary-container/30 text-tertiary font-caption text-caption font-bold">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+<span>Normal 99.6%</span>
+</span>
+</td>
+<td class="py-3.5 px-3 text-right">
+<span class="material-symbols-outlined text-text-muted text-lg group-hover:text-text-primary transition-colors">chevron_right</span>
+</td>
+</tr>
+<!-- ROW 5: Normal RTSP Stream -->
+<tr class="bg-surface-card hover:bg-surface-elevated/50 text-text-primary cursor-pointer transition-colors group">
+<td class="py-3.5 px-4 font-mono tabular-nums text-text-muted">
+<div class="flex items-center gap-2">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+<span>12:10:31.782</span>
+</div>
+</td>
+<td class="py-3.5 px-4">
+<div class="flex items-center gap-2.5">
+<div class="w-7 h-7 rounded-lg bg-surface-elevated text-primary flex items-center justify-center font-bold text-caption font-caption shrink-0">SC</div>
+<span class="font-body-md-medium text-body-md-medium text-text-primary truncate">smart-camera-01</span>
+</div>
+</td>
+<td class="py-3.5 px-4 font-mono tabular-nums text-text-muted text-caption">
+<span class="text-text-primary">172.17.0.1</span>
+<span class="text-text-muted px-1">→</span>
+<span class="text-text-primary">172.17.0.2</span>
+</td>
+<td class="py-3.5 px-4">
+<span class="px-2 py-0.5 rounded font-caption text-caption bg-surface-elevated text-text-muted">RTSP / TCP</span>
+</td>
+<td class="py-3.5 px-4 font-mono tabular-nums text-text-primary">
+                  84 <span class="font-caption text-caption font-normal text-text-muted">pkt/s</span>
+</td>
+<td class="py-3.5 px-4 font-mono tabular-nums text-text-muted">
+                  6 / 6
+                </td>
+<td class="py-3.5 px-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-tertiary-container/30 text-tertiary font-caption text-caption font-bold">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+<span>Normal 98.9%</span>
+</span>
+</td>
+<td class="py-3.5 px-3 text-right">
+<span class="material-symbols-outlined text-text-muted text-lg group-hover:text-text-primary transition-colors">chevron_right</span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Table Pagination Footer -->
+<div class="px-5 py-3.5 bg-surface-card flex items-center justify-between text-caption font-caption text-text-muted">
+<div class="tabular-nums">Showing 1 to 5 of 1,420 captured windows</div>
+<div class="flex items-center gap-1.5">
+<button class="w-7 h-7 rounded bg-surface-elevated flex items-center justify-center hover:text-text-primary transition-colors text-text-muted" type="button">
+<span class="material-symbols-outlined text-sm">chevron_left</span>
+</button>
+<button class="w-7 h-7 rounded bg-primary-container text-on-primary font-bold flex items-center justify-center" type="button">1</button>
+<button class="w-7 h-7 rounded bg-surface-elevated flex items-center justify-center hover:text-text-primary transition-colors text-text-muted" type="button">2</button>
+<button class="w-7 h-7 rounded bg-surface-elevated flex items-center justify-center hover:text-text-primary transition-colors text-text-muted" type="button">3</button>
+<span class="px-1 text-text-muted">...</span>
+<button class="w-7 h-7 rounded bg-surface-elevated flex items-center justify-center hover:text-text-primary transition-colors text-text-muted" type="button">284</button>
+<button class="w-7 h-7 rounded bg-surface-elevated flex items-center justify-center hover:text-text-primary transition-colors text-text-muted" type="button">
+<span class="material-symbols-outlined text-sm">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- ==================== RIGHT 22-FEATURE INSPECTOR DRAWER (440px) ==================== -->
+<div class="w-full xl:w-[440px] shrink-0 bg-surface-card rounded-xl p-5 shadow-xl flex flex-col gap-5 select-none">
+<!-- Drawer Top Bar: Breadcrumb, Close & Title -->
+<div class="space-y-2">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-error-critical animate-ping"></span>
+<span class="font-caption text-caption font-bold text-primary tracking-widest uppercase">WINDOW #48918</span>
+</div>
+<button class="p-1 rounded-lg text-text-muted hover:text-text-primary hover:bg-surface-elevated transition-colors" title="Close Feature Drawer" type="button">
+<span class="material-symbols-outlined text-base">close</span>
+</button>
+</div>
+<div class="flex flex-col gap-1">
+<h2 class="font-headline-md text-headline-md text-text-primary tracking-tight">Window #48918 · smart-camera-01</h2>
+<div class="flex flex-wrap items-center gap-2 pt-1">
+<span class="px-2.5 py-0.5 rounded-full bg-error-critical text-on-error font-caption text-caption font-bold shadow-sm">
+              DoS Attack (98.4%)
+            </span>
+<span class="px-2 py-0.5 rounded bg-surface-elevated text-text-muted font-caption text-caption">
+              XGBoost 22-Feature Ingestion
+            </span>
+<span class="text-caption font-caption text-text-muted tabular-nums ml-auto">
+              12:10:44.201 IST
+            </span>
+</div>
+</div>
+<!-- High-Impact Critical Mitigation CTA -->
+<button class="w-full mt-2 py-2.5 px-4 rounded-lg bg-error-critical hover:bg-error-container text-on-error font-body-sm text-body-sm font-bold shadow-md transition-all flex items-center justify-center gap-2" type="button">
+<span class="material-symbols-outlined text-lg">shield_with_house</span>
+<span>Block Attacker IP (172.17.0.99)</span>
+</button>
+</div>
+<!-- BLOCK 1: WHY THIS WAS FLAGGED (TOP 3 ANOMALOUS MEASUREMENTS) -->
+<div class="space-y-3">
+<div>
+<h3 class="font-headline-sm text-headline-sm text-text-primary">Why This Was Flagged</h3>
+<p class="font-caption text-caption text-text-muted">Top 3 unusual metric deviations from baseline normal profile</p>
+</div>
+<!-- Anomaly 1: Packet Rate -->
+<div class="bg-surface-elevated rounded-lg p-3 space-y-1.5 shadow-sm">
+<div class="flex items-center justify-between">
+<span class="font-body-sm text-body-sm text-text-primary font-semibold">1. Packet Rate Surge</span>
+<span class="font-mono text-body-sm text-body-sm font-bold tabular-nums text-error-critical">14,200 pkt/s</span>
+</div>
+<div class="font-caption text-caption text-text-muted">
+            Normal median: 45 pkt/s (<span class="text-error-critical font-bold">315× spike</span>)
+          </div>
+<!-- Custom Metric Deviation Progress Bar -->
+<div class="w-full h-1.5 bg-chart-track rounded-full overflow-hidden">
+<div class="h-full bg-error-critical rounded-full" style="width: 96%"></div>
+</div>
+</div>
+<!-- Anomaly 2: SYN-to-ACK Ratio -->
+<div class="bg-surface-elevated rounded-lg p-3 space-y-1.5 shadow-sm">
+<div class="flex items-center justify-between">
+<span class="font-body-sm text-body-sm text-text-primary font-semibold">2. Handshake Asymmetry</span>
+<span class="font-mono text-body-sm text-body-sm font-bold tabular-nums text-danger-coral">101.0 Ratio</span>
+</div>
+<div class="font-caption text-caption text-text-muted">
+            100 SYN requests vs 0 ACK replies (<span class="text-danger-coral font-bold">SYN Flood</span>)
+          </div>
+<div class="w-full h-1.5 bg-chart-track rounded-full overflow-hidden">
+<div class="h-full bg-danger-coral rounded-full" style="width: 92%"></div>
+</div>
+</div>
+<!-- Anomaly 3: Zero Packet Size Spread -->
+<div class="bg-surface-elevated rounded-lg p-3 space-y-1.5 shadow-sm">
+<div class="flex items-center justify-between">
+<span class="font-body-sm text-body-sm text-text-primary font-semibold">3. Packet Size Spread</span>
+<span class="font-mono text-body-sm text-body-sm font-bold tabular-nums text-warning">0.0 Bytes</span>
+</div>
+<div class="font-caption text-caption text-text-muted">
+            Identical 54-byte flood envelopes (<span class="text-warning font-bold">Automated bot signature</span>)
+          </div>
+<div class="w-full h-1.5 bg-chart-track rounded-full overflow-hidden">
+<div class="h-full bg-warning rounded-full" style="width: 88%"></div>
+</div>
+</div>
+</div>
+<!-- BLOCK 2: ALL 22 TRAFFIC MEASUREMENTS (PLAIN ENGLISH GRID) -->
+<div class="space-y-3">
+<div class="flex items-center justify-between">
+<div>
+<h3 class="font-headline-sm text-headline-sm text-text-primary">All 22 Ingestion Features</h3>
+<p class="font-caption text-caption text-text-muted">18 base window features + 4 computed real-time ratios</p>
+</div>
+<span class="px-2 py-0.5 rounded text-caption font-caption bg-surface-elevated text-primary font-mono font-bold">22 / 22</span>
+</div>
+<!-- 2-Column Responsive Metric Tile Grid -->
+<div class="grid grid-cols-2 gap-2 text-left">
+<!-- 1. Window Duration -->
+<div class="bg-surface-elevated/70 p-2.5 rounded-lg flex flex-col justify-between">
+<div class="font-caption text-caption text-text-muted truncate">1. Duration</div>
+<div class="font-mono text-body-sm text-body-sm font-bold tabular-nums text-text-primary">0.007s</div>
+</div>
+<!-- 2. Packet Rate -->
+<div class="bg-surface-elevated/70 p-2.5 rounded-lg flex flex-col justify-between">
+<div class="font-caption text-caption text-text-muted truncate">2. Packet Rate</div>
+<div class="font-mono text-body-sm text-body-sm font-bold tabular-nums text-error-critical">14,200 pkt/s</div>
+</div>
+<!-- 3. Header Size -->
+<div class="bg-surface-elevated/70 p-2.5 rounded-lg flex flex-col justify-between">
+<div class="font-caption text-caption text-text-muted truncate">3. Header Size</div>
+<div class="font-mono text-body-sm text-body-sm font-bold tabular-nums text-text-primary">40.0 B</div>
+</div>
+<!-- 4. TTL (Hop Count) -->
+<div class="bg-surface-elevated/70 p-2.5 rounded-lg flex flex-col justify-between">
+<div class="font-caption text-caption text-text-muted truncate">4. TTL (Hops)</div>
+<div class="font-mono text-body-sm text-body-sm font-bold tabular-nums text-text-primary">64.0</div>
+</div>
+<!-- 5. SYN Flag Ratio -->
+<div class="bg-surface-elevated/70 p-2.5 rounded-lg flex flex-col justify-between">
+<div class="font-caption text-caption text-text-muted truncate">5. SYN Ratio</div>
+<div class="font-mono text-body-sm text-body-sm font-bold tabular-nums text-danger-coral">1.00</div>
+</div>
+<!-- 6. ACK Flag Ratio -->
+<div class="bg-surface-elevated/70 p-2.5 rounded-lg flex flex-col justify-between">
+<div class="font-caption text-caption text-text-muted truncate">6. ACK Ratio</div>
+<div class="font-mono text-body-sm text-body-sm font-bold tabular-nums text-text-primary">0.00</div>
+</div>
+<!-- 7. RST Flag Ratio -->
+<div class="bg-surface-elevated/70 p-2.5 rounded-lg flex flex-col justify-between">
+<div class="font-caption text-caption text-text-muted truncate">7. RST Ratio</div>
+<div class="font-mono text-body-sm text-body-sm font-bold tabular-nums text-text-primary">0.00</div>
+</div>
+<!-- 8. FIN Flag Ratio -->
+<div class="bg-surface-elevated/70 p-2.5 rounded-lg flex flex-col justify-between">
+<div class="font-caption text-caption text-text-muted truncate">8. FIN Ratio</div>
+<div class="font-mono text-body-sm text-body-sm font-bold tabular-nums text-text-primary">0.00</div>
+</div>
+<!-- 9. PSH Flag Ratio -->
+<div class="bg-surface-elevated/70 p-2.5 rounded-lg flex flex-col justify-between">
+<div class="font-caption text-caption text-text-muted truncate">9. PSH Ratio</div>
+<div class="font-mono text-body-sm text-body-sm font-bold tabular-nums text-text-primary">0.00</div>
+</div>
+<!-- 10. SYN Count -->
+<div class="bg-surface-elevated/70 p-2.5 rounded-lg flex flex-col justify-between">
+<div class="font-caption text-caption text-text-muted truncate">10. SYN Count</div>
+<div class="font-mono text-body-sm text-body-sm font-bold tabular-nums text-danger-coral">100</div>
+</div>
+<!-- 11. ACK Count -->
+<div class="bg-surface-elevated/70 p-2.5 rounded-lg flex flex-col justify-between">
+<div class="font-caption text-caption text-text-muted truncate">11. ACK Count</div>
+<div class="font-mono text-body-sm text-body-sm font-bold tabular-nums text-text-primary">0</div>
+</div>
+<!-- 12. RST Count -->
+<div class="bg-surface-elevated/70 p-2.5 rounded-lg flex flex-col justify-between">
+<div class="font-caption text-caption text-text-muted truncate">12. RST Count</div>
+<div class="font-mono text-body-sm text-body-sm font-bold tabular-nums text-text-primary">0</div>
+</div>
+<!-- 13. FIN Count -->
+<div class="bg-surface-elevated/70 p-2.5 rounded-lg flex flex-col justify-between">
+<div class="font-caption text-caption text-text-muted truncate">13. FIN Count</div>
+<div class="font-mono text-body-sm text-body-sm font-bold tabular-nums text-text-primary">0</div>
+</div>
+<!-- 14. TCP Protocol Ratio -->
+<div class="bg-surface-elevated/70 p-2.5 rounded-lg flex flex-col justify-between">
+<div class="font-caption text-caption text-text-muted truncate">14. TCP Ratio</div>
+<div class="font-mono text-body-sm text-body-sm font-bold tabular-nums text-text-primary">1.00</div>
+</div>
+<!-- 15. UDP Protocol Ratio -->
+<div class="bg-surface-elevated/70 p-2.5 rounded-lg flex flex-col justify-between">
+<div class="font-caption text-caption text-text-muted truncate">15. UDP Ratio</div>
+<div class="font-mono text-body-sm text-body-sm font-bold tabular-nums text-text-primary">0.00</div>
+</div>
+<!-- 16. ICMP Protocol Ratio -->
+<div class="bg-surface-elevated/70 p-2.5 rounded-lg flex flex-col justify-between">
+<div class="font-caption text-caption text-text-muted truncate">16. ICMP Ratio</div>
+<div class="font-mono text-body-sm text-body-sm font-bold tabular-nums text-text-primary">0.00</div>
+</div>
+<!-- 17. Average Packet Size -->
+<div class="bg-surface-elevated/70 p-2.5 rounded-lg flex flex-col justify-between">
+<div class="font-caption text-caption text-text-muted truncate">17. Avg Size</div>
+<div class="font-mono text-body-sm text-body-sm font-bold tabular-nums text-text-primary">54.0 B</div>
+</div>
+<!-- 18. Packet Size Spread -->
+<div class="bg-surface-elevated/70 p-2.5 rounded-lg flex flex-col justify-between">
+<div class="font-caption text-caption text-text-muted truncate">18. Size Spread</div>
+<div class="font-mono text-body-sm text-body-sm font-bold tabular-nums text-warning">0.0 B</div>
+</div>
+<!-- 19. Traffic Speed -->
+<div class="bg-surface-elevated/70 p-2.5 rounded-lg flex flex-col justify-between">
+<div class="font-caption text-caption text-text-muted truncate">19. Speed</div>
+<div class="font-mono text-body-sm text-body-sm font-bold tabular-nums text-text-primary">766.8 KB/s</div>
+</div>
+<!-- 20. Computed SYN-to-ACK Ratio -->
+<div class="bg-surface-elevated/70 p-2.5 rounded-lg flex flex-col justify-between">
+<div class="font-caption text-caption text-text-muted truncate">20. SYN-to-ACK</div>
+<div class="font-mono text-body-sm text-body-sm font-bold tabular-nums text-danger-coral">101.0</div>
+</div>
+<!-- 21. Header-to-Packet Ratio -->
+<div class="bg-surface-elevated/70 p-2.5 rounded-lg flex flex-col justify-between">
+<div class="font-caption text-caption text-text-muted truncate">21. Hdr-to-Pkt</div>
+<div class="font-mono text-body-sm text-body-sm font-bold tabular-nums text-text-primary">0.74</div>
+</div>
+<!-- 22. Packet Size Variation -->
+<div class="bg-surface-elevated/70 p-2.5 rounded-lg flex flex-col justify-between">
+<div class="font-caption text-caption text-text-muted truncate">22. Size Variance</div>
+<div class="font-mono text-body-sm text-body-sm font-bold tabular-nums text-warning">0.00</div>
+</div>
+</div>
+</div>
+<!-- DRAWER FOOTER ACTIONS -->
+<div class="pt-2 flex items-center gap-2">
+<button class="flex-1 py-2 px-3 rounded-lg bg-surface-elevated hover:bg-surface-variant text-text-primary font-body-sm text-body-sm font-medium flex items-center justify-center gap-1.5 transition-colors shadow-sm" type="button">
+<span class="material-symbols-outlined text-sm">download</span>
+<span>Window PCAP</span>
+</button>
+<button class="flex-1 py-2 px-3 rounded-lg bg-surface-elevated hover:bg-surface-variant text-text-primary font-body-sm text-body-sm font-medium flex items-center justify-center gap-1.5 transition-colors shadow-sm" type="button">
+<span class="material-symbols-outlined text-sm">code</span>
+<span>View JSON</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Micro-interactions Script -->
+<script>
+    (function() {
+      const pauseBtn = document.getElementById('pauseBtn');
+      const pauseBtnText = document.getElementById('pauseBtnText');
+      let isPaused = false;
+
+      if (pauseBtn && pauseBtnText) {
+        pauseBtn.addEventListener('click', function() {
+          isPaused = !isPaused;
+          if (isPaused) {
+            pauseBtnText.textContent = 'Resume Stream';
+            pauseBtn.classList.add('bg-warning', 'text-black');
+          } else {
+            pauseBtnText.textContent = 'Pause Stream';
+            pauseBtn.classList.remove('bg-warning', 'text-black');
+          }
+        });
+      }
+
+      const filterInput = document.getElementById('tableFilterInput');
+      if (filterInput) {
+        filterInput.addEventListener('keyup', function(e) {
+          const term = e.target.value.toLowerCase();
+          const rows = document.querySelectorAll('tbody tr');
+          rows.forEach(row => {
+            const text = row.innerText.toLowerCase();
+            row.style.display = text.includes(term) ? '' : 'none';
+          });
+        });
+      }
+    })();
+  </script>
+</div>
+</main>
+<!-- BOTTOM SYSTEM TELEMETRY FOOTER (32px fixed) -->
+<footer class="fixed bottom-0 left-[240px] right-0 h-[32px] px-6 bg-[#100F18] border-t border-[#222030] flex items-center justify-between text-[11px] font-semibold text-[#8E8CA3] tracking-wide select-none z-20">
+<!-- Left Telemetry Signals -->
+<div class="flex items-center gap-4">
+<span class="flex items-center gap-1.5 text-[#10B981]">
+<span class="w-2 h-2 rounded-[2px] bg-[#10B981]"></span>
+<span>SYSTEMS OPERATIONAL</span>
+</span>
+<span class="text-[#222030]">·</span>
+<span class="tabular-nums">GO COLLECTOR LATENCY: 4MS</span>
+<span class="text-[#222030]">·</span>
+<span class="flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-[#10B981]"></span>
+<span>DOCKER BRIDGE: CONNECTED</span>
+</span>
+</div>
+<!-- Right Telemetry Signals -->
+<div class="flex items-center gap-3 tabular-nums">
+<span>API V2.4.0</span>
+<span class="text-[#222030]">·</span>
+<span>LAST UPDATED: 12:10:45 IST</span>
+</div>
+</footer>
+</div>
+</body></html>

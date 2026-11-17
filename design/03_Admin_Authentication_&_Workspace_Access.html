@@ -1,0 +1,318 @@
+<!DOCTYPE html><html lang="en"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Authentication &amp; Workspace Access - CICIoT23 Sentinel</title>
+  <!-- Plus Jakarta Sans Font & Tailwind CDN -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            canvas: '#0D0C14',
+            bar: '#100F18',
+            surface: '#13121D',
+            elevated: '#1A1826',
+            border: '#222030',
+            'border-highlight': '#3B3854',
+            primary: '#2563EB',
+            'primary-hover': '#1D4ED8',
+            brand: '#6366F1',
+            success: '#10B981',
+            warning: '#F59E0B',
+            coral: '#F97316',
+            danger: '#EF4444',
+            'text-primary': '#F8FAFC',
+            'text-muted': '#8E8CA3',
+          },
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #0D0C14;
+      color: #F8FAFC;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-variant-numeric: tabular-nums;
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #222030;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between bg-canvas selection:bg-brand/30 selection:text-white">
+
+  <!-- Top Minimalist Public Brand Bar (64px) -->
+  <header class="w-full h-16 bg-bar border-b border-border px-6 md:px-10 flex items-center justify-between z-20 flex-shrink-0">
+    <div class="flex items-center space-x-3">
+      <!-- Shield Logo -->
+      <div class="w-8 h-8 rounded-lg bg-brand/15 border border-brand/40 flex items-center justify-center text-brand">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+        </svg>
+      </div>
+      <div class="flex items-center space-x-2">
+        <span class="font-bold text-base tracking-tight text-text-primary">CICIoT23 Sentinel</span>
+        <span class="text-[10px] font-semibold tracking-wider px-1.5 py-0.5 rounded bg-elevated border border-border text-text-muted">V2.4</span>
+      </div>
+    </div>
+
+    <!-- Right Header Context / Back Link -->
+    <div class="flex items-center space-x-6 text-xs">
+      <div class="hidden sm:flex items-center space-x-2 text-text-muted">
+        <span class="w-2 h-2 rounded-full bg-success"></span>
+        <span>SOC Cluster Ready · 4 Models Active</span>
+      </div>
+      <a href="#" class="text-text-muted hover:text-text-primary transition-colors flex items-center space-x-1.5 font-medium">
+        <span>Public Portal</span>
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+        </svg>
+      </a>
+    </div>
+  </header>
+
+  <!-- Main Viewport Area (50/50 Desktop Split) -->
+  <main class="flex-1 w-full flex flex-col lg:flex-row relative">
+    
+    <!-- LEFT COLUMN: 50% Auth Card Container -->
+    <section class="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-10 lg:p-12 xl:p-16 z-10 flex-1">
+      <div class="w-full max-w-[440px] bg-surface border border-border rounded-xl p-8 shadow-2xl relative">
+        
+        <!-- Header & Shield Badge -->
+        <div class="mb-6">
+          <div class="inline-flex items-center space-x-2 px-2.5 py-1 rounded-full bg-brand/10 border border-brand/20 text-brand text-xs font-medium mb-3">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+            </svg>
+            <span>Fortify360 Enterprise Access</span>
+          </div>
+          <h1 class="text-2xl font-bold tracking-tight text-text-primary">Workspace Authentication</h1>
+          <p class="text-xs text-text-muted mt-1 leading-relaxed">Sign in to manage devices, inspect packet streams, and control active iptables firewall rules.</p>
+        </div>
+
+        <!-- Segmented Tab Switcher (Sign In vs Create Account) -->
+        <div class="grid grid-cols-2 p-1 bg-elevated rounded-lg border border-border mb-6" id="authTabGroup">
+          <button type="button" id="tabSignIn" onclick="switchAuthMode('signin')" class="py-1.5 text-xs font-semibold rounded-md bg-surface text-text-primary border border-border shadow-sm transition-all duration-150">
+            Sign In
+          </button>
+          <button type="button" id="tabCreateAccount" onclick="switchAuthMode('create')" class="py-1.5 text-xs font-medium rounded-md text-text-muted hover:text-text-primary transition-all duration-150">
+            Create Admin Account
+          </button>
+        </div>
+
+        <!-- Form Block -->
+        <form id="authForm" onsubmit="handleAuthSubmit(event)" class="space-y-4">
+          
+          <!-- Dynamic Organization Name Field (Shown only in Create Account Mode) -->
+          <div id="orgFieldContainer" class="hidden space-y-1.5">
+            <label class="block text-[11px] font-semibold text-text-muted tracking-wide uppercase" for="orgName">
+              Fleet / Organization Name
+            </label>
+            <div class="relative">
+              <input type="text" id="orgName" name="orgName" placeholder="e.g. Chitkara IoT Security Lab" class="w-full h-10 px-3.5 bg-elevated border border-border rounded-lg text-xs text-text-primary placeholder:text-text-muted/60 focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand transition-colors">
+            </div>
+          </div>
+
+          <!-- Email Input -->
+          <div class="space-y-1.5">
+            <div class="flex items-center justify-between">
+              <label class="block text-[11px] font-semibold text-text-muted tracking-wide uppercase" for="email">
+                Work Email or Username
+              </label>
+              <span class="text-[10px] text-text-muted">Administrator</span>
+            </div>
+            <div class="relative">
+              <input type="text" id="email" name="email" value="admin@sentinel.local" required="" class="w-full h-10 px-3.5 bg-elevated border border-border rounded-lg text-xs text-text-primary placeholder:text-text-muted/60 focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand transition-colors">
+              <div class="absolute right-3 top-2.5 text-success">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- Password Input -->
+          <div class="space-y-1.5">
+            <div class="flex items-center justify-between">
+              <label class="block text-[11px] font-semibold text-text-muted tracking-wide uppercase" for="password">
+                Password
+              </label>
+              <a href="#" class="text-[11px] font-medium text-brand hover:underline">Reset password?</a>
+            </div>
+            <div class="relative">
+              <input type="password" id="password" name="password" value="••••••••••••" required="" class="w-full h-10 px-3.5 bg-elevated border border-border rounded-lg text-xs text-text-primary placeholder:text-text-muted/60 focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand tracking-widest transition-colors">
+            </div>
+          </div>
+
+          <!-- Remember Session Checkbox -->
+          <div class="flex items-center justify-between pt-1">
+            <label class="flex items-center space-x-2 cursor-pointer select-none">
+              <input type="checkbox" checked="" class="w-3.5 h-3.5 rounded bg-elevated border-border text-primary focus:ring-0 focus:ring-offset-0 cursor-pointer">
+              <span class="text-xs text-text-muted">Keep this session signed in for 7 days</span>
+            </label>
+          </div>
+
+          <!-- Inline Error Notification Box (Hidden by default) -->
+          <div id="authErrorMessage" class="hidden p-2.5 rounded-lg bg-danger/10 border border-danger/30 text-danger text-[11px] flex items-center space-x-2">
+            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10"></circle><path d="M12 8v4m0 4h.01"></path>
+            </svg>
+            <span id="authErrorText">Invalid email or password. Use 'Enter Local Demo Workspace' for instant access.</span>
+          </div>
+
+          <!-- Submit Button -->
+          <button type="submit" id="submitBtn" class="w-full h-[42px] bg-primary hover:bg-primary-hover active:bg-blue-700 text-white rounded-lg text-xs font-semibold flex items-center justify-center space-x-2 transition-all shadow-md group mt-2">
+            <span id="submitBtnText">Sign In to Security Console</span>
+            <svg class="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+            </svg>
+          </button>
+        </form>
+
+        <!-- Divider with Centered Badge -->
+        <div class="relative my-5">
+          <div class="absolute inset-0 flex items-center">
+            <div class="w-full border-t border-border"></div>
+          </div>
+          <div class="relative flex justify-center text-[10px] uppercase font-semibold">
+            <span class="bg-surface px-2.5 text-text-muted tracking-wider">Or for Project Evaluation</span>
+          </div>
+        </div>
+
+        <!-- 1-Click Local Demo Evaluator Bypass -->
+        <button type="button" onclick="launchLocalDemo()" class="w-full h-10 px-3 bg-elevated hover:bg-elevated/80 border border-border-highlight hover:border-brand/50 rounded-lg text-xs font-semibold text-text-primary flex items-center justify-center space-x-2.5 transition-all group shadow-sm">
+          <span class="w-2 h-2 rounded-full bg-success animate-pulse"></span>
+          
+        </button>
+        
+
+      </div>
+    </section>
+
+    <!-- Vertical Structural Hairline Divider (Desktop Only) -->
+    
+
+    <!-- RIGHT COLUMN: 50% Live System Posture Preview Panel -->
+    
+
+  </main>
+
+  <!-- Bottom Fixed Telemetry Footer (32px) -->
+  <footer class="w-full h-8 bg-bar border-t border-border px-6 md:px-10 flex items-center justify-between text-[11px] text-text-muted z-20 flex-shrink-0">
+    <div class="flex items-center space-x-4 tracking-wider uppercase font-medium">
+      <span class="flex items-center space-x-1.5 text-success">
+        <span class="inline-block w-2 h-2 rounded-sm bg-success"></span>
+        <span class="text-text-primary">SYSTEMS OPERATIONAL</span>
+      </span>
+      <span class="hidden md:inline text-border">·</span>
+      <span class="hidden md:inline">GO AGENT LATENCY: 4MS</span>
+      <span class="hidden md:inline text-border">·</span>
+      <span class="hidden md:inline">DOCKER BRIDGE: CONNECTED</span>
+      <span class="hidden lg:inline text-border">·</span>
+      <span class="hidden lg:inline">EVAL BENCHMARK: CICIoT2023 (651,869 WINDOWS)</span>
+    </div>
+    <div class="flex items-center space-x-4 font-mono text-[10px]">
+      <span>API V2.4.0</span>
+      <span class="text-border">·</span>
+      <span class="text-text-primary">LAST SYNC: LIVE</span>
+    </div>
+  </footer>
+
+  <!-- Simple Plain-JavaScript Interactive Logic -->
+  <script>
+    function switchAuthMode(mode) {
+      const tabSignIn = document.getElementById('tabSignIn');
+      const tabCreate = document.getElementById('tabCreateAccount');
+      const orgContainer = document.getElementById('orgFieldContainer');
+      const submitText = document.getElementById('submitBtnText');
+      const errorBox = document.getElementById('authErrorMessage');
+
+      errorBox.classList.add('hidden');
+
+      if (mode === 'create') {
+        tabCreate.className = 'py-1.5 text-xs font-semibold rounded-md bg-surface text-text-primary border border-border shadow-sm transition-all duration-150';
+        tabSignIn.className = 'py-1.5 text-xs font-medium rounded-md text-text-muted hover:text-text-primary transition-all duration-150';
+        orgContainer.classList.remove('hidden');
+        submitText.innerText = 'Create Workspace & Connect First Device ->';
+      } else {
+        tabSignIn.className = 'py-1.5 text-xs font-semibold rounded-md bg-surface text-text-primary border border-border shadow-sm transition-all duration-150';
+        tabCreate.className = 'py-1.5 text-xs font-medium rounded-md text-text-muted hover:text-text-primary transition-all duration-150';
+        orgContainer.classList.add('hidden');
+        submitText.innerText = 'Sign In to Security Console';
+      }
+    }
+
+    function handleAuthSubmit(event) {
+      event.preventDefault();
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value.trim();
+      const errorBox = document.getElementById('authErrorMessage');
+      const errorText = document.getElementById('authErrorText');
+      const submitBtn = document.getElementById('submitBtn');
+
+      if (!email || !password) {
+        errorText.innerText = "Please provide both an email and password to authenticate.";
+        errorBox.classList.remove('hidden');
+        return;
+      }
+
+      // Visual feedback on submission
+      submitBtn.disabled = true;
+      submitBtn.classList.add('opacity-80');
+      const originalText = document.getElementById('submitBtnText').innerText;
+      document.getElementById('submitBtnText').innerText = "Authenticating Session...";
+
+      setTimeout(() => {
+        // Simulates seamless login and redirection to /overview or /onboarding
+        document.getElementById('submitBtnText').innerText = "Session Authenticated · Redirecting...";
+        submitBtn.classList.remove('bg-primary');
+        submitBtn.classList.add('bg-success');
+        setTimeout(() => {
+          submitBtn.disabled = false;
+          submitBtn.classList.remove('opacity-80', 'bg-success');
+          submitBtn.classList.add('bg-primary');
+          document.getElementById('submitBtnText').innerText = originalText;
+          // In production this navigates to the dashboard
+        }, 1200);
+      }, 600);
+    }
+
+    function launchLocalDemo() {
+      const submitBtn = document.getElementById('submitBtn');
+      const submitText = document.getElementById('submitBtnText');
+      
+      submitText.innerText = "Launching Local Demo Workspace...";
+      submitBtn.disabled = true;
+      submitBtn.classList.add('opacity-80', 'bg-success');
+
+      setTimeout(() => {
+        submitText.innerText = "Demo Session Initialized · Redirecting to SOC Overview";
+        setTimeout(() => {
+          submitBtn.disabled = false;
+          submitBtn.classList.remove('opacity-80', 'bg-success');
+          submitText.innerText = "Sign In to Security Console";
+        }, 1200);
+      }, 600);
+    }
+  </script>
+
+
+
+
+</body></html>

@@ -16,7 +16,7 @@ class Device(Base):
     status = mapped_column(String(32), default='OFFLINE')
     uptime_seconds = mapped_column(Integer, default=0)
     under_attack_status = mapped_column(String(32), default='Normal')
-    auto_block_enabled = mapped_column(Boolean, default=True)
+    auto_block_enabled = mapped_column(Boolean, default=False)
     internet_blocked = mapped_column(Boolean, default=False)
     current_dns = mapped_column(Text, default='["1.1.1.1"]')
     blocked_ips = mapped_column(Text, default='[]')
@@ -26,8 +26,10 @@ class Device(Base):
 
 class Flow(Base):
     __tablename__ = 'flow_logs'
+    input_representation = mapped_column(String(64), default='dataset_features')
+    capture_session_id = mapped_column(String(64), default='', index=True)
     id = mapped_column(Integer, primary_key=True)
-    window_id = mapped_column(String(64), index=True)
+    window_id = mapped_column(String(128), unique=True, index=True)
     timestamp = mapped_column(DateTime, index=True)
     capture_mode = mapped_column(String(32))
     src_ip = mapped_column(String(64), index=True)
@@ -42,11 +44,13 @@ class Flow(Base):
     confidence = mapped_column(Float, index=True)
     probabilities_json = mapped_column(Text)
     model_used = mapped_column(String(64))
+    artifact_sha256 = mapped_column(String(64), default="")
     top_anomalies_json = mapped_column(Text)
     features_22_json = mapped_column(Text)
 
 class Incident(Base):
     __tablename__ = 'incidents'
+    capture_session_id = mapped_column(String(64), default='', index=True)
     id = mapped_column(Integer, primary_key=True)
     title = mapped_column(String(256))
     attack_category = mapped_column(String(16))

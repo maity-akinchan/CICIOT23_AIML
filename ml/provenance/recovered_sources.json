@@ -1,0 +1,50 @@
+{
+  "repository": "https://huggingface.co/datasets/bencorn/CIC-IoT-2023",
+  "revision": "dac6afc7c1f6242202abf6059932e4c4d166e662",
+  "files": {
+    "Communication_features.py": {
+      "url": "https://huggingface.co/datasets/bencorn/CIC-IoT-2023/resolve/dac6afc7c1f6242202abf6059932e4c4d166e662/Supplementary%2BMaterials/pcap2csv/Communication_features.py",
+      "sha256": "e1c0a0bc274f512d35187ee8f7d1f34e3d4474b24b17b27c0f980db6ce3f1d25"
+    },
+    "Connectivity_features.py": {
+      "url": "https://huggingface.co/datasets/bencorn/CIC-IoT-2023/resolve/dac6afc7c1f6242202abf6059932e4c4d166e662/Supplementary%2BMaterials/pcap2csv/Connectivity_features.py",
+      "sha256": "5acd87c8999edc76fc868f38b2e89dd1149e3c2bab5bfb2027ab52f1444848f8"
+    },
+    "Dynamic_features.py": {
+      "url": "https://huggingface.co/datasets/bencorn/CIC-IoT-2023/resolve/dac6afc7c1f6242202abf6059932e4c4d166e662/Supplementary%2BMaterials/pcap2csv/Dynamic_features.py",
+      "sha256": "d2d3bedbd74610b77a3de39dcc4140c0ef564797beb4d0c3f1b20b8778781c6c"
+    },
+    "Feature_extraction.py": {
+      "url": "https://huggingface.co/datasets/bencorn/CIC-IoT-2023/resolve/dac6afc7c1f6242202abf6059932e4c4d166e662/Supplementary%2BMaterials/pcap2csv/Feature_extraction.py",
+      "sha256": "e64abadaac0eb08f3837f6e4dd36425b15eeac9d41406e55e95f07fc761addc4"
+    },
+    "Generating_dataset.py": {
+      "url": "https://huggingface.co/datasets/bencorn/CIC-IoT-2023/resolve/dac6afc7c1f6242202abf6059932e4c4d166e662/Supplementary%2BMaterials/pcap2csv/Generating_dataset.py",
+      "sha256": "0a36338b1403700ecacb02d7fec5a195f9bd806fca75c8e0d855b967d484158f"
+    },
+    "Layered_features.py": {
+      "url": "https://huggingface.co/datasets/bencorn/CIC-IoT-2023/resolve/dac6afc7c1f6242202abf6059932e4c4d166e662/Supplementary%2BMaterials/pcap2csv/Layered_features.py",
+      "sha256": "eefad44c746fd11e103485162e8a30ac966e45688bd0b99b0af06babacb421ed"
+    },
+    "Supporting_functions.py": {
+      "url": "https://huggingface.co/datasets/bencorn/CIC-IoT-2023/resolve/dac6afc7c1f6242202abf6059932e4c4d166e662/Supplementary%2BMaterials/pcap2csv/Supporting_functions.py",
+      "sha256": "2984aa528e99014e79f1f794ccf34cf1a5023d2af3bbefc2a538b810f8101da8"
+    },
+    "DPKT.txt": {
+      "url": "https://huggingface.co/datasets/bencorn/CIC-IoT-2023/resolve/dac6afc7c1f6242202abf6059932e4c4d166e662/Supplementary%2BMaterials/tools/DPKT.txt",
+      "sha256": "d01338a22a079a8b9453ff78a471a6fe39c98f5e94272d98a90b5c596a80fe8e"
+    },
+    "PySpark.txt": {
+      "url": "https://huggingface.co/datasets/bencorn/CIC-IoT-2023/resolve/dac6afc7c1f6242202abf6059932e4c4d166e662/Supplementary%2BMaterials/tools/PySpark.txt",
+      "sha256": "d7177a27b41d2ca32d174271a067c98f6d16c2f4fa4970cee15e45b3b2d69930"
+    },
+    "TCPDUMP.txt": {
+      "url": "https://huggingface.co/datasets/bencorn/CIC-IoT-2023/resolve/dac6afc7c1f6242202abf6059932e4c4d166e662/Supplementary%2BMaterials/tools/TCPDUMP.txt",
+      "sha256": "03a850621568ceb5af535491f2afa24cb40b873111894778db9734be32d43235"
+    },
+    "mergecap.txt": {
+      "url": "https://huggingface.co/datasets/bencorn/CIC-IoT-2023/resolve/dac6afc7c1f6242202abf6059932e4c4d166e662/Supplementary%2BMaterials/tools/mergecap.txt",
+      "sha256": "75f376dce8467ef7e23fb3bed3705e6502f4f29156e11261d8cfbe9a2545dd0d"
+    }
+  }
+}

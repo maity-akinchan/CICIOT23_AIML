@@ -182,6 +182,7 @@ func interpret(packet gopacket.Packet) (Packet, error) {
 		return Packet{}, errTruncated
 	}
 	out.HeaderBytes = netHeader + transHeader
+	out.TransportBytes = transHeader
 	return out, nil
 }
 

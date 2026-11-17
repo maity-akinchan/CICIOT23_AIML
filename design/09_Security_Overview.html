@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CICIoT23 Sentinel - Security Overview</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          },
+          colors: {
+            obsidian: {
+              base: '#0D0C14',
+              sidebar: '#100F18',
+              card: '#13121D',
+              elevated: '#1A1826',
+              border: '#222030',
+              highlight: '#3B3854',
+              muted: '#8E8CA3',
+              text: '#F8FAFC',
+            },
+            sentinel: {
+              indigo: '#6366F1',
+              blue: '#2563EB',
+              emerald: '#10B981',
+              amber: '#F59E0B',
+              coral: '#F97316',
+              red: '#EF4444',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #0D0C14;
+      color: #F8FAFC;
+      margin: 0;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+    .tabular-nums {
+      font-variant-numeric: tabular-nums;
+    }
+    /* Custom scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0D0C14;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #222030;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #3B3854;
+    }
+  </style>
+</head>
+<body class="flex h-screen w-screen overflow-hidden bg-[#0D0C14] text-[#F8FAFC]">
+
+  <!-- LEFT SIDEBAR (240px fixed) -->
+  <aside class="w-[240px] flex-shrink-0 bg-[#100F18] border-r border-[#222030] flex flex-col justify-between select-none z-20">
+    <div>
+      <!-- Top Brand Header -->
+      <div class="h-[68px] px-5 flex items-center gap-3 border-b border-[#222030]/60">
+        <div class="w-9 h-9 rounded-lg bg-[#6366F1] flex items-center justify-center shadow-lg shadow-[#6366F1]/20 flex-shrink-0">
+          <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+          </svg>
+        </div>
+        <div class="overflow-hidden">
+          <h1 class="text-[15px] font-bold tracking-tight text-[#F8FAFC] truncate">CICIoT23 Sentinel</h1>
+          <p class="text-[9.5px] font-semibold tracking-wider text-[#8E8CA3] uppercase truncate">Network Defense SOC</p>
+        </div>
+      </div>
+
+      <!-- Navigation Links -->
+      <div class="px-3 py-4 space-y-6">
+        <!-- Section: MONITORING -->
+        <div>
+          <div class="px-3 mb-2 text-[10px] font-bold tracking-wider text-[#8E8CA3] uppercase">Monitoring</div>
+          <nav class="space-y-1">
+            <!-- Active Link: Security Overview -->
+            <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg bg-[#1A1826] text-[#F8FAFC] text-[13px] font-medium border border-[#222030] shadow-sm">
+              <svg class="w-4 h-4 text-[#6366F1]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+              </svg>
+              <span>Security Overview</span>
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-[#8E8CA3] hover:text-[#F8FAFC] hover:bg-[#13121D] text-[13px] font-medium transition-colors">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              <span>Live Traffic &amp; PCAP</span>
+            </a>
+            <a href="#" class="flex items-center justify-between px-3 py-2 rounded-lg text-[#8E8CA3] hover:text-[#F8FAFC] hover:bg-[#13121D] text-[13px] font-medium transition-colors">
+              <div class="flex items-center gap-3">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                <span>Connected Devices</span>
+              </div>
+              <span class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[#222030] text-[#8E8CA3]">4</span>
+            </a>
+          </nav>
+        </div>
+
+        <!-- Section: INTELLIGENCE -->
+        <div>
+          <div class="px-3 mb-2 text-[10px] font-bold tracking-wider text-[#8E8CA3] uppercase">Intelligence</div>
+          <nav class="space-y-1">
+            <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-[#8E8CA3] hover:text-[#F8FAFC] hover:bg-[#13121D] text-[13px] font-medium transition-colors">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              <span>Model Comparison</span>
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-[#8E8CA3] hover:text-[#F8FAFC] hover:bg-[#13121D] text-[13px] font-medium transition-colors">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <span>Add Device (CLI)</span>
+            </a>
+          </nav>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Sidebar Controls -->
+    <div class="p-3 border-t border-[#222030] space-y-1">
+      <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-[#8E8CA3] hover:text-[#F8FAFC] hover:bg-[#13121D] text-[13px] font-medium transition-colors">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+        <span>Settings</span>
+      </a>
+      <button class="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-[#EF4444]/10 border border-[#EF4444]/30 text-[#EF4444] hover:bg-[#EF4444]/20 text-[13px] font-semibold transition-all">
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-[#EF4444] animate-pulse"></span>
+          <span>Lockdown Mode</span>
+        </div>
+        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+        </svg>
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN WRAPPER (Top Bar + Scrollable Content + Telemetry Footer) -->
+  <div class="flex-1 flex flex-col h-full min-w-0 overflow-hidden">
+    
+    <!-- TOP HEADER BAR (56px) -->
+    <header class="h-[56px] px-6 bg-[#0D0C14] border-b border-[#222030] flex items-center justify-between flex-shrink-0 z-10">
+      <!-- Left: Fleet Selector & Sub-navigation -->
+      <div class="flex items-center gap-6">
+        <button class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#13121D] border border-[#222030] text-[13px] font-semibold text-[#F8FAFC] hover:border-[#3B3854] transition-colors">
+          <span class="w-2 h-2 rounded-full bg-[#10B981]"></span>
+          <span>Sentinel Fleet</span>
+          <svg class="w-3.5 h-3.5 text-[#8E8CA3]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+
+        <!-- Sub-nav Tabs -->
+        <nav class="flex items-center gap-1">
+          <a href="#" class="px-3 py-1.5 text-[13px] font-medium text-[#F8FAFC] border-b-2 border-[#6366F1]">Overview</a>
+          <a href="#" class="px-3 py-1.5 text-[13px] font-medium text-[#8E8CA3] hover:text-[#F8FAFC] transition-colors">Anomalies</a>
+          <a href="#" class="px-3 py-1.5 text-[13px] font-medium text-[#8E8CA3] hover:text-[#F8FAFC] transition-colors">Active Rules</a>
+        </nav>
+      </div>
+
+      <!-- Right: Search, Model Badge, SOC Lead Profile -->
+      <div class="flex items-center gap-4">
+        <!-- Search Input -->
+        <div class="relative w-64">
+          <svg class="w-4 h-4 text-[#8E8CA3] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input type="text" placeholder="Search IPs, devices, or alerts..." class="w-full h-[34px] pl-9 pr-3 rounded-lg bg-[#13121D] border border-[#222030] text-[12.5px] text-[#F8FAFC] placeholder-[#8E8CA3] focus:outline-none focus:border-[#6366F1] transition-all" />
+        </div>
+
+        <!-- Model Badge -->
+        <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#1A1826] border border-[#222030] text-[12px]">
+          <span class="w-1.5 h-1.5 rounded-full bg-[#10B981]"></span>
+          <span class="text-[#8E8CA3]">Model:</span>
+          <span class="font-semibold text-[#F8FAFC] tabular-nums">XGBoost (91.4%)</span>
+        </div>
+
+        <!-- Notification Bell -->
+        <button class="relative p-2 rounded-lg bg-[#13121D] border border-[#222030] text-[#8E8CA3] hover:text-[#F8FAFC] hover:border-[#3B3854] transition-colors">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+          </svg>
+          <span class="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-[#F97316]"></span>
+        </button>
+
+        <!-- SOC Profile -->
+        <div class="flex items-center gap-2.5 pl-2 border-l border-[#222030]">
+          <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-[#2563EB] to-[#6366F1] flex items-center justify-center text-[12px] font-bold text-white shadow-md">
+            AM
+          </div>
+          <div class="text-left leading-tight hidden lg:block">
+            <div class="text-[12.5px] font-semibold text-[#F8FAFC]">A. Maity</div>
+            <div class="text-[10px] font-medium text-[#8E8CA3]">SOC Lead</div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- SCROLLABLE DASHBOARD CONTENT AREA -->
+    <main class="flex-1 overflow-y-auto p-6 space-y-5">
+      
+      <!-- 1. TOP ROW: 4 KPI CARDS -->
+      <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        
+        <!-- KPI Card 1: Normal Traffic Ratio -->
+        <div class="p-5 rounded-xl bg-[#13121D] border border-[#222030] relative overflow-hidden flex flex-col justify-between">
+          <div class="flex items-start justify-between">
+            <div class="w-9 h-9 rounded-lg bg-[#10B981]/10 border border-[#10B981]/20 flex items-center justify-center text-[#10B981]">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+            </div>
+            <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-[#10B981] tabular-nums">
+              <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+              </svg>
+              +1.8%
+            </span>
+          </div>
+          <div class="mt-4">
+            <div class="text-[11px] font-semibold tracking-wider text-[#8E8CA3] uppercase">Normal Traffic Ratio</div>
+            <div class="text-3xl font-bold text-[#F8FAFC] tracking-tight tabular-nums mt-1">94.2%</div>
+            <!-- Progress Bar -->
+            <div class="w-full h-1.5 bg-[#1E1D2B] rounded-full mt-3 overflow-hidden">
+              <div class="h-full bg-[#10B981] rounded-full" style="width: 94.2%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- KPI Card 2: Monitored Devices -->
+        <div class="p-5 rounded-xl bg-[#13121D] border border-[#222030] relative overflow-hidden flex flex-col justify-between">
+          <div class="flex items-start justify-between">
+            <div class="w-9 h-9 rounded-lg bg-[#6366F1]/10 border border-[#6366F1]/20 flex items-center justify-center text-[#6366F1]">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+              </svg>
+            </div>
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#1A1826] border border-[#222030] text-[#6366F1]">Active Fleet</span>
+          </div>
+          <div class="mt-4">
+            <div class="text-[11px] font-semibold tracking-wider text-[#8E8CA3] uppercase">Monitored Devices</div>
+            <div class="text-3xl font-bold text-[#F8FAFC] tracking-tight tabular-nums mt-1">4</div>
+            <p class="text-[12px] font-medium text-[#8E8CA3] mt-2.5 flex items-center gap-1.5">
+              <span class="w-1.5 h-1.5 rounded-full bg-[#10B981]"></span>
+              <span>3 Normal</span>
+              <span class="text-[#222030]">·</span>
+              <span class="w-1.5 h-1.5 rounded-full bg-[#F59E0B]"></span>
+              <span>1 Mitigated</span>
+            </p>
+          </div>
+        </div>
+
+        <!-- KPI Card 3: DoS Attack Windows -->
+        <div class="p-5 rounded-xl bg-[#13121D] border border-[#222030] relative overflow-hidden flex flex-col justify-between">
+          <div class="flex items-start justify-between">
+            <div class="w-9 h-9 rounded-lg bg-[#F59E0B]/10 border border-[#F59E0B]/20 flex items-center justify-center text-[#F59E0B]">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-[#F59E0B] tabular-nums">
+              <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+              </svg>
+              +14 windows/s
+            </span>
+          </div>
+          <div class="mt-4">
+            <div class="text-[11px] font-semibold tracking-wider text-[#8E8CA3] uppercase">DoS Attack Windows</div>
+            <div class="text-3xl font-bold text-[#F8FAFC] tracking-tight tabular-nums mt-1">2,410</div>
+            <p class="text-[12px] font-medium text-[#8E8CA3] mt-2.5">Single-source flood traffic</p>
+          </div>
+        </div>
+
+        <!-- KPI Card 4: DDoS Attack Windows -->
+        <div class="p-5 rounded-xl bg-[#13121D] border border-[#222030] relative overflow-hidden flex flex-col justify-between">
+          <div class="flex items-start justify-between">
+            <div class="w-9 h-9 rounded-lg bg-[#EF4444]/10 border border-[#EF4444]/20 flex items-center justify-center text-[#EF4444]">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+              </svg>
+            </div>
+            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-[#EF4444] text-white tracking-wider uppercase">Urgent</span>
+          </div>
+          <div class="mt-4">
+            <div class="text-[11px] font-semibold tracking-wider text-[#8E8CA3] uppercase">DDoS Attack Windows</div>
+            <div class="text-3xl font-bold text-[#F97316] tracking-tight tabular-nums mt-1">428</div>
+            <p class="text-[12px] font-medium text-[#EF4444] mt-2.5">Immediate action required</p>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- 2. MIDDLE ROW: ASYMMETRIC 68% / 32% SPLIT -->
+      <section class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+        
+        <!-- Left: Smooth Curved Spline Chart (68% -> 8 cols on lg) -->
+        <div class="lg:col-span-8 p-6 rounded-xl bg-[#13121D] border border-[#222030] flex flex-col justify-between">
+          <!-- Card Header & Legend -->
+          <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <div>
+              <h2 class="text-[17px] font-bold text-[#F8FAFC] tracking-tight">Network Traffic Activity</h2>
+              <p class="text-[12px] text-[#8E8CA3]">Real-time packet window throughput &amp; attack anomaly detection</p>
+            </div>
+            
+            <div class="flex items-center gap-4">
+              <!-- Legend items -->
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-[#6366F1]"></span>
+                <span class="text-[12px] font-medium text-[#F8FAFC]">Normal Traffic</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-[#F97316]"></span>
+                <span class="text-[12px] font-medium text-[#F8FAFC]">Attack Traffic (DoS/DDoS)</span>
+              </div>
+              <!-- Time Range Selector -->
+              <div class="px-2.5 py-1 rounded-lg bg-[#1A1826] border border-[#222030] text-[11px] font-semibold text-[#8E8CA3]">
+                Last 15 Minutes
+              </div>
+            </div>
+          </div>
+
+          <!-- SVG Spline Chart with Thick 6px Rounded Caps -->
+          <div class="relative w-full h-[220px] select-none mt-2">
+            <svg class="w-full h-full overflow-visible" viewBox="0 0 740 210" preserveAspectRatio="none">
+              <defs>
+                <!-- Indigo Gradient Area under Normal Traffic -->
+                <linearGradient id="normalGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#6366F1" stop-opacity="0.22"/>
+                  <stop offset="100%" stop-color="#6366F1" stop-opacity="0.0"/>
+                </linearGradient>
+                <!-- Coral Gradient Area under Attack Traffic -->
+                <linearGradient id="attackGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#F97316" stop-opacity="0.25"/>
+                  <stop offset="100%" stop-color="#F97316" stop-opacity="0.0"/>
+                </linearGradient>
+              </defs>
+
+              <!-- 5 Horizontal Grid Lines -->
+              <line x1="0" y1="20" x2="740" y2="20" stroke="#222030" stroke-width="1" />
+              <line x1="0" y1="60" x2="740" y2="60" stroke="#222030" stroke-width="1" />
+              <line x1="0" y1="100" x2="740" y2="100" stroke="#222030" stroke-width="1" />
+              <line x1="0" y1="140" x2="740" y2="140" stroke="#222030" stroke-width="1" />
+              <line x1="0" y1="180" x2="740" y2="180" stroke="#222030" stroke-width="1" stroke-dasharray="4 4" />
+
+              <!-- NORMAL TRAFFIC AREA FILL -->
+              <path d="M 0,140 
+                       C 60,138 100,145 160,132 
+                       C 230,118 270,72 340,78 
+                       C 410,84 450,148 510,135 
+                       C 560,122 610,25 660,25 
+                       C 690,25 715,65 740,95 
+                       L 740,195 L 0,195 Z" 
+                    fill="url(#normalGrad)" />
+
+              <!-- ATTACK TRAFFIC AREA FILL -->
+              <path d="M 0,178 
+                       C 80,178 120,172 170,170 
+                       C 220,168 260,182 320,180 
+                       C 380,178 410,188 470,172 
+                       C 530,154 580,130 630,132 
+                       C 670,134 705,152 740,150 
+                       L 740,195 L 0,195 Z" 
+                    fill="url(#attackGrad)" />
+
+              <!-- ATTACK TRAFFIC SPLINE (Coral-Orange #F97316, 6px stroke-width, round caps) -->
+              <path d="M 0,178 
+                       C 80,178 120,172 170,170 
+                       C 220,168 260,182 320,180 
+                       C 380,178 410,188 470,172 
+                       C 530,154 580,130 630,132 
+                       C 670,134 705,152 740,150" 
+                    fill="none" 
+                    stroke="#F97316" 
+                    stroke-width="6" 
+                    stroke-linecap="round" 
+                    stroke-linejoin="round" />
+
+              <!-- NORMAL TRAFFIC SPLINE (Indigo #6366F1, 6px stroke-width, round caps) -->
+              <path d="M 0,140 
+                       C 60,138 100,145 160,132 
+                       C 230,118 270,72 340,78 
+                       C 410,84 450,148 510,135 
+                       C 560,122 610,25 660,25 
+                       C 690,25 715,65 740,95" 
+                    fill="none" 
+                    stroke="#6366F1" 
+                    stroke-width="6" 
+                    stroke-linecap="round" 
+                    stroke-linejoin="round" />
+            </svg>
+          </div>
+
+          <!-- X-Axis Timestamps (Tabular Nums) -->
+          <div class="flex justify-between items-center text-[11px] font-medium text-[#8E8CA3] tabular-nums pt-3 border-t border-[#222030]/80 mt-1">
+            <span>11:55</span>
+            <span>11:58</span>
+            <span>12:01</span>
+            <span>12:04</span>
+            <span>12:07</span>
+            <span>12:10</span>
+            <span class="text-[#10B981] font-semibold flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-[#10B981] animate-pulse"></span>
+              LIVE
+            </span>
+          </div>
+        </div>
+
+        <!-- Right: 7x5 Threat Intensity Heatmap (32% -> 4 cols on lg) -->
+        <div class="lg:col-span-4 p-6 rounded-xl bg-[#13121D] border border-[#222030] flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between">
+              <h2 class="text-[17px] font-bold text-[#F8FAFC] tracking-tight">Traffic Anomaly Heatmap</h2>
+              <span class="text-[10px] font-bold text-[#8E8CA3] uppercase tracking-wider">WINDOW INTENSITY</span>
+            </div>
+            <p class="text-[12px] text-[#8E8CA3] mt-0.5">Burst concentration across device time slices</p>
+
+            <!-- 7 cols x 5 rows Grid of rounded square cells -->
+            <div class="grid grid-cols-7 gap-2 my-5">
+              <!-- Row 1 -->
+              <div class="aspect-square rounded-md bg-[#1A1826] border border-[#222030]" title="Nominal"></div>
+              <div class="aspect-square rounded-md bg-[#1A1826] border border-[#222030]" title="Nominal"></div>
+              <div class="aspect-square rounded-md bg-[#282545]" title="Elevated Traffic"></div>
+              <div class="aspect-square rounded-md bg-[#5C2D24]" title="Anomaly Burst"></div>
+              <div class="aspect-square rounded-md bg-[#282545]" title="Elevated Traffic"></div>
+              <div class="aspect-square rounded-md bg-[#1A1826] border border-[#222030]" title="Nominal"></div>
+              <div class="aspect-square rounded-md bg-[#1A1826] border border-[#222030]" title="Nominal"></div>
+
+              <!-- Row 2 -->
+              <div class="aspect-square rounded-md bg-[#1A1826] border border-[#222030]" title="Nominal"></div>
+              <div class="aspect-square rounded-md bg-[#282545]" title="Elevated Traffic"></div>
+              <div class="aspect-square rounded-md bg-[#5C2D24]" title="Anomaly Burst"></div>
+              <div class="aspect-square rounded-md bg-[#E05A2B] shadow-sm shadow-[#E05A2B]/40" title="Critical Flood"></div>
+              <div class="aspect-square rounded-md bg-[#5C2D24]" title="Anomaly Burst"></div>
+              <div class="aspect-square rounded-md bg-[#282545]" title="Elevated Traffic"></div>
+              <div class="aspect-square rounded-md bg-[#1A1826] border border-[#222030]" title="Nominal"></div>
+
+              <!-- Row 3 -->
+              <div class="aspect-square rounded-md bg-[#1A1826] border border-[#222030]" title="Nominal"></div>
+              <div class="aspect-square rounded-md bg-[#1A1826] border border-[#222030]" title="Nominal"></div>
+              <div class="aspect-square rounded-md bg-[#282545]" title="Elevated Traffic"></div>
+              <div class="aspect-square rounded-md bg-[#5C2D24]" title="Anomaly Burst"></div>
+              <div class="aspect-square rounded-md bg-[#282545]" title="Elevated Traffic"></div>
+              <div class="aspect-square rounded-md bg-[#1A1826] border border-[#222030]" title="Nominal"></div>
+              <div class="aspect-square rounded-md bg-[#1A1826] border border-[#222030]" title="Nominal"></div>
+
+              <!-- Row 4 -->
+              <div class="aspect-square rounded-md bg-[#E05A2B] shadow-sm shadow-[#E05A2B]/40" title="Critical Flood"></div>
+              <div class="aspect-square rounded-md bg-[#5C2D24]" title="Anomaly Burst"></div>
+              <div class="aspect-square rounded-md bg-[#282545]" title="Elevated Traffic"></div>
+              <div class="aspect-square rounded-md bg-[#1A1826] border border-[#222030]" title="Nominal"></div>
+              <div class="aspect-square rounded-md bg-[#282545]" title="Elevated Traffic"></div>
+              <div class="aspect-square rounded-md bg-[#1A1826] border border-[#222030]" title="Nominal"></div>
+              <div class="aspect-square rounded-md bg-[#1A1826] border border-[#222030]" title="Nominal"></div>
+
+              <!-- Row 5 -->
+              <div class="aspect-square rounded-md bg-[#5C2D24]" title="Anomaly Burst"></div>
+              <div class="aspect-square rounded-md bg-[#282545]" title="Elevated Traffic"></div>
+              <div class="aspect-square rounded-md bg-[#1A1826] border border-[#222030]" title="Nominal"></div>
+              <div class="aspect-square rounded-md bg-[#5C2D24]" title="Anomaly Burst"></div>
+              <div class="aspect-square rounded-md bg-[#E05A2B] shadow-sm shadow-[#E05A2B]/40" title="Critical Flood"></div>
+              <div class="aspect-square rounded-md bg-[#282545]" title="Elevated Traffic"></div>
+              <div class="aspect-square rounded-md bg-[#1A1826] border border-[#222030]" title="Nominal"></div>
+            </div>
+          </div>
+
+          <!-- Bottom Legend Scale -->
+          <div class="pt-3 border-t border-[#222030] flex items-center justify-between text-[11px] text-[#8E8CA3]">
+            <span>Low Traffic</span>
+            <div class="flex items-center gap-1.5">
+              <span class="w-3.5 h-3.5 rounded-sm bg-[#1A1826] border border-[#222030]"></span>
+              <span class="w-3.5 h-3.5 rounded-sm bg-[#282545]"></span>
+              <span class="w-3.5 h-3.5 rounded-sm bg-[#5C2D24]"></span>
+              <span class="w-3.5 h-3.5 rounded-sm bg-[#E05A2B]"></span>
+            </div>
+            <span class="text-[#F97316] font-semibold">Critical Flood</span>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- 3. BOTTOM ROW: ACTIVE ATTACK ALERTS TABLE -->
+      <section class="rounded-xl bg-[#13121D] border border-[#222030] overflow-hidden">
+        <!-- Table Header & Actions -->
+        <div class="p-5 flex flex-wrap items-center justify-between gap-4 border-b border-[#222030]">
+          <div>
+            <h2 class="text-[17px] font-bold text-[#F8FAFC] tracking-tight">Active Attack Alerts</h2>
+            <p class="text-[12px] text-[#8E8CA3]">Real-time 100-packet window classifications</p>
+          </div>
+          <div class="flex items-center gap-2.5">
+            <button class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#1A1826] border border-[#222030] text-[12px] font-medium text-[#F8FAFC] hover:border-[#3B3854] transition-colors">
+              <svg class="w-3.5 h-3.5 text-[#8E8CA3]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+              </svg>
+              <span>Filters</span>
+            </button>
+            <button class="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-[#4F46E5] hover:bg-[#4338CA] text-[12px] font-semibold text-white shadow-sm transition-colors">
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              <span>Export CSV</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Table Responsive Container -->
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-[#100F18]/50 text-[11px] font-bold uppercase tracking-wider text-[#8E8CA3] border-b border-[#222030]">
+                <th class="py-3 px-5">Target Device</th>
+                <th class="py-3 px-4">Attack Type</th>
+                <th class="py-3 px-4">Detected</th>
+                <th class="py-3 px-4">Attacker IP</th>
+                <th class="py-3 px-4">Why This Was Flagged</th>
+                <th class="py-3 px-4">Confidence &amp; Risk</th>
+                <th class="py-3 px-5 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-[#222030] text-[13px]">
+              
+              <!-- Row 1: DoS Attack on smart-camera-01 -->
+              <tr class="hover:bg-[#1A1826]/40 transition-colors group">
+                <td class="py-3.5 px-5">
+                  <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-[#6366F1]/10 border border-[#6366F1]/30 flex items-center justify-center text-[12px] font-bold text-[#6366F1]">
+                      SC
+                    </div>
+                    <div>
+                      <div class="font-semibold text-[#F8FAFC]">smart-camera-01</div>
+                      <div class="text-[11px] text-[#8E8CA3] tabular-nums">172.17.0.2</div>
+                    </div>
+                  </div>
+                </td>
+                <td class="py-3.5 px-4">
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-[#6366F1]/10 border border-[#6366F1]/40 text-[#6366F1]">
+                    DoS Attack
+                  </span>
+                </td>
+                <td class="py-3.5 px-4 text-[#8E8CA3] tabular-nums">Just now</td>
+                <td class="py-3.5 px-4 font-mono text-[12px] text-[#F8FAFC] tabular-nums">
+                  172.17.0.99 <span class="text-[#8E8CA3] text-[11px] font-sans">(Docker Net)</span>
+                </td>
+                <td class="py-3.5 px-4 text-[12.5px] text-[#8E8CA3]">
+                  Packet Rate: <span class="text-[#F8FAFC] font-semibold tabular-nums">14,200 pkt/s</span> · SYN Flags: <span class="text-[#F8FAFC] font-semibold tabular-nums">99%</span>
+                </td>
+                <td class="py-3.5 px-4">
+                  <div class="flex items-center gap-2">
+                    <div class="w-16 h-1.5 bg-[#1E1D2B] rounded-full overflow-hidden">
+                      <div class="h-full bg-[#EF4444] rounded-full" style="width: 98%;"></div>
+                    </div>
+                    <span class="text-[11.5px] font-bold text-[#EF4444] tabular-nums">98.4% High</span>
+                  </div>
+                </td>
+                <td class="py-3.5 px-5 text-right">
+                  <button onclick="blockAction(this, 'IP Blocked')" class="px-3 py-1 rounded-md bg-[#EF4444]/15 hover:bg-[#EF4444] border border-[#EF4444]/40 hover:border-[#EF4444] text-[#EF4444] hover:text-white text-[12px] font-semibold transition-all">
+                    Block IP
+                  </button>
+                </td>
+              </tr>
+
+              <!-- Row 2: DDoS Attack on smart-plug-03 -->
+              <tr class="hover:bg-[#1A1826]/40 transition-colors group">
+                <td class="py-3.5 px-5">
+                  <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-[#EF4444]/10 border border-[#EF4444]/30 flex items-center justify-center text-[12px] font-bold text-[#EF4444]">
+                      SP
+                    </div>
+                    <div>
+                      <div class="font-semibold text-[#F8FAFC]">smart-plug-03</div>
+                      <div class="text-[11px] text-[#8E8CA3] tabular-nums">172.17.0.4</div>
+                    </div>
+                  </div>
+                </td>
+                <td class="py-3.5 px-4">
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-[#EF4444]/15 border border-[#EF4444] text-[#EF4444]">
+                    DDoS Attack
+                  </span>
+                </td>
+                <td class="py-3.5 px-4 text-[#8E8CA3] tabular-nums">2m ago</td>
+                <td class="py-3.5 px-4 font-mono text-[12px] text-[#F97316] tabular-nums">
+                  Multiple <span class="text-[#8E8CA3] text-[11px] font-sans">(18 Spoofed IPs)</span>
+                </td>
+                <td class="py-3.5 px-4 text-[12.5px] text-[#8E8CA3]">
+                  SYN-to-ACK Ratio: <span class="text-[#F8FAFC] font-semibold tabular-nums">48.0</span> · Size Spread: <span class="text-[#F8FAFC] font-semibold tabular-nums">0.42</span>
+                </td>
+                <td class="py-3.5 px-4">
+                  <div class="flex items-center gap-2">
+                    <div class="w-16 h-1.5 bg-[#1E1D2B] rounded-full overflow-hidden">
+                      <div class="h-full bg-[#EF4444] rounded-full" style="width: 94%;"></div>
+                    </div>
+                    <span class="text-[11.5px] font-bold text-[#EF4444] tabular-nums">94.1% Critical</span>
+                  </div>
+                </td>
+                <td class="py-3.5 px-5 text-right">
+                  <button onclick="blockAction(this, 'Internet Blocked')" class="px-3 py-1 rounded-md bg-[#EF4444] hover:bg-[#DC2626] text-white text-[12px] font-bold shadow-sm transition-all">
+                    Block All Internet
+                  </button>
+                </td>
+              </tr>
+
+              <!-- Row 3: DoS Attack on smart-thermostat-02 -->
+              <tr class="hover:bg-[#1A1826]/40 transition-colors group">
+                <td class="py-3.5 px-5">
+                  <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-[#F59E0B]/10 border border-[#F59E0B]/30 flex items-center justify-center text-[12px] font-bold text-[#F59E0B]">
+                      ST
+                    </div>
+                    <div>
+                      <div class="font-semibold text-[#F8FAFC]">smart-thermostat-02</div>
+                      <div class="text-[11px] text-[#8E8CA3] tabular-nums">172.17.0.3</div>
+                    </div>
+                  </div>
+                </td>
+                <td class="py-3.5 px-4">
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-[#F59E0B]/10 border border-[#F59E0B]/40 text-[#F59E0B]">
+                    DoS Attack
+                  </span>
+                </td>
+                <td class="py-3.5 px-4 text-[#8E8CA3] tabular-nums">14m ago</td>
+                <td class="py-3.5 px-4 font-mono text-[12px] text-[#F8FAFC] tabular-nums">172.17.0.84</td>
+                <td class="py-3.5 px-4 text-[12.5px] text-[#8E8CA3]">
+                  ICMP Flood: <span class="text-[#F8FAFC] font-semibold tabular-nums">100%</span> · Avg Size: <span class="text-[#F8FAFC] font-semibold tabular-nums">64 bytes</span>
+                </td>
+                <td class="py-3.5 px-4">
+                  <div class="flex items-center gap-2">
+                    <div class="w-16 h-1.5 bg-[#1E1D2B] rounded-full overflow-hidden">
+                      <div class="h-full bg-[#F59E0B] rounded-full" style="width: 91%;"></div>
+                    </div>
+                    <span class="text-[11.5px] font-bold text-[#F59E0B] tabular-nums">91.7% Med</span>
+                  </div>
+                </td>
+                <td class="py-3.5 px-5 text-right">
+                  <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#1A1826] border border-[#222030] text-[#8E8CA3] text-[11px] font-medium">
+                    <svg class="w-3 h-3 text-[#10B981]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                    </svg>
+                    Auto-Blocked
+                  </span>
+                </td>
+              </tr>
+
+              <!-- Row 4: Normal Traffic on smart-lock-04 -->
+              <tr class="hover:bg-[#1A1826]/40 transition-colors group">
+                <td class="py-3.5 px-5">
+                  <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-[#10B981]/10 border border-[#10B981]/30 flex items-center justify-center text-[12px] font-bold text-[#10B981]">
+                      SL
+                    </div>
+                    <div>
+                      <div class="font-semibold text-[#F8FAFC]">smart-lock-04</div>
+                      <div class="text-[11px] text-[#8E8CA3] tabular-nums">172.17.0.5</div>
+                    </div>
+                  </div>
+                </td>
+                <td class="py-3.5 px-4">
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-[#10B981]/10 border border-[#10B981]/40 text-[#10B981]">
+                    Normal
+                  </span>
+                </td>
+                <td class="py-3.5 px-4 text-[#8E8CA3] tabular-nums">18m ago</td>
+                <td class="py-3.5 px-4 font-mono text-[12px] text-[#F8FAFC] tabular-nums">
+                  172.17.0.1 <span class="text-[#8E8CA3] text-[11px] font-sans">(Gateway)</span>
+                </td>
+                <td class="py-3.5 px-4 text-[12.5px] text-[#8E8CA3]">
+                  Normal TCP handshake ratio
+                </td>
+                <td class="py-3.5 px-4">
+                  <div class="flex items-center gap-2">
+                    <div class="w-16 h-1.5 bg-[#1E1D2B] rounded-full overflow-hidden">
+                      <div class="h-full bg-[#10B981] rounded-full" style="width: 12%;"></div>
+                    </div>
+                    <span class="text-[11.5px] font-bold text-[#10B981] tabular-nums">99.6% Low</span>
+                  </div>
+                </td>
+                <td class="py-3.5 px-5 text-right text-[#8E8CA3] font-mono">
+                  —
+                </td>
+              </tr>
+
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- BOTTOM SYSTEM TELEMETRY FOOTER (32px fixed) -->
+    <footer class="h-[32px] px-6 bg-[#100F18] border-t border-[#222030] flex items-center justify-between text-[11px] font-semibold text-[#8E8CA3] tracking-wide select-none z-10 flex-shrink-0">
+      <!-- Left Telemetry Signals -->
+      <div class="flex items-center gap-4">
+        <span class="flex items-center gap-1.5 text-[#10B981]">
+          <span class="w-2 h-2 rounded-[2px] bg-[#10B981]"></span>
+          <span>SYSTEMS OPERATIONAL</span>
+        </span>
+        <span class="text-[#222030]">·</span>
+        <span class="tabular-nums">GO COLLECTOR LATENCY: 4MS</span>
+        <span class="text-[#222030]">·</span>
+        <span class="flex items-center gap-1.5">
+          <span class="w-1.5 h-1.5 rounded-full bg-[#10B981]"></span>
+          <span>DOCKER BRIDGE: CONNECTED</span>
+        </span>
+      </div>
+
+      <!-- Right Telemetry Signals -->
+      <div class="flex items-center gap-3 tabular-nums">
+        <span>API V2.4.0</span>
+        <span class="text-[#222030]">·</span>
+        <span>LAST UPDATED: 12:10:45 IST</span>
+      </div>
+    </footer>
+
+  </div>
+
+  <script>
+    function blockAction(btn, text) {
+      btn.innerText = text;
+      btn.disabled = true;
+      btn.className = "px-2.5 py-1 rounded bg-[#1A1826] border border-[#222030] text-[#10B981] text-[11px] font-bold cursor-default inline-flex items-center gap-1";
+      btn.innerHTML = `<svg class="w-3 h-3 text-[#10B981]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" /></svg> ${text}`;
+    }
+  </script>
+</body>
+</html>

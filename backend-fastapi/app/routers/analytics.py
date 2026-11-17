@@ -22,8 +22,9 @@ def overview(request: Request):
 @router.get('/flows')
 def flows(request: Request, limit: int=Query(100,ge=1,le=1000), offset: int=Query(0,ge=0),
           predicted_class: str|None=None, protocol: str|None=None, ip_search: str|None=None,
-          min_confidence: float=Query(0,ge=0,le=1)):
+          min_confidence: float=Query(0,ge=0,le=1), capture_session_id: str|None=None):
     query = select(Flow).where(Flow.confidence>=min_confidence)
+    if capture_session_id: query=query.where(Flow.capture_session_id==capture_session_id)
     if predicted_class: query=query.where(Flow.predicted_class==predicted_class)
     if protocol: query=query.where(Flow.protocol==protocol)
     if ip_search: query=query.where(or_(Flow.src_ip.contains(ip_search),Flow.dst_ip.contains(ip_search),Flow.src_mac.contains(ip_search)))
@@ -50,42 +51,50 @@ async def acknowledge(alert_id:int, request:Request):
     return result
 
 @router.post('/system/reset')
-def reset(request:Request):
-    with request.app.state.sessions.begin() as db:
-        for model in (Alert,Incident,Flow): db.execute(delete(model))
-        for device in db.scalars(select(Device)):
-            device.total_flows_seen=0
-            device.attack_flows_seen=0
-            device.under_attack_status='Normal'
-    request.app.state.incidents.pending.clear()
-    return {'status':'reset'}
+async def reset(request:Request):
+    async with request.app.state.ingest_lock:
+        with request.app.state.sessions.begin() as db:
+            for model in (Alert,Incident,Flow): db.execute(delete(model))
+            for device in db.scalars(select(Device)):
+                device.total_flows_seen=0
+                device.attack_flows_seen=0
+                device.under_attack_status='Normal'
+        request.app.state.incidents.pending.clear()
+        request.app.state.incidents.benign_counts.clear()
+        request.app.state.auto_blocker.windows.clear()
+        request.app.state.auto_blocker.sent.clear()
+        return {'status':'reset'}
+
 
 @router.get('/models')
 def models(request:Request):
-    return {'active_model_id':request.app.state.inference_engine.bundle['model_id'],
+    return {'active_model_id':next((key for key,value in request.app.state.registry.items() if value is request.app.state.inference_engine), None),
             'models':[analytics(key,request) for key in request.app.state.registry]}
 
 @router.get('/models/{model_id}/analytics')
 def analytics(model_id:str,request:Request):
     engine=request.app.state.registry.get(model_id)
     if engine is None: raise HTTPException(404,'Model not found')
+    if not engine.is_loaded: return {'model_id':model_id,'available':False,'reason':engine.error}
     b=engine.bundle
     metrics=b.get('metrics',{})
     test=metrics.get('test',metrics)
     scores=test.get('metrics',test)
     return {'model_id':model_id,'model_name':b['model_name'],'is_bootstrap_model':engine.is_bootstrap_model,
-            'classes':b['classes'],'test_accuracy':scores.get('accuracy',scores.get('test_accuracy')),
+            'available':True,'artifact_sha256':b['artifact_sha256'],'classes':b['classes'],'test_accuracy':scores.get('accuracy',scores.get('test_accuracy')),
             'test_macro_f1':scores.get('macro_f1',scores.get('test_macro_f1')),
             'confusion_matrix':test.get('confusion_matrix'), 'classification_report':test.get('classification_report'),
             'feature_importances':b.get('feature_importance',metrics.get('feature_importances',{})),
-            'training_scope':b.get('training_scope',{})}
+            'training_scope':b.get('training_scope',{}), 'packet_compatibility':'approximate' if b.get('is_legacy') else 'contract_dependent',
+            'parity_validation':b.get('parity_validation','golden_rows_verified')}
 
 from pydantic import BaseModel
 from typing import Literal
 class ModelSelection(BaseModel):
-    model_id: Literal['xgb','brf','svm','lr']
+    model_id: Literal['xgb','rf','lr']
 
 @router.post('/models/select')
 def select_model(payload:ModelSelection,request:Request):
+    if not request.app.state.registry[payload.model_id].is_loaded: raise HTTPException(503,"Model unavailable")
     request.app.state.inference_engine=request.app.state.registry[payload.model_id]
     return {'active_model_id':payload.model_id}

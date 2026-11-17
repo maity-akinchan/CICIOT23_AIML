@@ -1,11 +1,12 @@
 package main
 
-// sentinel-pcap22-v2 is the candidate capture contract. It is not the legacy
+// sentinel-packet-approx22-v1 is the packet approximation contract. It is not the legacy
 // CSV contract ciciot23-csv22-v1, and these vectors must not be presented as
 // rows from that artifact. The serving API derives the four ratios; the
 // collector ships only the 18 base measurements.
 const (
-	contractID       = "sentinel-pcap22-v2"
+	contractID       = "sentinel-packet-approx22-v1"
+	contractHash     = "69233195bd0d4206df011fffb09bbf367da2febc227b1573b59aff588dc539a4"
 	extractorVersion = "collector-go/1.0.0"
 	schemaVersion    = "legacy-ingest-v1"
 

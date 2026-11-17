@@ -1,7 +1,62 @@
 @import "tailwindcss";
 
 @theme {
-  --color-canvas: #090D16;
-  --color-surface: #111827;
-  --font-mono: "JetBrains Mono", monospace;
+  --color-canvas: #0D0C14;
+  --color-sidebar: #100F18;
+  --color-surface: #13121D;
+  --color-elevated: #1A1826;
+  --color-border: #222030;
+  --color-highlight: #3B3854;
+  --color-primary: #2563EB;
+  --color-indigo: #6366F1;
+  --color-emerald: #10B981;
+  --color-amber: #F59E0B;
+  --color-coral: #F97316;
+  --color-crimson: #EF4444;
+  --color-cyan: #06B6D4;
+  --color-muted: #8E8CA3;
+  --font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+@layer base {
+  html,
+  body {
+    font-family: var(--font-sans);
+    background-color: #0D0C14;
+    color: #F8FAFC;
+    color-scheme: dark;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Clean minimal scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #222030 #0D0C14;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0D0C14;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #222030;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3B3854;
 }
