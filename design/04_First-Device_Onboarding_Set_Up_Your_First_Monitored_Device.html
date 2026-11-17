@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CICIoT23 Sentinel — Initial Fleet Setup</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            obsidian: {
+              base: '#0D0C14',
+              surface: '#13121D',
+              elevated: '#1A1826',
+              bar: '#100F18',
+              border: '#222030',
+              highlight: '#3B3854',
+              muted: '#8E8CA3',
+              primary: '#F8FAFC',
+            },
+            brand: {
+              indigo: '#6366F1',
+              blue: '#2563EB',
+              blueHover: '#1D4ED8',
+              emerald: '#10B981',
+              amber: '#F59E0B',
+              coral: '#F97316',
+              crimson: '#EF4444',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #0D0C14;
+      color: #F8FAFC;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+    .tabular-nums {
+      font-variant-numeric: tabular-nums;
+    }
+    /* Custom scrollbar for code blocks */
+    pre::-webkit-scrollbar {
+      height: 6px;
+    }
+    pre::-webkit-scrollbar-track {
+      background: #0D0C14;
+    }
+    pre::-webkit-scrollbar-thumb {
+      background: #222030;
+      border-radius: 9999px;
+    }
+    pre::-webkit-scrollbar-thumb:hover {
+      background: #3B3854;
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-[#0D0C14] flex flex-col justify-between selection:bg-indigo-900 selection:text-white">
+
+  <!-- TOP ONBOARDING BAR (56px) -->
+  <header class="h-14 bg-[#100F18] border-b border-[#222030] px-6 flex items-center justify-between sticky top-0 z-30">
+    <!-- Left: Brand Logo & Context -->
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-lg bg-[#1A1826] border border-[#222030] flex items-center justify-center text-[#6366F1]">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+        </svg>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-sm font-bold tracking-tight text-[#F8FAFC]">CICIoT23 Sentinel</span>
+        <span class="text-xs text-[#8E8CA3] hidden sm:inline">— Initial Fleet Setup</span>
+      </div>
+    </div>
+
+    <!-- Center: 3-Step Horizontal Progress Indicator -->
+    <div class="hidden md:flex items-center gap-3">
+      <!-- Step 1 -->
+      <div class="flex items-center gap-2">
+        <div class="w-6 h-6 rounded-full bg-[#10B981]/20 border border-[#10B981] text-[#10B981] flex items-center justify-center text-xs font-bold">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+          </svg>
+        </div>
+        <span class="text-xs font-semibold text-[#F8FAFC]">1. Configure Device</span>
+      </div>
+
+      <div class="w-8 h-[2px] bg-[#222030]"></div>
+
+      <!-- Step 2 -->
+      <div class="flex items-center gap-2">
+        <div class="w-6 h-6 rounded-full bg-[#6366F1] text-white flex items-center justify-center text-xs font-bold shadow-sm">
+          2
+        </div>
+        <span class="text-xs font-semibold text-[#F8FAFC]">2. Run Command</span>
+      </div>
+
+      <div class="w-8 h-[2px] bg-[#222030]"></div>
+
+      <!-- Step 3 -->
+      <div class="flex items-center gap-2">
+        <div class="w-6 h-6 rounded-full bg-[#10B981]/20 border border-[#10B981] text-[#10B981] flex items-center justify-center text-xs font-bold">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+          </svg>
+        </div>
+        <span class="text-xs font-semibold text-[#10B981]">3. Heartbeat Verified</span>
+      </div>
+    </div>
+
+    <!-- Right: Escape hatch link -->
+    <div class="flex items-center">
+      <a href="#" class="text-xs font-medium text-[#8E8CA3] hover:text-[#F8FAFC] transition-colors flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-[#1A1826]">
+        <span>Skip for now — Upload .pcap files instead</span>
+        <svg class="w-3.5 h-3.5 text-[#8E8CA3]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+        </svg>
+      </a>
+    </div>
+  </header>
+
+  <!-- MAIN WRAPPER -->
+  <main class="flex-1 w-full max-w-[1240px] mx-auto px-6 py-8 flex flex-col justify-center">
+
+    <!-- PAGE HEADING -->
+    <div class="mb-6">
+      <h1 class="text-2xl lg:text-[28px] font-bold text-[#F8FAFC] tracking-tight mb-1.5">
+        Set Up Your First Monitored Device
+      </h1>
+      <p class="text-sm text-[#8E8CA3]">
+        Connect a Docker container or Linux machine to start streaming 100-packet windows and managing firewall & DNS rules.
+      </p>
+    </div>
+
+    <!-- 2-COLUMN ASYMMETRIC GRID (64% Left / 36% Right) -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+      <!-- LEFT COLUMN (64% / col-span-8) -->
+      <div class="lg:col-span-8 bg-[#13121D] border border-[#222030] rounded-xl p-6 flex flex-col gap-6">
+
+        <!-- SECTION 1: Device Identity & Platform -->
+        <div>
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-2">
+              <span class="w-5 h-5 rounded-full bg-[#1A1826] border border-[#222030] text-[#8E8CA3] flex items-center justify-center text-[11px] font-bold">1</span>
+              <h2 class="text-base font-semibold text-[#F8FAFC]">Device Identity & Platform Selection</h2>
+            </div>
+            <span class="text-[11px] font-medium text-[#10B981] bg-[#10B981]/10 px-2 py-0.5 rounded border border-[#10B981]/20">Step 1 Completed</span>
+          </div>
+
+          <!-- Inputs Row -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <!-- Device Name -->
+            <div>
+              <label class="block text-[11px] font-semibold text-[#8E8CA3] tracking-wider uppercase mb-1.5">Device Name</label>
+              <div class="relative">
+                <input
+                  id="device-name-input"
+                  type="text"
+                  value="smart-camera-01"
+                  class="w-full h-10 px-3 bg-[#1A1826] border border-[#222030] focus:border-[#6366F1] rounded-lg text-sm text-[#F8FAFC] font-medium outline-none transition-colors"
+                />
+                <span class="absolute right-3 top-2.5 text-xs text-[#10B981]">
+                  <svg class="w-4 h-4 inline" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                </span>
+              </div>
+            </div>
+
+            <!-- Auto-Block Toggle Box -->
+            <div>
+              <label class="block text-[11px] font-semibold text-[#8E8CA3] tracking-wider uppercase mb-1.5">AI Auto-Block Defense</label>
+              <div class="h-10 px-3 bg-[#1A1826] border border-[#222030] rounded-lg flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <div class="w-2 h-2 rounded-full bg-[#10B981]"></div>
+                  <span class="text-xs font-semibold text-[#F8FAFC]">Active: DoS &ge; 90%</span>
+                </div>
+                <!-- Toggle Switch -->
+                <button type="button" class="w-10 h-5 rounded-full bg-[#10B981] relative p-0.5 flex items-center transition-colors">
+                  <span class="w-4 h-4 rounded-full bg-white shadow transform translate-x-5 transition-transform"></span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Platform Selector Cards -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <!-- Platform A: Docker (Active) -->
+            <div class="p-3.5 rounded-lg bg-[#1A1826] border border-[#6366F1] cursor-pointer transition-all relative">
+              <div class="flex items-center justify-between mb-1.5">
+                <span class="text-[10px] font-bold tracking-wider uppercase text-[#6366F1] bg-[#6366F1]/10 px-1.5 py-0.5 rounded">Docker</span>
+                <span class="text-[10px] font-bold uppercase text-[#10B981] bg-[#10B981]/10 px-1.5 py-0.5 rounded">Recommended</span>
+              </div>
+              <div class="text-xs font-semibold text-[#F8FAFC] mb-0.5">Docker Container</div>
+              <p class="text-[11px] text-[#8E8CA3] leading-tight">Recommended for local demo & hping3 testing</p>
+              <!-- Bottom indicator -->
+              <div class="absolute bottom-0 left-0 right-0 h-[2px] bg-[#6366F1] rounded-b-lg"></div>
+            </div>
+
+            <!-- Platform B: Linux x64 -->
+            <div class="p-3.5 rounded-lg bg-[#13121D] border border-[#222030] hover:border-[#3B3854] cursor-pointer transition-all opacity-80 hover:opacity-100">
+              <div class="flex items-center justify-between mb-1.5">
+                <span class="text-[10px] font-bold tracking-wider uppercase text-[#8E8CA3] bg-[#1A1826] px-1.5 py-0.5 rounded">Linux x64</span>
+                <span class="text-[10px] text-[#8E8CA3]">Systemd</span>
+              </div>
+              <div class="text-xs font-semibold text-[#F8FAFC] mb-0.5">Linux Host / VM</div>
+              <p class="text-[11px] text-[#8E8CA3] leading-tight">Ubuntu, Debian, Fedora, Arch server</p>
+            </div>
+
+            <!-- Platform C: ARM64 -->
+            <div class="p-3.5 rounded-lg bg-[#13121D] border border-[#222030] hover:border-[#3B3854] cursor-pointer transition-all opacity-80 hover:opacity-100">
+              <div class="flex items-center justify-between mb-1.5">
+                <span class="text-[10px] font-bold tracking-wider uppercase text-[#8E8CA3] bg-[#1A1826] px-1.5 py-0.5 rounded">ARM64</span>
+                <span class="text-[10px] text-[#8E8CA3]">Edge IoT</span>
+              </div>
+              <div class="text-xs font-semibold text-[#F8FAFC] mb-0.5">Raspberry Pi / IoT</div>
+              <p class="text-[11px] text-[#8E8CA3] leading-tight">ARM64 Linux edge hardware gateway</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- DIVIDER -->
+        <div class="h-[1px] bg-[#222030] w-full"></div>
+
+        <!-- SECTION 2: 1-Line Terminal Command Installer -->
+        <div>
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <div class="flex items-center gap-2">
+              <span class="w-5 h-5 rounded-full bg-[#6366F1] text-white flex items-center justify-center text-[11px] font-bold">2</span>
+              <h2 class="text-base font-semibold text-[#F8FAFC]">Run This Command in Your Terminal</h2>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-[11px] font-mono text-[#8E8CA3]">Setup Token:</span>
+              <span class="text-[11px] font-mono font-medium text-[#F8FAFC] bg-[#1A1826] border border-[#222030] px-2 py-0.5 rounded">tok_first_94a8c1</span>
+            </div>
+          </div>
+
+          <!-- Segmented Options -->
+          <div class="flex p-1 bg-[#1A1826] rounded-lg border border-[#222030] mb-3 text-xs">
+            <button class="flex-1 py-1.5 px-3 rounded-md font-semibold text-[#F8FAFC] bg-[#13121D] border border-[#3B3854] shadow-sm flex items-center justify-center gap-1.5">
+              <svg class="w-3.5 h-3.5 text-[#6366F1]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 14.25h13.5m-13.5 0a3 3 0 01-3-3m3 3a3 3 0 100 6h13.5a3 3 0 100-6m-16.5-3a3 3 0 013-3h13.5a3 3 0 013 3m-19.5 0a4.5 4.5 0 01.9-2.7L5.7 7.4A3 3 0 018.06 6h7.88a3 3 0 012.36 1.4l1.55 2.15a4.5 4.5 0 01.9 2.7" /></svg>
+              Option A: Spin Up New Simulated Docker Device (1-Cmd)
+            </button>
+            <button class="flex-1 py-1.5 px-3 rounded-md font-medium text-[#8E8CA3] hover:text-[#F8FAFC] transition-colors flex items-center justify-center gap-1.5">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 7.5l3 3-3 3m4.5 0h4.5" /></svg>
+              Option B: Install in Existing Host (curl 1-liner)
+            </button>
+          </div>
+
+          <!-- Terminal Box 1: Docker Run -->
+          <div class="relative bg-[#0D0C14] border border-[#222030] rounded-lg p-4 font-mono text-[12.5px] leading-relaxed text-[#F8FAFC] mb-3 overflow-hidden group">
+            <div class="flex items-center justify-between text-[11px] text-[#8E8CA3] border-b border-[#222030]/60 pb-2 mb-2 font-sans">
+              <span class="flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-[#10B981]"></span>
+                TERMINAL COMMAND (DOCKER NET_ADMIN & NET_RAW REQUIRED FOR IPTABLES)
+              </span>
+              <span class="text-[10px] text-[#8E8CA3]">BASH / ZSH</span>
+            </div>
+            <pre class="overflow-x-auto whitespace-pre font-mono py-1 text-slate-200"><code><span class="text-blue-400">docker run</span> -d --name <span id="cmd-device-name" class="text-emerald-400 font-semibold">smart-camera-01</span> --network sentinel-net \
+  <span class="text-amber-300">--cap-add=NET_ADMIN</span> <span class="text-amber-300">--cap-add=NET_RAW</span> \
+  sentinel-device:latest \
+  --server=<span class="text-indigo-300">"http://host.docker.internal:8000"</span> \
+  --device-id=<span class="text-emerald-400">"dev_cam_01"</span> --name=<span id="cmd-device-name-flag" class="text-emerald-400">"smart-camera-01"</span> --token=<span class="text-violet-300">"tok_first_94a8c1"</span></code></pre>
+          </div>
+
+          <!-- Terminal Box 2: curl alternative preview -->
+          <div class="bg-[#0D0C14]/70 border border-[#222030] rounded-lg px-3.5 py-2.5 font-mono text-[11.5px] text-[#8E8CA3] mb-4 flex items-center justify-between gap-3 overflow-hidden">
+            <div class="flex items-center gap-2 overflow-x-auto whitespace-nowrap">
+              <span class="text-[10px] font-sans font-bold uppercase text-[#8E8CA3] bg-[#1A1826] px-1.5 py-0.5 rounded">CURL</span>
+              <code class="text-slate-300">curl -sSL http://localhost:8000/install.sh | sudo sh -s -- --name="<span id="curl-name">smart-camera-01</span>" --token="tok_first_94a8c1" --iface="eth0"</code>
+            </div>
+            <span class="text-[10px] text-[#8E8CA3] font-sans shrink-0 hidden sm:inline">Linux Alternative</span>
+          </div>
+
+          <!-- Action Buttons Row -->
+          <div class="flex items-center gap-3">
+            <button
+              id="copy-btn"
+              onclick="copyCommand()"
+              class="flex-1 h-10 px-5 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold text-xs rounded-lg transition-colors flex items-center justify-center gap-2 shadow-sm"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 01-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5a3.375 3.375 0 00-3.375-3.375H9.75" />
+              </svg>
+              <span id="copy-btn-text">Copy Command to Clipboard</span>
+            </button>
+
+            <button class="h-10 px-4 bg-[#1A1826] hover:bg-[#222030] border border-[#222030] text-[#8E8CA3] hover:text-[#F8FAFC] font-semibold text-xs rounded-lg transition-colors flex items-center gap-1.5">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>
+              Regenerate Token
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- RIGHT COLUMN (36% / col-span-4) -->
+      <div class="lg:col-span-4 flex flex-col gap-6">
+
+        <!-- STEP 3 LIVE HEARTBEAT RING GAUGE CARD -->
+        <div class="bg-[#13121D] border border-[#222030] rounded-xl p-5 flex flex-col items-center">
+          <div class="w-full flex items-center justify-between mb-3">
+            <div class="flex items-center gap-2">
+              <span class="w-5 h-5 rounded-full bg-[#10B981]/20 border border-[#10B981] text-[#10B981] flex items-center justify-center text-[11px] font-bold">3</span>
+              <h3 class="text-sm font-semibold text-[#F8FAFC]">Live Connection Check</h3>
+            </div>
+            <span class="flex items-center gap-1 text-[11px] font-medium text-[#10B981] bg-[#10B981]/10 px-2 py-0.5 rounded border border-[#10B981]/20">
+              <span class="w-1.5 h-1.5 rounded-full bg-[#10B981] animate-pulse"></span>
+              Live Listener
+            </span>
+          </div>
+
+          <!-- Circular Ring Gauge: 160px with 14px thick arc -->
+          <div class="relative w-40 h-40 flex items-center justify-center my-1">
+            <svg class="w-40 h-40 transform -rotate-90" viewBox="0 0 160 160">
+              <!-- Background circular track (#1E1D2B) -->
+              <circle
+                cx="80"
+                cy="80"
+                r="64"
+                stroke="#1E1D2B"
+                stroke-width="14"
+                fill="none"
+              />
+              <!-- Foreground active arc (#10B981, 100% full ring with rounded cap) -->
+              <circle
+                cx="80"
+                cy="80"
+                r="64"
+                stroke="#10B981"
+                stroke-width="14"
+                stroke-linecap="round"
+                fill="none"
+                stroke-dasharray="402.12"
+                stroke-dashoffset="0"
+                class="transition-all duration-1000"
+              />
+            </svg>
+            <!-- Center Readout -->
+            <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+              <span class="text-2xl font-bold tracking-tight text-[#F8FAFC]">ONLINE</span>
+              <span class="text-[10px] font-semibold tracking-wider text-[#10B981] uppercase mt-0.5">1st Heartbeat OK</span>
+            </div>
+          </div>
+
+          <!-- Detected Device Telemetry Box -->
+          <div class="w-full bg-[#1A1826] border border-[#222030] rounded-lg p-3.5 mt-3 space-y-2 text-xs">
+            <div class="flex items-center justify-between">
+              <span class="text-[#8E8CA3]">Device Name:</span>
+              <span id="detected-name" class="font-semibold text-[#F8FAFC]">smart-camera-01</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-[#8E8CA3]">Assigned IP / MAC:</span>
+              <span class="font-mono text-[11px] text-[#F8FAFC]">172.17.0.2 · 02:42:AC</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-[#8E8CA3]">Initial Uptime:</span>
+              <span class="font-mono tabular-nums text-[#10B981]">00d 00h 00m 18s</span>
+            </div>
+            <div class="flex items-center justify-between pt-1 border-t border-[#222030]">
+              <span class="text-[#8E8CA3]">Firewall & DNS:</span>
+              <span class="inline-flex items-center gap-1 text-[11px] text-[#10B981] font-medium">
+                <span class="w-1.5 h-1.5 rounded-full bg-[#10B981]"></span>
+                Ready (iptables sync)
+              </span>
+            </div>
+          </div>
+
+          <!-- Enter Dashboard Primary CTA -->
+          <button class="w-full h-11 mt-4 bg-[#10B981] hover:bg-[#059669] text-white font-bold text-xs uppercase tracking-wider rounded-lg transition-colors flex items-center justify-center gap-2 shadow-sm">
+            <span>Enter Security Dashboard</span>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- FIRST PACKET WINDOWS STREAM PREVIEW CARD -->
+        <div class="bg-[#13121D] border border-[#222030] rounded-xl p-4">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-semibold text-[#F8FAFC]">Live Traffic Ingest</span>
+            <span class="text-[10px] font-mono text-[#10B981] bg-[#10B981]/10 px-1.5 py-0.5 rounded border border-[#10B981]/20">
+              12 windows/s
+            </span>
+          </div>
+
+          <p class="text-[11px] text-[#8E8CA3] mb-2.5">
+            Streaming first 15 seconds of raw 100-packet windows from <span class="text-[#F8FAFC] font-medium">smart-camera-01</span>
+          </p>
+
+          <!-- Mini Curved Spline Chart (4px thick #6366F1 indigo curve) -->
+          <div class="h-20 w-full bg-[#0D0C14] border border-[#222030] rounded-lg p-2 relative flex items-end">
+            <!-- Gridlines -->
+            <div class="absolute inset-0 flex flex-col justify-between p-2 pointer-events-none opacity-40">
+              <div class="w-full border-b border-dashed border-[#222030]"></div>
+              <div class="w-full border-b border-dashed border-[#222030]"></div>
+              <div class="w-full border-b border-[#222030]"></div>
+            </div>
+
+            <svg class="w-full h-full overflow-visible relative z-10" viewBox="0 0 240 60" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="streamGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#6366F1" stop-opacity="0.25" />
+                  <stop offset="100%" stop-color="#6366F1" stop-opacity="0.0" />
+                </linearGradient>
+              </defs>
+              <!-- Filled area underneath -->
+              <path
+                d="M 0,48 C 30,46 50,22 80,24 C 110,26 130,50 160,35 C 190,20 210,12 240,16 L 240,60 L 0,60 Z"
+                fill="url(#streamGrad)"
+              />
+              <!-- Smooth Spline Stroke (4px rounded cap) -->
+              <path
+                d="M 0,48 C 30,46 50,22 80,24 C 110,26 130,50 160,35 C 190,20 210,12 240,16"
+                fill="none"
+                stroke="#6366F1"
+                stroke-width="3.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <!-- Current Head Dot -->
+              <circle cx="240" cy="16" r="3.5" fill="#6366F1" stroke="#F8FAFC" stroke-width="1.5" />
+            </svg>
+          </div>
+
+          <div class="flex items-center justify-between text-[10px] text-[#8E8CA3] mt-2 font-mono">
+            <span>T - 15s</span>
+            <span class="text-[#10B981]">NORMAL TRAFFIC (100-PKT)</span>
+            <span>LIVE NOW</span>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- BOTTOM SYSTEM TELEMETRY FOOTER (32px) -->
+  <footer class="h-8 bg-[#100F18] border-t border-[#222030] px-6 flex items-center justify-between text-[11px] font-mono text-[#8E8CA3] select-none">
+    <div class="flex items-center gap-3">
+      <span class="inline-flex items-center gap-1.5 text-[#10B981] font-semibold">
+        <span class="w-2 h-2 rounded-sm bg-[#10B981]"></span>
+        ONBOARDING LISTENER ACTIVE ON PORT 8000
+      </span>
+      <span class="hidden sm:inline text-[#222030]">|</span>
+      <span class="hidden sm:inline">FASTAPI WEBSOCKET BRIDGE: ESTABLISHED</span>
+      <span class="hidden md:inline text-[#222030]">|</span>
+      <span class="hidden md:inline">WAITING FOR GO AGENT HEARTBEAT</span>
+    </div>
+    <div class="flex items-center gap-3">
+      <span>API V2.4.0</span>
+      <span class="text-[#222030]">·</span>
+      <span class="text-[#10B981]">FLEET DISCOVERY: ARMED</span>
+    </div>
+  </footer>
+
+  <script>
+    // Live update device name inside commands
+    const nameInput = document.getElementById('device-name-input');
+    const cmdDeviceName = document.getElementById('cmd-device-name');
+    const cmdDeviceNameFlag = document.getElementById('cmd-device-name-flag');
+    const curlName = document.getElementById('curl-name');
+    const detectedName = document.getElementById('detected-name');
+
+    if (nameInput) {
+      nameInput.addEventListener('input', function(e) {
+        const val = e.target.value.trim() || 'my-device-01';
+        if (cmdDeviceName) cmdDeviceName.textContent = val;
+        if (cmdDeviceNameFlag) cmdDeviceNameFlag.textContent = `"${val}"`;
+        if (curlName) curlName.textContent = val;
+        if (detectedName) detectedName.textContent = val;
+      });
+    }
+
+    // Interactive copy button
+    function copyCommand() {
+      const btn = document.getElementById('copy-btn');
+      const text = document.getElementById('copy-btn-text');
+      const name = nameInput ? nameInput.value.trim() || 'smart-camera-01' : 'smart-camera-01';
+      const cmd = `docker run -d --name ${name} --network sentinel-net --cap-add=NET_ADMIN --cap-add=NET_RAW sentinel-device:latest --server="http://host.docker.internal:8000" --device-id="dev_cam_01" --name="${name}" --token="tok_first_94a8c1"`;
+      
+      navigator.clipboard.writeText(cmd).then(() => {
+        if (text) text.textContent = 'Copied! Paste in your terminal';
+        if (btn) btn.classList.replace('bg-[#2563EB]', 'bg-[#10B981]');
+        setTimeout(() => {
+          if (text) text.textContent = 'Copy Command to Clipboard';
+          if (btn) btn.classList.replace('bg-[#10B981]', 'bg-[#2563EB]');
+        }, 2500);
+      }).catch(() => {
+        if (text) text.textContent = 'Copied! Paste in your terminal';
+      });
+    }
+  </script>
+</body>
+</html>

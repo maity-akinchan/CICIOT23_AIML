@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CICIoT23 Sentinel - Connected Devices</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary-fixed-dim": "#b4c5ff",
+            "error-critical": "#EF4444",
+            "error-container": "#93000a",
+            "danger-coral": "#F97316",
+            "secondary-fixed": "#e1e0ff",
+            "on-primary-fixed": "#00174b",
+            "on-surface-variant": "#c3c6d7",
+            "surface-container-highest": "#35343d",
+            "outline-variant": "#434655",
+            "canvas-bg": "#0D0C14",
+            "border-subtle": "#222030",
+            "surface-container-high": "#2a2932",
+            "on-background": "#e5e0ed",
+            "warning": "#F59E0B",
+            "border-highlight": "#3B3854",
+            "secondary-container": "#3131c0",
+            "surface-container-low": "#1c1b23",
+            "background": "#13121b",
+            "surface-container-lowest": "#0e0d15",
+            "primary-container": "#2563eb",
+            "outline": "#8d90a0",
+            "on-primary-fixed-variant": "#003ea8",
+            "on-secondary-container": "#b0b2ff",
+            "inverse-primary": "#0053db",
+            "surface-card": "#13121D",
+            "inverse-on-surface": "#312f38",
+            "primary": "#b4c5ff",
+            "text-primary": "#F8FAFC",
+            "on-error": "#690005",
+            "on-secondary-fixed-variant": "#2f2ebe",
+            "surface-bright": "#3a3841",
+            "secondary": "#c0c1ff",
+            "tertiary-container": "#007d55",
+            "on-primary-container": "#eeefff",
+            "accent-cyan": "#06B6D4",
+            "tertiary-fixed-dim": "#4edea3",
+            "inverse-surface": "#e5e0ed",
+            "on-tertiary": "#003824",
+            "chart-track": "#1E1D2B",
+            "error": "#ffb4ab",
+            "on-tertiary-container": "#bdffdb",
+            "on-secondary": "#1000a9",
+            "sidebar-surface": "#100F18",
+            "surface": "#13121b",
+            "surface-variant": "#35343d",
+            "tertiary-fixed": "#6ffbbe",
+            "on-tertiary-fixed-variant": "#005236",
+            "surface-container": "#201f27",
+            "primary-fixed": "#dbe1ff",
+            "tertiary": "#4edea3",
+            "on-tertiary-fixed": "#002113",
+            "secondary-fixed-dim": "#c0c1ff",
+            "text-muted": "#8E8CA3",
+            "surface-elevated": "#1A1826",
+            "surface-tint": "#b4c5ff",
+            "on-surface": "#e5e0ed",
+            "surface-dim": "#13121b",
+            "on-primary": "#002a78",
+            "on-secondary-fixed": "#07006c",
+            "on-error-container": "#ffdad6"
+          },
+          borderRadius: {
+            DEFAULT: "0.25rem",
+            lg: "0.5rem",
+            xl: "0.75rem",
+            full: "9999px"
+          },
+          spacing: {
+            "space-xl": "2rem",
+            "gutter-desktop": "1.5rem",
+            gutter: "1rem",
+            "space-lg": "1.5rem",
+            "space-sm": "0.5rem",
+            "space-md": "1rem",
+            "space-xs": "0.25rem",
+            "margin-desktop": "1.5rem",
+            margin: "1rem"
+          },
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            "headline-lg-mobile": ["Plus Jakarta Sans"],
+            "headline-md": ["Plus Jakarta Sans"],
+            "body-sm": ["Plus Jakarta Sans"],
+            "headline-sm": ["Plus Jakarta Sans"],
+            "headline-lg": ["Plus Jakarta Sans"],
+            "display-kpi": ["Plus Jakarta Sans"],
+            "body-md-medium": ["Plus Jakarta Sans"],
+            caption: ["Plus Jakarta Sans"],
+            "body-md": ["Plus Jakarta Sans"]
+          },
+          fontSize: {
+            "headline-lg-mobile": ["22px", { lineHeight: "28px", letterSpacing: "-0.01em", fontWeight: "700" }],
+            "headline-md": ["20px", { lineHeight: "28px", fontWeight: "600" }],
+            "body-sm": ["13px", { lineHeight: "18px", fontWeight: "500" }],
+            "headline-sm": ["16px", { lineHeight: "24px", fontWeight: "600" }],
+            "headline-lg": ["28px", { lineHeight: "36px", letterSpacing: "-0.01em", fontWeight: "700" }],
+            "display-kpi": ["32px", { lineHeight: "40px", letterSpacing: "-0.02em", fontWeight: "700" }],
+            "body-md-medium": ["14px", { lineHeight: "22px", fontWeight: "500" }],
+            caption: ["11px", { lineHeight: "16px", letterSpacing: "0.05em", fontWeight: "600" }],
+            "body-md": ["14px", { lineHeight: "22px", fontWeight: "400" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #0D0C14;
+      color: #F8FAFC;
+      margin: 0;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+    .tabular-nums {
+      font-variant-numeric: tabular-nums;
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0D0C14;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #222030;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #3B3854;
+    }
+  </style>
+<meta content="web_dashboard" name="shell-type"/>
+</head>
+<body class="flex h-screen w-screen overflow-hidden bg-[#0D0C14] text-[#F8FAFC]">
+<!-- LEFT SIDEBAR (240px fixed) -->
+<aside class="w-[240px] flex-shrink-0 bg-[#100F18] border-r border-[#222030] flex flex-col justify-between select-none z-20">
+<div>
+<!-- Top Brand Header with Persistent Sentinel Shield -->
+<div class="h-[68px] px-5 flex items-center gap-3 border-b border-[#222030]/60">
+<div class="w-9 h-9 rounded-lg bg-[#6366F1] flex items-center justify-center shadow-lg shadow-[#6366F1]/20 flex-shrink-0">
+<svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</div>
+<div class="overflow-hidden">
+<h1 class="text-[15px] font-bold tracking-tight text-[#F8FAFC] truncate">CICIoT23 Sentinel</h1>
+<p class="text-[9.5px] font-semibold tracking-wider text-[#8E8CA3] uppercase truncate">Network Defense SOC</p>
+</div>
+</div>
+<!-- Navigation Links -->
+<div class="px-3 py-4 space-y-6">
+<!-- Section: MONITORING -->
+<div>
+<div class="px-3 mb-2 text-[10px] font-bold tracking-wider text-[#8E8CA3] uppercase">Monitoring</div>
+<nav class="space-y-1">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-[#8E8CA3] hover:text-[#F8FAFC] hover:bg-[#13121D] text-[13px] font-medium transition-colors" data-path="security-overview" href="#">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span>Security Overview</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-[#8E8CA3] hover:text-[#F8FAFC] hover:bg-[#13121D] text-[13px] font-medium transition-colors" data-path="live-traffic-pcap" href="#">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M13 10V3L4 14h7v7l9-11h-7z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span>Live Traffic &amp; PCAP</span>
+</a>
+<!-- Active Link: Connected Devices -->
+<a class="flex items-center justify-between px-3 py-2 rounded-lg bg-[#1A1826] text-[#F8FAFC] text-[13px] font-medium border border-[#222030] shadow-sm" data-path="connected-devices" href="#">
+<div class="flex items-center gap-3">
+<svg class="w-4 h-4 text-[#6366F1]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="text-[#F8FAFC]">Connected Devices</span>
+</div>
+<span class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[#222030] text-[#8E8CA3]">4</span>
+</a>
+</nav>
+</div>
+<!-- Section: INTELLIGENCE -->
+<div>
+<div class="px-3 mb-2 text-[10px] font-bold tracking-wider text-[#8E8CA3] uppercase">Intelligence</div>
+<nav class="space-y-1">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-[#8E8CA3] hover:text-[#F8FAFC] hover:bg-[#13121D] text-[13px] font-medium transition-colors" data-path="model-comparison" href="#">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span>Model Comparison</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-[#8E8CA3] hover:text-[#F8FAFC] hover:bg-[#13121D] text-[13px] font-medium transition-colors" data-path="add-device-cli" href="#">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span>Add Device (CLI)</span>
+</a>
+</nav>
+</div>
+</div>
+</div>
+<!-- Bottom Sidebar Controls -->
+<div class="p-3 border-t border-[#222030] space-y-1">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-[#8E8CA3] hover:text-[#F8FAFC] hover:bg-[#13121D] text-[13px] font-medium transition-colors" data-path="settings" href="#">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+<path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span>Settings</span>
+</a>
+<button class="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-[#EF4444]/10 border border-[#EF4444]/30 text-[#EF4444] hover:bg-[#EF4444]/20 text-[13px] font-semibold transition-all">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-[#EF4444] animate-pulse"></span>
+<span>Lockdown Mode</span>
+</div>
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</button>
+</div>
+</aside>
+<!-- MAIN WRAPPER (Top Bar + Scrollable Content + Telemetry Footer) -->
+<div class="flex-1 flex flex-col h-full min-w-0 overflow-hidden">
+<!-- TOP HEADER BAR (56px) -->
+<header class="h-[56px] px-6 bg-[#0D0C14] border-b border-[#222030] flex items-center justify-between flex-shrink-0 z-10">
+<!-- Left: Page Title & Operational Action Buttons -->
+<div class="flex items-center gap-4">
+<h1 class="text-[18px] font-bold text-[#F8FAFC] tracking-tight whitespace-nowrap">Connected Devices</h1>
+<div class="h-4 w-[1px] bg-[#222030]"></div>
+<button class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1A1826] border border-[#222030] text-[#F8FAFC] text-[12.5px] font-medium hover:border-[#3B3854] hover:bg-[#201f27] transition-all">
+<svg class="w-3.5 h-3.5 text-[#8E8CA3]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span>Refresh</span>
+</button>
+<button class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#2563EB] text-[#F8FAFC] text-[12.5px] font-semibold hover:bg-[#1d4ed8] shadow-[0_0_16px_rgba(37,99,235,0.25)] transition-all">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M12 4v16m8-8H4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span>+ Enroll Device</span>
+</button>
+</div>
+<!-- Right: Search, Model Badge, Notification, SOC Lead Profile -->
+<div class="flex items-center gap-4">
+<!-- Search Input -->
+<div class="relative w-64">
+<svg class="w-4 h-4 text-[#8E8CA3] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<input class="w-full h-[34px] pl-9 pr-3 rounded-lg bg-[#13121D] border border-[#222030] text-[12.5px] text-[#F8FAFC] placeholder-[#8E8CA3] focus:outline-none focus:border-[#6366F1] transition-all" placeholder="Search IPs, devices, or alerts..." type="text"/>
+</div>
+<!-- Model Badge -->
+<div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#1A1826] border border-[#222030] text-[12px]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#10B981]"></span>
+<span class="text-[#8E8CA3]">Model:</span>
+<span class="font-semibold text-[#F8FAFC] tabular-nums">XGBoost (91.4%)</span>
+</div>
+<!-- Notification Bell -->
+<button class="relative p-2 rounded-lg bg-[#13121D] border border-[#222030] text-[#8E8CA3] hover:text-[#F8FAFC] hover:border-[#3B3854] transition-colors">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-[#F97316]"></span>
+</button>
+<!-- SOC Profile -->
+<div class="flex items-center gap-2.5 pl-2 border-l border-[#222030]">
+<div class="w-8 h-8 rounded-full bg-gradient-to-tr from-[#2563EB] to-[#6366F1] flex items-center justify-center text-[12px] font-bold text-white shadow-md">
+            AM
+          </div>
+<div class="text-left leading-tight hidden lg:block">
+<div class="text-[12.5px] font-semibold text-[#F8FAFC]">A. Maity</div>
+<div class="text-[10px] font-medium text-[#8E8CA3]">SOC Lead</div>
+</div>
+</div>
+</div>
+</header>
+<!-- SCROLLABLE DASHBOARD CONTENT AREA -->
+<main class="flex-1 overflow-y-auto p-6 space-y-5"><div class="flex flex-col w-full space-y-6">
+<!-- 1. TOP FLEET KPI STRIP (4 equal cards with mini 8-bar vertical rounded equalizers) -->
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+<!-- KPI Card 1: Connected Devices -->
+<div class="bg-surface-card rounded-xl p-5 flex flex-col justify-between relative overflow-hidden transition-all duration-200 hover:shadow-lg">
+<div class="flex items-center justify-between mb-3">
+<span class="font-caption text-caption text-text-muted uppercase tracking-wider">Connected Devices</span>
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-caption text-caption font-semibold bg-tertiary/15 text-tertiary">
+<svg class="w-3 h-3 text-tertiary" fill="none" stroke="currentColor" stroke-width="2.5" viewbox="0 0 24 24">
+<path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+          +100% Online
+        </span>
+</div>
+<div class="flex items-end justify-between">
+<div>
+<div class="font-display-kpi text-display-kpi font-bold text-text-primary tabular-nums tracking-tight">4</div>
+<p class="font-body-sm text-body-sm text-text-muted mt-0.5">Docker &amp; Linux containers</p>
+</div>
+<!-- 8-bar mini vertical rounded equalizer (Emerald) -->
+<div aria-hidden="true" class="flex items-end gap-1 h-7 pb-1">
+<span class="w-1 h-3 rounded-[2px] bg-tertiary/60"></span>
+<span class="w-1 h-4 rounded-[2px] bg-tertiary/75"></span>
+<span class="w-1 h-6 rounded-[2px] bg-tertiary"></span>
+<span class="w-1 h-5 rounded-[2px] bg-tertiary/85"></span>
+<span class="w-1 h-3 rounded-[2px] bg-tertiary/60"></span>
+<span class="w-1 h-6 rounded-[2px] bg-tertiary"></span>
+<span class="w-1 h-4 rounded-[2px] bg-tertiary/80"></span>
+<span class="w-1 h-5 rounded-[2px] bg-tertiary"></span>
+</div>
+</div>
+</div>
+<!-- KPI Card 2: Auto-Block Enabled -->
+<div class="bg-surface-card rounded-xl p-5 flex flex-col justify-between relative overflow-hidden transition-all duration-200 hover:shadow-lg">
+<div class="flex items-center justify-between mb-3">
+<span class="font-caption text-caption text-text-muted uppercase tracking-wider">Auto-Block Enabled</span>
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-caption text-caption font-semibold bg-[#6366F1]/15 text-[#6366F1]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#6366F1] animate-pulse"></span>
+          AI Active
+        </span>
+</div>
+<div class="flex items-end justify-between">
+<div>
+<div class="font-display-kpi text-display-kpi font-bold text-text-primary tabular-nums tracking-tight">3</div>
+<p class="font-body-sm text-body-sm text-text-muted mt-0.5">Blocking DoS ≥ 90% conf</p>
+</div>
+<!-- 8-bar mini vertical rounded equalizer (Indigo) -->
+<div aria-hidden="true" class="flex items-end gap-1 h-7 pb-1">
+<span class="w-1 h-5 rounded-[2px] bg-[#6366F1]"></span>
+<span class="w-1 h-3 rounded-[2px] bg-[#6366F1]/60"></span>
+<span class="w-1 h-6 rounded-[2px] bg-[#6366F1]"></span>
+<span class="w-1 h-4 rounded-[2px] bg-[#6366F1]/80"></span>
+<span class="w-1 h-5 rounded-[2px] bg-[#6366F1]/90"></span>
+<span class="w-1 h-2 rounded-[2px] bg-[#6366F1]/50"></span>
+<span class="w-1 h-6 rounded-[2px] bg-[#6366F1]"></span>
+<span class="w-1 h-4 rounded-[2px] bg-[#6366F1]/70"></span>
+</div>
+</div>
+</div>
+<!-- KPI Card 3: Blocked Attacker IPs -->
+<div class="bg-surface-card rounded-xl p-5 flex flex-col justify-between relative overflow-hidden transition-all duration-200 hover:shadow-lg">
+<div class="flex items-center justify-between mb-3">
+<span class="font-caption text-caption text-text-muted uppercase tracking-wider">Blocked Attacker IPs</span>
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-caption text-caption font-semibold bg-warning/15 text-warning">
+<svg class="w-3 h-3 text-warning" fill="none" stroke="currentColor" stroke-width="2.5" viewbox="0 0 24 24">
+<path d="M12 6v6m0 0v6m0-6h6m-6 0H6" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+          +2 Today
+        </span>
+</div>
+<div class="flex items-end justify-between">
+<div>
+<div class="font-display-kpi text-display-kpi font-bold text-text-primary tabular-nums tracking-tight">14</div>
+<p class="font-body-sm text-body-sm text-text-muted mt-0.5">Active iptables DROP rules</p>
+</div>
+<!-- 8-bar mini vertical rounded equalizer (Amber) -->
+<div aria-hidden="true" class="flex items-end gap-1 h-7 pb-1">
+<span class="w-1 h-2 rounded-[2px] bg-warning/60"></span>
+<span class="w-1 h-4 rounded-[2px] bg-warning/80"></span>
+<span class="w-1 h-5 rounded-[2px] bg-warning"></span>
+<span class="w-1 h-3 rounded-[2px] bg-warning/70"></span>
+<span class="w-1 h-6 rounded-[2px] bg-warning"></span>
+<span class="w-1 h-5 rounded-[2px] bg-warning/90"></span>
+<span class="w-1 h-3 rounded-[2px] bg-warning/60"></span>
+<span class="w-1 h-2 rounded-[2px] bg-warning/40"></span>
+</div>
+</div>
+</div>
+<!-- KPI Card 4: Isolated Devices -->
+<div class="bg-surface-card rounded-xl p-5 flex flex-col justify-between relative overflow-hidden transition-all duration-200 hover:shadow-lg">
+<div class="flex items-center justify-between mb-3">
+<span class="font-caption text-caption text-text-muted uppercase tracking-wider">Isolated Devices</span>
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-caption text-caption font-semibold bg-error-critical/15 text-error-critical">
+<span class="w-1.5 h-1.5 rounded-full bg-error-critical"></span>
+          KILL SWITCH
+        </span>
+</div>
+<div class="flex items-end justify-between">
+<div>
+<div class="font-display-kpi text-display-kpi font-bold text-text-primary tabular-nums tracking-tight">1</div>
+<p class="font-body-sm text-body-sm text-text-muted mt-0.5">All internet restricted</p>
+</div>
+<!-- 8-bar mini vertical rounded equalizer (Coral-red) -->
+<div aria-hidden="true" class="flex items-end gap-1 h-7 pb-1">
+<span class="w-1 h-6 rounded-[2px] bg-error-critical"></span>
+<span class="w-1 h-5 rounded-[2px] bg-error-critical/90"></span>
+<span class="w-1 h-6 rounded-[2px] bg-error-critical"></span>
+<span class="w-1 h-4 rounded-[2px] bg-error-critical/75"></span>
+<span class="w-1 h-5 rounded-[2px] bg-error-critical/85"></span>
+<span class="w-1 h-6 rounded-[2px] bg-error-critical"></span>
+<span class="w-1 h-4 rounded-[2px] bg-error-critical/70"></span>
+<span class="w-1 h-6 rounded-[2px] bg-error-critical"></span>
+</div>
+</div>
+</div>
+</div>
+<!-- 2. MIDDLE ROW: 2-COLUMN SPLIT (Fleet Table 55% / Selected Device Controls 45%) -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+<!-- LEFT COLUMN: Fleet Table (55% -> 7 cols on large screens) -->
+<div class="lg:col-span-7 bg-surface-card rounded-xl p-5 flex flex-col space-y-4 shadow-sm">
+<!-- Table Controls Bar -->
+<div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+<div>
+<h2 class="font-headline-sm text-headline-sm font-semibold text-text-primary">Connected Devices Fleet</h2>
+<p class="font-body-sm text-body-sm text-text-muted">Real-time status, intrusion telemetry &amp; live mitigations</p>
+</div>
+<div class="flex items-center gap-2">
+<button class="h-8 px-3 rounded-lg bg-surface-elevated text-text-primary font-body-sm text-body-sm font-medium hover:bg-surface-container-high transition-colors flex items-center gap-1.5 shadow-sm" id="exportCsvBtn" onclick="exportFleetCSV()">
+<svg class="w-3.5 h-3.5 text-text-muted" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span>Export CSV</span>
+</button>
+</div>
+</div>
+<!-- Search & Filters Strip -->
+<div class="flex flex-wrap items-center justify-between gap-3 pt-1">
+<div class="relative flex-1 min-w-[200px]">
+<svg class="w-4 h-4 text-text-muted absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<input class="w-full h-8 pl-9 pr-3 rounded-lg bg-surface-elevated font-body-sm text-body-sm text-text-primary placeholder-text-muted focus:outline-none focus:ring-1 focus:ring-primary-container transition-all" id="fleetSearchInput" onkeyup="filterFleetRows()" placeholder="Search devices, IPs, or tags..." type="text"/>
+</div>
+<div class="flex items-center gap-1.5 p-1 rounded-lg bg-surface-container-lowest">
+<button class="filter-pill active-filter px-2.5 py-1 rounded-md text-caption font-caption font-semibold bg-surface-elevated text-text-primary transition-colors" onclick="setFilter('all', this)">
+            All (4)
+          </button>
+<button class="filter-pill px-2.5 py-1 rounded-md text-caption font-caption font-semibold text-text-muted hover:text-text-primary transition-colors" onclick="setFilter('active', this)">
+            Active (3)
+          </button>
+<button class="filter-pill px-2.5 py-1 rounded-md text-caption font-caption font-semibold text-text-muted hover:text-text-primary transition-colors" onclick="setFilter('isolated', this)">
+            Isolated (1)
+          </button>
+</div>
+</div>
+<!-- Device Fleet Table Container -->
+<div class="overflow-x-auto rounded-lg">
+<table class="w-full text-left font-body-sm text-body-sm">
+<thead>
+<tr class="bg-surface-elevated text-text-muted font-caption text-caption tracking-wider uppercase select-none">
+<th class="py-2.5 px-3 font-semibold">DEVICE NAME &amp; IP</th>
+<th class="py-2.5 px-3 font-semibold hidden sm:table-cell">ENVIRONMENT</th>
+<th class="py-2.5 px-3 font-semibold hidden md:table-cell">UPTIME</th>
+<th class="py-2.5 px-3 font-semibold">ATTACK LOAD</th>
+<th class="py-2.5 px-3 font-semibold text-center">AUTO-BLOCK</th>
+<th class="py-2.5 px-3 font-semibold text-right">STATUS</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-surface-container-low" id="fleetTableBody">
+<!-- ROW 1: smart-camera-01 (Selected Row state) -->
+<tr class="device-row cursor-pointer transition-colors bg-surface-elevated shadow-inner" id="row-camera" onclick="selectDevice('smart-camera-01', '172.17.0.2', '14d 06h 42m 19s', true, ['172.17.0.99', '172.17.0.105'], 'SC')">
+<td class="py-3 px-3">
+<div class="flex items-center gap-2.5 min-w-0">
+<div class="w-7 h-7 rounded-lg bg-primary-container/20 text-primary font-bold text-caption flex items-center justify-center flex-shrink-0">
+                    SC
+                  </div>
+<div class="min-w-0">
+<div class="font-headline-sm text-headline-sm font-semibold text-text-primary truncate flex items-center gap-1.5">
+                      smart-camera-01
+                      <span class="w-1.5 h-1.5 rounded-full bg-warning"></span>
+</div>
+<div class="text-caption font-caption text-text-muted tabular-nums">172.17.0.2</div>
+</div>
+</div>
+</td>
+<td class="py-3 px-3 hidden sm:table-cell text-text-muted">Docker Alpine</td>
+<td class="py-3 px-3 hidden md:table-cell tabular-nums text-text-primary">14d 06h 42m</td>
+<td class="py-3 px-3">
+<div class="flex items-center gap-2">
+<div class="w-16 h-1.5 rounded-full bg-chart-track overflow-hidden">
+<div class="h-full bg-danger-coral rounded-full" style="width: 84%"></div>
+</div>
+<span class="font-caption text-caption font-bold text-danger-coral tabular-nums">84</span>
+</div>
+</td>
+<td class="py-3 px-3 text-center">
+<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-caption font-caption font-bold bg-tertiary/15 text-tertiary">
+<svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" stroke-width="2.5" viewbox="0 0 24 24">
+<path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+                  ON
+                </span>
+</td>
+<td class="py-3 px-3 text-right">
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-caption font-caption font-semibold bg-warning/15 text-warning">
+<span class="w-1.5 h-1.5 rounded-full bg-warning"></span>
+                  DoS Mitigated
+                </span>
+</td>
+</tr>
+<!-- ROW 2: smart-thermostat-02 -->
+<tr class="device-row cursor-pointer transition-colors hover:bg-surface-elevated/60" id="row-thermostat" onclick="selectDevice('smart-thermostat-02', '172.17.0.3', '14d 06h 41m 02s', true, ['172.17.0.210'], 'ST')">
+<td class="py-3 px-3">
+<div class="flex items-center gap-2.5 min-w-0">
+<div class="w-7 h-7 rounded-lg bg-surface-container-high text-text-muted font-bold text-caption flex items-center justify-center flex-shrink-0">
+                    ST
+                  </div>
+<div class="min-w-0">
+<div class="font-headline-sm text-headline-sm font-semibold text-text-primary truncate flex items-center gap-1.5">
+                      smart-thermostat-02
+                      <span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+</div>
+<div class="text-caption font-caption text-text-muted tabular-nums">172.17.0.3</div>
+</div>
+</div>
+</td>
+<td class="py-3 px-3 hidden sm:table-cell text-text-muted">Docker Alpine</td>
+<td class="py-3 px-3 hidden md:table-cell tabular-nums text-text-primary">14d 06h 41m</td>
+<td class="py-3 px-3">
+<div class="flex items-center gap-2">
+<div class="w-16 h-1.5 rounded-full bg-chart-track overflow-hidden">
+<div class="h-full bg-tertiary rounded-full" style="width: 12%"></div>
+</div>
+<span class="font-caption text-caption font-bold text-tertiary tabular-nums">12</span>
+</div>
+</td>
+<td class="py-3 px-3 text-center">
+<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-caption font-caption font-bold bg-tertiary/15 text-tertiary">
+<svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" stroke-width="2.5" viewbox="0 0 24 24">
+<path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+                  ON
+                </span>
+</td>
+<td class="py-3 px-3 text-right">
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-caption font-caption font-semibold bg-tertiary/15 text-tertiary">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+                  Normal
+                </span>
+</td>
+</tr>
+<!-- ROW 3: smart-plug-03 (Isolated) -->
+<tr class="device-row cursor-pointer transition-colors hover:bg-surface-elevated/60" id="row-plug" onclick="selectDevice('smart-plug-03', '172.17.0.4', '03d 19h 12m 45s', false, ['192.168.1.115', '192.168.1.189', '172.17.0.88'], 'SP')">
+<td class="py-3 px-3">
+<div class="flex items-center gap-2.5 min-w-0">
+<div class="w-7 h-7 rounded-lg bg-error-critical/20 text-error-critical font-bold text-caption flex items-center justify-center flex-shrink-0">
+                    SP
+                  </div>
+<div class="min-w-0">
+<div class="font-headline-sm text-headline-sm font-semibold text-text-primary truncate flex items-center gap-1.5">
+                      smart-plug-03
+                      <span class="w-1.5 h-1.5 rounded-full bg-error-critical"></span>
+</div>
+<div class="text-caption font-caption text-text-muted tabular-nums">172.17.0.4</div>
+</div>
+</div>
+</td>
+<td class="py-3 px-3 hidden sm:table-cell text-text-muted">Docker Alpine</td>
+<td class="py-3 px-3 hidden md:table-cell tabular-nums text-text-primary">03d 19h 12m</td>
+<td class="py-3 px-3">
+<div class="flex items-center gap-2">
+<div class="w-16 h-1.5 rounded-full bg-chart-track overflow-hidden">
+<div class="h-full bg-error-critical rounded-full" style="width: 96%"></div>
+</div>
+<span class="font-caption text-caption font-bold text-error-critical tabular-nums">96</span>
+</div>
+</td>
+<td class="py-3 px-3 text-center">
+<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-caption font-caption font-bold bg-surface-container-highest text-text-muted">
+<svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" stroke-width="2.5" viewbox="0 0 24 24">
+<path d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+                  OFF
+                </span>
+</td>
+<td class="py-3 px-3 text-right">
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-caption font-caption font-semibold bg-error-critical/15 text-error-critical">
+<span class="w-1.5 h-1.5 rounded-full bg-error-critical"></span>
+                  Internet Blocked
+                </span>
+</td>
+</tr>
+<!-- ROW 4: smart-lock-04 -->
+<tr class="device-row cursor-pointer transition-colors hover:bg-surface-elevated/60" id="row-lock" onclick="selectDevice('smart-lock-04', '172.17.0.5', '01d 04h 19m 33s', true, [], 'SL')">
+<td class="py-3 px-3">
+<div class="flex items-center gap-2.5 min-w-0">
+<div class="w-7 h-7 rounded-lg bg-surface-container-high text-text-muted font-bold text-caption flex items-center justify-center flex-shrink-0">
+                    SL
+                  </div>
+<div class="min-w-0">
+<div class="font-headline-sm text-headline-sm font-semibold text-text-primary truncate flex items-center gap-1.5">
+                      smart-lock-04
+                      <span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+</div>
+<div class="text-caption font-caption text-text-muted tabular-nums">172.17.0.5</div>
+</div>
+</div>
+</td>
+<td class="py-3 px-3 hidden sm:table-cell text-text-muted">Ubuntu 22.04 LTS</td>
+<td class="py-3 px-3 hidden md:table-cell tabular-nums text-text-primary">01d 04h 19m</td>
+<td class="py-3 px-3">
+<div class="flex items-center gap-2">
+<div class="w-16 h-1.5 rounded-full bg-chart-track overflow-hidden">
+<div class="h-full bg-tertiary rounded-full" style="width: 8%"></div>
+</div>
+<span class="font-caption text-caption font-bold text-tertiary tabular-nums">08</span>
+</div>
+</td>
+<td class="py-3 px-3 text-center">
+<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-caption font-caption font-bold bg-tertiary/15 text-tertiary">
+<svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" stroke-width="2.5" viewbox="0 0 24 24">
+<path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+                  ON
+                </span>
+</td>
+<td class="py-3 px-3 text-right">
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-caption font-caption font-semibold bg-tertiary/15 text-tertiary">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+                  Normal
+                </span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Table Footer / Telemetry Summary -->
+<div class="flex items-center justify-between pt-2 text-caption font-caption text-text-muted">
+<div>Showing <span class="font-semibold text-text-primary tabular-nums">4</span> of <span class="font-semibold text-text-primary tabular-nums">4</span> enrolled endpoints</div>
+<div class="flex items-center gap-2">
+<span>Bridge Interface: <span class="text-text-primary font-mono">docker0 (172.17.0.1)</span></span>
+</div>
+</div>
+</div>
+<!-- RIGHT COLUMN: Selected Device Control Panel (45% -> 5 cols on large screens) -->
+<div class="lg:col-span-5 bg-surface-card rounded-xl p-5 flex flex-col space-y-5 shadow-sm">
+<!-- Panel Header: Device Title & Emergency Kill Switch -->
+<div class="flex flex-col space-y-3 pb-3 bg-surface-card">
+<div class="flex items-start justify-between gap-3">
+<div class="min-w-0">
+<div class="flex items-center gap-2">
+<span class="w-6 h-6 rounded-md bg-primary-container text-text-primary font-bold text-caption flex items-center justify-center flex-shrink-0" id="targetAvatar">
+                SC
+              </span>
+<h3 class="font-headline-sm text-headline-sm font-semibold text-text-primary truncate" id="targetDeviceHeading">
+                smart-camera-01
+              </h3>
+<span class="w-2 h-2 rounded-full bg-tertiary animate-ping"></span>
+</div>
+<div class="flex items-center gap-2 mt-1">
+<span class="text-caption font-caption text-text-muted font-mono tabular-nums" id="targetIpSubhead">172.17.0.2</span>
+<span class="text-text-muted text-caption">·</span>
+<span class="text-caption font-caption text-text-muted">Uptime: <span class="text-text-primary tabular-nums" id="targetUptime">14d 06h 42m 19s</span></span>
+</div>
+</div>
+<!-- Kill Switch Button -->
+<button class="px-3 py-1.5 rounded-lg bg-error-critical hover:bg-error-critical/90 text-text-primary font-body-sm text-body-sm font-semibold flex items-center gap-1.5 shadow-md shadow-error-critical/20 transition-all flex-shrink-0" id="killSwitchBtn" onclick="toggleKillSwitch()">
+<svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 2.829a4.978 4.978 0 01-1.414-2.83m-1.414 5.658a9 9 0 01-2.167-9.238m7.824-2.179a5.002 5.002 0 014.243 0M1 1l22 22" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+<span>Block All Internet</span>
+</button>
+</div>
+<p class="text-caption font-caption text-text-muted">Drops all outbound &amp; routed traffic except this dashboard connection.</p>
+</div>
+<!-- AI Protection Toggle Section -->
+<div class="p-3.5 rounded-xl bg-surface-elevated flex items-center justify-between gap-3 shadow-inner">
+<div class="space-y-0.5">
+<div class="flex items-center gap-2">
+<span class="font-body-md-medium text-body-md-medium font-semibold text-text-primary">Auto-Block Attacks</span>
+<span class="px-1.5 py-0.2 rounded text-[10px] font-bold bg-[#6366F1]/20 text-[#6366F1] uppercase">Real-Time</span>
+</div>
+<p class="font-body-sm text-body-sm text-text-muted">Automatically blocks attacker IPs on this device when confidence ≥ 90%</p>
+</div>
+<!-- Toggle Switch -->
+<button aria-pressed="true" class="w-11 h-6 flex items-center bg-tertiary rounded-full p-1 transition-colors duration-200 focus:outline-none flex-shrink-0 cursor-pointer" id="autoBlockToggle" onclick="toggleAutoBlock()" type="button">
+<div class="bg-surface-card w-4 h-4 rounded-full shadow-md transform translate-x-5 transition-transform duration-200" id="autoBlockKnob"></div>
+</button>
+</div>
+<!-- Active Firewall Rules Section -->
+<div class="space-y-3">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<h4 class="font-headline-sm text-headline-sm font-semibold text-text-primary">Blocked IP Addresses</h4>
+<span class="px-2 py-0.5 rounded-full text-caption font-caption font-bold bg-surface-elevated text-text-muted tabular-nums" id="rulesCountBadge">2</span>
+</div>
+<span class="text-caption font-caption text-text-muted font-mono">iptables -j DROP</span>
+</div>
+<!-- Add IP Input Group -->
+<div class="flex items-center gap-2">
+<div class="relative flex-1">
+<input class="w-full h-[38px] px-3 rounded-lg bg-surface-elevated font-body-sm text-body-sm text-text-primary placeholder-text-muted font-mono focus:outline-none focus:ring-1 focus:ring-primary-container transition-all" id="newIpInput" placeholder="Enter IP address (e.g., 172.17.0.99)" type="text"/>
+</div>
+<button class="h-[38px] px-3.5 rounded-lg bg-primary-container hover:bg-inverse-primary text-text-primary font-body-sm text-body-sm font-semibold flex items-center gap-1.5 shadow-sm transition-all flex-shrink-0" onclick="addBlockedIp()">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M12 4v16m8-8H4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"></path>
+</svg>
+<span>Block IP</span>
+</button>
+</div>
+<!-- Blocked IP List Container -->
+<div class="space-y-2" id="blockedIpList">
+<!-- Rule Item 1 -->
+<div class="p-3 rounded-lg bg-surface-elevated flex items-center justify-between gap-3 transition-all" id="rule-item-1">
+<div class="min-w-0">
+<div class="flex items-center gap-2">
+<span class="w-1.5 h-1.5 rounded-full bg-error-critical"></span>
+<span class="font-body-md-medium text-body-md-medium font-semibold text-text-primary font-mono tabular-nums">172.17.0.99</span>
+<span class="px-1.5 py-0.2 rounded text-[10px] font-bold bg-error-critical/15 text-error-critical uppercase">DoS Flood</span>
+</div>
+<p class="font-body-sm text-body-sm text-text-muted mt-0.5 truncate">Auto-blocked by AI · Just now via XGBoost confidence 94.2%</p>
+</div>
+<button class="h-7 px-2.5 rounded-md bg-surface-container-high hover:bg-error-critical/20 hover:text-error-critical text-text-muted font-caption text-caption font-semibold transition-colors flex-shrink-0" onclick="removeBlockedIp('rule-item-1')">
+              Unblock
+            </button>
+</div>
+<!-- Rule Item 2 -->
+<div class="p-3 rounded-lg bg-surface-elevated flex items-center justify-between gap-3 transition-all" id="rule-item-2">
+<div class="min-w-0">
+<div class="flex items-center gap-2">
+<span class="w-1.5 h-1.5 rounded-full bg-warning"></span>
+<span class="font-body-md-medium text-body-md-medium font-semibold text-text-primary font-mono tabular-nums">172.17.0.105</span>
+<span class="px-1.5 py-0.2 rounded text-[10px] font-bold bg-surface-container-highest text-text-muted uppercase">Manual</span>
+</div>
+<p class="font-body-sm text-body-sm text-text-muted mt-0.5 truncate">Manual Admin Block · 2h ago</p>
+</div>
+<button class="h-7 px-2.5 rounded-md bg-surface-container-high hover:bg-error-critical/20 hover:text-error-critical text-text-muted font-caption text-caption font-semibold transition-colors flex-shrink-0" onclick="removeBlockedIp('rule-item-2')">
+              Unblock
+            </button>
+</div>
+</div>
+</div>
+<!-- DNS Settings & Resolver Switcher -->
+<div class="space-y-3 pt-2">
+<div class="flex items-center justify-between">
+<h4 class="font-headline-sm text-headline-sm font-semibold text-text-primary">DNS Settings</h4>
+<span class="text-caption font-caption text-tertiary flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+            Sync Active
+          </span>
+</div>
+<div class="p-3.5 rounded-xl bg-surface-elevated space-y-3">
+<div class="space-y-1">
+<label class="font-caption text-caption font-medium text-text-muted uppercase tracking-wider block" for="dnsSelect">Active DNS Resolver</label>
+<div class="flex items-center gap-2">
+<select class="flex-1 h-[38px] px-3 rounded-lg bg-surface-card text-text-primary font-body-sm text-body-sm focus:outline-none focus:ring-1 focus:ring-primary-container" id="dnsSelect">
+<option value="1.1.1.1">Cloudflare Safe DNS (1.1.1.1)</option>
+<option value="9.9.9.9">Quad9 Threat Block (9.9.9.9)</option>
+<option value="8.8.8.8">Google Public DNS (8.8.8.8)</option>
+<option value="custom">Custom Upstream DNS...</option>
+</select>
+<button class="h-[38px] px-3.5 rounded-lg bg-primary-container hover:bg-inverse-primary text-text-primary font-body-sm text-body-sm font-semibold transition-all shadow-sm flex-shrink-0" id="applyDnsBtn" onclick="applyDnsChange()">
+                Apply DNS
+              </button>
+</div>
+</div>
+<div class="flex items-center justify-between pt-1">
+<div class="flex items-center gap-1.5 font-caption text-caption text-text-muted">
+<svg class="w-3.5 h-3.5 text-tertiary" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"></path>
+</svg>
+<span>Resolv.conf synchronized via WebSocket</span>
+</div>
+<span class="font-mono text-caption text-caption text-text-muted tabular-nums">TTL: 300s</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- 3. BOTTOM FLOATING ACTION BANNER (Modeled after Fortify360 Ransomware Alert Bar) -->
+<div class="w-full bg-[#18121E] rounded-xl p-4 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all" id="threatBanner">
+<div class="flex items-center gap-3.5 min-w-0">
+<div class="w-10 h-10 rounded-xl bg-error-critical/20 flex items-center justify-center flex-shrink-0 text-error-critical">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+<div class="min-w-0">
+<div class="font-headline-sm text-headline-sm font-semibold text-text-primary flex items-center gap-2 truncate">
+<span>Active DoS Flood Automatically Blocked on smart-camera-01</span>
+<span class="w-2 h-2 rounded-full bg-error-critical animate-ping hidden md:inline-block"></span>
+</div>
+<p class="font-body-sm text-body-sm text-text-muted truncate">
+          Attacker IP <span class="font-mono text-text-primary font-semibold tabular-nums">172.17.0.99</span> dropped via iptables 2 minutes ago. Inspection recommended.
+        </p>
+</div>
+</div>
+<div class="flex items-center gap-2.5 self-end sm:self-center flex-shrink-0">
+<button class="h-[34px] px-3.5 rounded-lg bg-surface-elevated hover:bg-surface-container-high text-text-primary font-body-sm text-body-sm font-medium transition-colors" onclick="dismissBanner()">
+        Dismiss
+      </button>
+<button class="h-[34px] px-4 rounded-lg bg-error-critical hover:bg-error-critical/90 text-text-primary font-body-sm text-body-sm font-semibold shadow-md shadow-error-critical/20 transition-all flex items-center gap-1.5" onclick="inspectTraffic('smart-camera-01', '172.17.0.99')">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+<path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span>Inspect Traffic</span>
+</button>
+</div>
+</div>
+</div>
+<!-- INTERACTION JAVASCRIPT -->
+<script>
+  let currentTarget = {
+    name: 'smart-camera-01',
+    ip: '172.17.0.2',
+    uptime: '14d 06h 42m 19s',
+    autoBlock: true,
+    isolated: false,
+    rules: ['172.17.0.99', '172.17.0.105'],
+    avatar: 'SC'
+  };
+
+  function selectDevice(name, ip, uptime, autoBlock, rules, avatar) {
+    currentTarget.name = name;
+    currentTarget.ip = ip;
+    currentTarget.uptime = uptime;
+    currentTarget.autoBlock = autoBlock;
+    currentTarget.rules = rules;
+    currentTarget.avatar = avatar;
+
+    // Update UI headers
+    document.getElementById('targetDeviceHeading').innerText = name;
+    document.getElementById('targetIpSubhead').innerText = ip;
+    document.getElementById('targetUptime').innerText = uptime;
+    document.getElementById('targetAvatar').innerText = avatar;
+
+    // Highlight row
+    document.querySelectorAll('.device-row').forEach(row => {
+      row.classList.remove('bg-surface-elevated', 'shadow-inner');
+    });
+    const clickedRow = event.currentTarget;
+    if (clickedRow) {
+      clickedRow.classList.add('bg-surface-elevated', 'shadow-inner');
+    }
+
+    // Update toggle state
+    updateToggleVisual(autoBlock);
+
+    // Update kill switch button label if already isolated
+    const killBtn = document.getElementById('killSwitchBtn');
+    if (name === 'smart-plug-03') {
+      killBtn.innerHTML = `
+        <svg class="w-4 h-4 text-tertiary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+        <span>Restore Network</span>
+      `;
+      killBtn.className = "px-3 py-1.5 rounded-lg bg-surface-container-high hover:bg-surface-bright text-tertiary font-body-sm text-body-sm font-semibold flex items-center gap-1.5 transition-all flex-shrink-0";
+    } else {
+      killBtn.innerHTML = `
+        <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 2.829a4.978 4.978 0 01-1.414-2.83m-1.414 5.658a9 9 0 01-2.167-9.238m7.824-2.179a5.002 5.002 0 014.243 0M1 1l22 22" />
+        </svg>
+        <span>Block All Internet</span>
+      `;
+      killBtn.className = "px-3 py-1.5 rounded-lg bg-error-critical hover:bg-error-critical/90 text-text-primary font-body-sm text-body-sm font-semibold flex items-center gap-1.5 shadow-md shadow-error-critical/20 transition-all flex-shrink-0";
+    }
+
+    // Refresh rules
+    renderRules();
+  }
+
+  function toggleAutoBlock() {
+    currentTarget.autoBlock = !currentTarget.autoBlock;
+    updateToggleVisual(currentTarget.autoBlock);
+  }
+
+  function updateToggleVisual(enabled) {
+    const toggleBtn = document.getElementById('autoBlockToggle');
+    const knob = document.getElementById('autoBlockKnob');
+    if (enabled) {
+      toggleBtn.className = "w-11 h-6 flex items-center bg-tertiary rounded-full p-1 transition-colors duration-200 focus:outline-none flex-shrink-0 cursor-pointer";
+      knob.className = "bg-surface-card w-4 h-4 rounded-full shadow-md transform translate-x-5 transition-transform duration-200";
+    } else {
+      toggleBtn.className = "w-11 h-6 flex items-center bg-surface-container-highest rounded-full p-1 transition-colors duration-200 focus:outline-none flex-shrink-0 cursor-pointer";
+      knob.className = "bg-surface-card w-4 h-4 rounded-full shadow-md transform translate-x-0 transition-transform duration-200";
+    }
+  }
+
+  function toggleKillSwitch() {
+    const btn = document.getElementById('killSwitchBtn');
+    currentTarget.isolated = !currentTarget.isolated;
+    if (currentTarget.isolated) {
+      btn.innerHTML = `<svg class="w-4 h-4 text-tertiary animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg> Network Isolated`;
+      btn.className = "px-3 py-1.5 rounded-lg bg-surface-container-high text-tertiary font-body-sm text-body-sm font-semibold flex items-center gap-1.5 transition-all flex-shrink-0";
+    } else {
+      btn.innerHTML = `<svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636a9 9 0 010 12.728" /></svg> Block All Internet`;
+      btn.className = "px-3 py-1.5 rounded-lg bg-error-critical hover:bg-error-critical/90 text-text-primary font-body-sm text-body-sm font-semibold flex items-center gap-1.5 shadow-md shadow-error-critical/20 transition-all flex-shrink-0";
+    }
+  }
+
+  function addBlockedIp() {
+    const input = document.getElementById('newIpInput');
+    const val = input.value.trim();
+    if (!val) return;
+    
+    currentTarget.rules.unshift(val);
+    renderRules();
+    input.value = '';
+  }
+
+  function removeBlockedIp(elementId) {
+    const el = document.getElementById(elementId);
+    if (el) {
+      el.remove();
+      const count = document.getElementById('blockedIpList').children.length;
+      document.getElementById('rulesCountBadge').innerText = count;
+    }
+  }
+
+  function renderRules() {
+    const list = document.getElementById('blockedIpList');
+    list.innerHTML = '';
+    currentTarget.rules.forEach((ip, idx) => {
+      const div = document.createElement('div');
+      div.id = `rule-dyn-${idx}`;
+      div.className = "p-3 rounded-lg bg-surface-elevated flex items-center justify-between gap-3 transition-all";
+      div.innerHTML = `
+        <div class="min-w-0">
+          <div class="flex items-center gap-2">
+            <span class="w-1.5 h-1.5 rounded-full bg-error-critical"></span>
+            <span class="font-body-md-medium text-body-md-medium font-semibold text-text-primary font-mono tabular-nums">${ip}</span>
+            <span class="px-1.5 py-0.2 rounded text-[10px] font-bold bg-error-critical/15 text-error-critical uppercase">Enforced</span>
+          </div>
+          <p class="font-body-sm text-body-sm text-text-muted mt-0.5 truncate">Active iptables DROP rule on ${currentTarget.name}</p>
+        </div>
+        <button onclick="removeBlockedIp('rule-dyn-${idx}')" class="h-7 px-2.5 rounded-md bg-surface-container-high hover:bg-error-critical/20 hover:text-error-critical text-text-muted font-caption text-caption font-semibold transition-colors flex-shrink-0">
+          Unblock
+        </button>
+      `;
+      list.appendChild(div);
+    });
+    document.getElementById('rulesCountBadge').innerText = currentTarget.rules.length;
+  }
+
+  function applyDnsChange() {
+    const sel = document.getElementById('dnsSelect');
+    const btn = document.getElementById('applyDnsBtn');
+    const prevText = btn.innerText;
+    btn.innerHTML = `<svg class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> Applying`;
+    btn.disabled = true;
+
+    setTimeout(() => {
+      btn.innerText = "Applied!";
+      btn.className = "h-[38px] px-3.5 rounded-lg bg-tertiary text-on-tertiary font-body-sm text-body-sm font-semibold transition-all shadow-sm flex-shrink-0";
+      setTimeout(() => {
+        btn.innerText = prevText;
+        btn.className = "h-[38px] px-3.5 rounded-lg bg-primary-container hover:bg-inverse-primary text-text-primary font-body-sm text-body-sm font-semibold transition-all shadow-sm flex-shrink-0";
+        btn.disabled = false;
+      }, 1500);
+    }, 700);
+  }
+
+  function dismissBanner() {
+    const b = document.getElementById('threatBanner');
+    if (b) {
+      b.style.opacity = '0';
+      b.style.transform = 'translateY(10px)';
+      setTimeout(() => b.remove(), 250);
+    }
+  }
+
+  function inspectTraffic(device, ip) {
+    alert(`Routing to Live Traffic & PCAP inspector for ${device} filtered by src_ip=${ip}`);
+  }
+
+  function filterFleetRows() {
+    const q = document.getElementById('fleetSearchInput').value.toLowerCase();
+    const rows = document.querySelectorAll('#fleetTableBody tr');
+    rows.forEach(r => {
+      const text = r.innerText.toLowerCase();
+      r.style.display = text.includes(q) ? '' : 'none';
+    });
+  }
+
+  function setFilter(type, btn) {
+    document.querySelectorAll('.filter-pill').forEach(p => {
+      p.className = "filter-pill px-2.5 py-1 rounded-md text-caption font-caption font-semibold text-text-muted hover:text-text-primary transition-colors";
+    });
+    btn.className = "filter-pill active-filter px-2.5 py-1 rounded-md text-caption font-caption font-semibold bg-surface-elevated text-text-primary transition-colors";
+
+    const rows = document.querySelectorAll('#fleetTableBody tr');
+    rows.forEach(r => {
+      if (type === 'all') {
+        r.style.display = '';
+      } else if (type === 'active') {
+        r.style.display = r.innerText.includes('Internet Blocked') ? 'none' : '';
+      } else if (type === 'isolated') {
+        r.style.display = r.innerText.includes('Internet Blocked') ? '' : 'none';
+      }
+    });
+  }
+
+  function exportFleetCSV() {
+    const csvContent = "data:text/csv;charset=utf-8,Device Name,IP Address,Environment,Uptime,Attack Load,Auto-Block,Status\n"
+      + "smart-camera-01,172.17.0.2,Docker Alpine,14d 06h 42m,84,ON,DoS Mitigated\n"
+      + "smart-thermostat-02,172.17.0.3,Docker Alpine,14d 06h 41m,12,ON,Normal\n"
+      + "smart-plug-03,172.17.0.4,Docker Alpine,03d 19h 12m,96,OFF,Internet Blocked\n"
+      + "smart-lock-04,172.17.0.5,Ubuntu 22.04 LTS,01d 04h 19m,08,ON,Normal";
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "ciciot23_connected_devices.csv");
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  }
+</script></main>
+<!-- BOTTOM SYSTEM TELEMETRY FOOTER (32px fixed) -->
+<footer class="h-[32px] px-6 bg-[#100F18] border-t border-[#222030] flex items-center justify-between text-[11px] font-semibold text-[#8E8CA3] tracking-wide select-none z-10 flex-shrink-0">
+<!-- Left Telemetry Signals -->
+<div class="flex items-center gap-4">
+<span class="flex items-center gap-1.5 text-[#10B981]">
+<span class="w-2 h-2 rounded-[2px] bg-[#10B981]"></span>
+<span>SYSTEMS OPERATIONAL</span>
+</span>
+<span class="text-[#222030]">·</span>
+<span class="tabular-nums">GO COLLECTOR LATENCY: 4MS</span>
+<span class="text-[#222030]">·</span>
+<span class="flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-[#10B981]"></span>
+<span>DOCKER BRIDGE: CONNECTED</span>
+</span>
+</div>
+<!-- Right Telemetry Signals -->
+<div class="flex items-center gap-3 tabular-nums">
+<span>API V2.4.0</span>
+<span class="text-[#222030]">·</span>
+<span>LAST UPDATED: 12:10:45 IST</span>
+</div>
+</footer>
+</div>
+<script>
+    function blockAction(btn, text) {
+      btn.innerText = text;
+      btn.disabled = true;
+      btn.className = "px-2.5 py-1 rounded bg-[#1A1826] border border-[#222030] text-[#10B981] text-[11px] font-bold cursor-default inline-flex items-center gap-1";
+      btn.innerHTML = `<svg class="w-3 h-3 text-[#10B981]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" /></svg> ${text}`;
+    }
+  </script>
+</body></html>

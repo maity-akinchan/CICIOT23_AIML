@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CICIoT23 Sentinel - Model Comparison &amp; Attack History</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+          "secondary-fixed": "#e1e0ff",
+          "error-critical": "#EF4444",
+          "on-secondary-fixed-variant": "#2f2ebe",
+          "on-primary": "#002a78",
+          "surface-elevated": "#1A1826",
+          "border-subtle": "#222030",
+          "on-tertiary-fixed-variant": "#005236",
+          "surface-tint": "#b4c5ff",
+          "on-secondary-container": "#b0b2ff",
+          "error": "#ffb4ab",
+          "on-surface-variant": "#c3c6d7",
+          "outline-variant": "#434655",
+          "surface-container-highest": "#35343d",
+          "tertiary-fixed": "#6ffbbe",
+          "background": "#13121b",
+          "warning": "#F59E0B",
+          "text-muted": "#8E8CA3",
+          "primary-container": "#2563eb",
+          "tertiary": "#4edea3",
+          "outline": "#8d90a0",
+          "secondary": "#c0c1ff",
+          "accent-cyan": "#06B6D4",
+          "primary-fixed": "#dbe1ff",
+          "secondary-container": "#3131c0",
+          "inverse-primary": "#0053db",
+          "on-error": "#690005",
+          "on-tertiary-container": "#bdffdb",
+          "on-primary-fixed": "#00174b",
+          "surface-dim": "#13121b",
+          "surface-card": "#13121D",
+          "on-tertiary": "#003824",
+          "on-background": "#e5e0ed",
+          "on-primary-fixed-variant": "#003ea8",
+          "on-surface": "#e5e0ed",
+          "inverse-surface": "#e5e0ed",
+          "secondary-fixed-dim": "#c0c1ff",
+          "surface": "#13121b",
+          "inverse-on-surface": "#312f38",
+          "on-tertiary-fixed": "#002113",
+          "on-secondary-fixed": "#07006c",
+          "danger-coral": "#F97316",
+          "surface-container-lowest": "#0e0d15",
+          "surface-variant": "#35343d",
+          "surface-bright": "#3a3841",
+          "on-error-container": "#ffdad6",
+          "sidebar-surface": "#100F18",
+          "canvas-bg": "#0D0C14",
+          "on-secondary": "#1000a9",
+          "on-primary-container": "#eeefff",
+          "chart-track": "#1E1D2B",
+          "text-primary": "#F8FAFC",
+          "surface-container-high": "#2a2932",
+          "border-highlight": "#3B3854",
+          "surface-container-low": "#1c1b23",
+          "tertiary-fixed-dim": "#4edea3",
+          "primary": "#b4c5ff",
+          "tertiary-container": "#007d55",
+          "primary-fixed-dim": "#b4c5ff",
+          "surface-container": "#201f27",
+          "error-container": "#93000a"
+        },
+        "borderRadius": {
+          "DEFAULT": "0.25rem",
+          "lg": "0.5rem",
+          "xl": "0.75rem",
+          "full": "9999px"
+        },
+        "spacing": {
+          "space-xl": "2rem",
+          "space-sm": "0.5rem",
+          "gutter-desktop": "1.5rem",
+          "margin-desktop": "1.5rem",
+          "space-lg": "1.5rem",
+          "space-xs": "0.25rem",
+          "space-md": "1rem",
+          "margin": "1rem",
+          "gutter": "1rem"
+        },
+        "fontFamily": {
+          "caption": ["Plus Jakarta Sans"],
+          "display-kpi": ["Plus Jakarta Sans"],
+          "body-md": ["Plus Jakarta Sans"],
+          "headline-sm": ["Plus Jakarta Sans"],
+          "body-md-medium": ["Plus Jakarta Sans"],
+          "headline-lg-mobile": ["Plus Jakarta Sans"],
+          "headline-lg": ["Plus Jakarta Sans"],
+          "headline-md": ["Plus Jakarta Sans"],
+          "body-sm": ["Plus Jakarta Sans"]
+        },
+        "fontSize": {
+          "caption": ["11px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+          "display-kpi": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+          "body-md": ["14px", { "lineHeight": "22px", "fontWeight": "400" }],
+          "headline-sm": ["16px", { "lineHeight": "24px", "fontWeight": "600" }],
+          "body-md-medium": ["14px", { "lineHeight": "22px", "fontWeight": "500" }],
+          "headline-lg-mobile": ["22px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+          "headline-lg": ["28px", { "lineHeight": "36px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+          "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+          "body-sm": ["13px", { "lineHeight": "18px", "fontWeight": "500" }]
+        }
+      }
+    }
+  };
+</script>
+<style>
+  @layer base {
+    html {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #0D0C14;
+      color: #F8FAFC;
+      overscroll-behavior-y: none;
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0D0C14;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #222030;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #3B3854;
+    }
+  }
+</style>
+<meta content="web_dashboard" name="shell-type"/>
+</head>
+<body class="bg-canvas-bg text-text-primary antialiased min-h-screen">
+<!-- LEFT FIXED SIDEBAR -->
+<aside class="fixed top-0 bottom-0 left-0 w-[240px] bg-sidebar-surface border-r border-border-subtle flex flex-col justify-between select-none z-30">
+<div>
+<!-- Brand Lockup -->
+<div class="h-14 px-margin flex items-center gap-space-sm border-b border-border-subtle">
+<div class="w-8 h-8 rounded-lg bg-primary-container flex items-center justify-center text-text-primary shadow-lg flex-shrink-0">
+<span class="material-symbols-outlined text-[18px]">shield</span>
+</div>
+<div class="overflow-hidden leading-tight">
+<div class="font-headline-sm text-body-sm font-bold text-text-primary truncate">CICIoT23 Sentinel</div>
+<div class="font-caption text-caption text-text-muted uppercase tracking-wider truncate">Network Defense SOC</div>
+</div>
+</div>
+<!-- Navigation Sections -->
+<div class="px-space-xs py-space-md space-y-space-lg">
+<!-- Section: MONITORING -->
+<div>
+<div class="px-space-sm mb-space-xs font-caption text-caption text-text-muted uppercase tracking-wider">Monitoring</div>
+<nav class="space-y-space-xs" data-active-classes="bg-surface-elevated text-text-primary border border-border-subtle shadow-sm font-semibold">
+<a class="block px-space-sm py-space-xs rounded-lg text-text-muted hover:text-text-primary hover:bg-surface-card font-body-sm text-body-sm transition-colors" data-path="security-overview" href="#">Security Overview</a>
+<a class="block px-space-sm py-space-xs rounded-lg text-text-muted hover:text-text-primary hover:bg-surface-card font-body-sm text-body-sm transition-colors" data-path="live-traffic-pcap-explorer" href="#">Live Traffic &amp; PCAP</a>
+<a class="flex items-center justify-between px-space-sm py-space-xs rounded-lg text-text-muted hover:text-text-primary hover:bg-surface-card font-body-sm text-body-sm transition-colors" data-path="connected-devices-controls" href="#">
+<span>Connected Devices</span>
+<span class="px-1.5 py-0.5 rounded text-[10px] font-caption bg-surface-elevated text-text-muted">4</span>
+</a>
+</nav>
+</div>
+<!-- Section: INTELLIGENCE -->
+<div>
+<div class="px-space-sm mb-space-xs font-caption text-caption text-text-muted uppercase tracking-wider">Intelligence</div>
+<nav class="space-y-space-xs" data-active-classes="bg-surface-elevated text-text-primary border border-border-subtle shadow-sm font-semibold">
+<a class="block px-space-sm py-space-xs rounded-lg bg-surface-elevated text-text-primary border border-border-subtle shadow-sm font-semibold font-body-sm text-body-sm transition-colors" data-path="model-comparison-attack-history" href="#">Model Comparison</a>
+<a class="block px-space-sm py-space-xs rounded-lg text-text-muted hover:text-text-primary hover:bg-surface-card font-body-sm text-body-sm transition-colors" data-path="add-device-cli" href="#">Add Device (CLI)</a>
+</nav>
+</div>
+</div>
+</div>
+<!-- Bottom Sidebar Actions -->
+<div class="p-space-sm border-t border-border-subtle space-y-space-xs">
+<a class="block px-space-sm py-space-xs rounded-lg text-text-muted hover:text-text-primary hover:bg-surface-card font-body-sm text-body-sm transition-colors" data-path="settings" href="#">Settings</a>
+<button class="w-full flex items-center justify-between px-space-sm py-space-xs rounded-lg bg-error-critical/10 border border-error-critical/30 text-error-critical hover:bg-error-critical/20 font-body-sm text-body-sm font-semibold transition-all">
+<div class="flex items-center gap-space-xs">
+<span class="w-2 h-2 rounded-full bg-error-critical animate-pulse"></span>
+<span>Lockdown Mode</span>
+</div>
+<span class="material-symbols-outlined text-[14px]">lock</span>
+</button>
+</div>
+</aside>
+<!-- FIXED HEADER BAR -->
+<header class="fixed top-0 left-[240px] right-0 h-14 bg-canvas-bg/95 backdrop-blur border-b border-border-subtle px-margin-desktop flex items-center justify-between z-20">
+<!-- Left: Section Title & Fleet Context -->
+<div class="flex items-center gap-space-md min-w-0">
+<div class="flex items-center gap-space-sm">
+<span class="w-2 h-2 rounded-full bg-tertiary"></span>
+<h1 class="font-headline-sm text-headline-sm text-text-primary truncate tracking-tight">Model Comparison &amp; Attack History</h1>
+</div>
+<div class="hidden md:flex items-center gap-space-xs px-2.5 py-1 rounded bg-surface-elevated border border-border-subtle">
+<span class="font-caption text-caption text-text-muted uppercase">Fleet:</span>
+<span class="font-caption text-caption text-text-primary font-semibold">CIC-Cluster-A</span>
+</div>
+</div>
+<!-- Right: Operational Controls & Profile -->
+<div class="flex items-center gap-space-sm">
+<!-- Action: Re-Run Validation -->
+<button class="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-surface-elevated border border-border-subtle hover:border-border-highlight text-text-primary font-body-sm text-body-sm font-medium transition-all">
+<span class="material-symbols-outlined text-[15px] text-accent-cyan">play_arrow</span>
+<span>Re-Run Validation</span>
+</button>
+<!-- Action: Export Attack CSV -->
+<button class="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-primary-container hover:opacity-90 text-text-primary font-body-sm text-body-sm font-semibold transition-all shadow-sm shadow-primary-container/30">
+<span class="material-symbols-outlined text-[15px]">download</span>
+<span>Export Attack CSV</span>
+</button>
+<!-- Active Telemetry Status Badge -->
+<div class="hidden xl:flex items-center gap-1.5 px-2.5 h-8 rounded-lg bg-surface-elevated border border-border-subtle font-caption text-caption text-text-muted">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+<span>XGBoost</span>
+<span class="text-text-primary font-semibold font-mono">91.4% Acc</span>
+</div>
+<!-- SOC Operator Profile -->
+<div class="flex items-center gap-2 pl-space-sm border-l border-border-subtle">
+<div class="w-8 h-8 rounded-full bg-gradient-to-tr from-primary-container to-secondary-container flex items-center justify-center font-caption text-caption font-bold text-text-primary">
+        AM
+      </div>
+<div class="text-left leading-none hidden lg:block">
+<div class="font-body-sm text-body-sm font-semibold text-text-primary">A. Maity</div>
+<div class="font-caption text-caption text-text-muted">SOC Lead</div>
+</div>
+</div>
+</div>
+</header>
+<!-- MAIN CONTENT SLOT -->
+<main class="pl-[240px] pt-14 pb-8 min-h-screen bg-canvas-bg"><div class="flex flex-col w-full">
+<div class="p-margin-desktop space-y-gutter-desktop">
+<!-- TOP SECTION: CONTEXT BAR & RETURN LINK -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-space-sm pb-space-xs">
+<div>
+<div class="flex items-center gap-space-xs text-text-muted font-caption text-caption uppercase tracking-wider mb-1">
+<span>Sentinel Fleet Operations</span>
+<span class="text-border-subtle">/</span>
+<span class="text-accent-cyan">Provisioning Pipeline</span>
+</div>
+<h2 class="font-headline-lg text-headline-lg text-text-primary tracking-tight">Enroll New Device (CLI Installer)</h2>
+<p class="font-body-md text-body-md text-text-muted mt-0.5">Deploy the high-throughput Go telemetry daemon and packet inspector with zero configuration footprint.</p>
+</div>
+<div class="flex items-center gap-space-sm self-start sm:self-center">
+<a class="inline-flex items-center gap-2 px-3.5 h-[38px] rounded-lg bg-surface-elevated hover:bg-surface-variant text-text-primary font-body-sm text-body-sm font-semibold transition-all" href="#">
+<span class="material-symbols-outlined text-[16px] text-text-muted">arrow_back</span>
+<span>Back to Connected Devices</span>
+</a>
+</div>
+</div>
+<!-- ROW 1: 3 PLATFORM SELECTION CARDS (Obsidian Framework Matrix) -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-gutter-desktop">
+<!-- Platform 1: Docker (Selected & Recommended) -->
+<div class="platform-card relative bg-surface-card rounded-xl p-space-lg cursor-pointer transition-all duration-200 shadow-md ring-1 ring-primary-container bg-gradient-to-b from-primary-container/10 via-surface-card to-surface-card" id="platform-docker" onclick="selectPlatform('docker')">
+<div class="flex items-center justify-between mb-space-md">
+<span class="px-2.5 py-1 rounded bg-primary-container/20 text-primary font-caption text-caption tracking-wider">DOCKER</span>
+<span class="flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary-container/25 text-primary-fixed text-[10px] font-caption tracking-wider uppercase font-bold">
+<span class="w-1.5 h-1.5 rounded-full bg-accent-cyan animate-pulse"></span>
+            RECOMMENDED
+          </span>
+</div>
+<div class="font-headline-sm text-headline-sm text-text-primary font-bold">Docker Container</div>
+<div class="font-body-sm text-body-sm text-text-muted mt-1">Alpine / Ubuntu with NET_ADMIN &amp; iptables capabilities</div>
+<div class="mt-space-lg w-full h-[6px] bg-chart-track rounded-full overflow-hidden">
+<div class="platform-bar h-full bg-primary-container rounded-full w-full transition-all duration-300"></div>
+</div>
+</div>
+<!-- Platform 2: Linux Server / VM -->
+<div class="platform-card relative bg-surface-card rounded-xl p-space-lg cursor-pointer transition-all duration-200 hover:bg-surface-elevated" id="platform-linux" onclick="selectPlatform('linux')">
+<div class="flex items-center justify-between mb-space-md">
+<span class="px-2.5 py-1 rounded bg-surface-elevated text-text-muted font-caption text-caption tracking-wider">LINUX</span>
+<span class="px-2 py-0.5 rounded text-[10px] font-caption text-text-muted bg-surface-elevated uppercase tracking-wider">SYSTEMD</span>
+</div>
+<div class="font-headline-sm text-headline-sm text-text-primary font-bold">Linux Server / VM (x86_64)</div>
+<div class="font-body-sm text-body-sm text-text-muted mt-1">Ubuntu, Debian, RHEL, or Arch with kernel raw sockets</div>
+<div class="mt-space-lg w-full h-[6px] bg-chart-track rounded-full overflow-hidden">
+<div class="platform-bar h-full bg-chart-track rounded-full w-0 transition-all duration-300"></div>
+</div>
+</div>
+<!-- Platform 3: Raspberry Pi / IoT Gateway -->
+<div class="platform-card relative bg-surface-card rounded-xl p-space-lg cursor-pointer transition-all duration-200 hover:bg-surface-elevated" id="platform-arm" onclick="selectPlatform('arm')">
+<div class="flex items-center justify-between mb-space-md">
+<span class="px-2.5 py-1 rounded bg-surface-elevated text-text-muted font-caption text-caption tracking-wider">ARM64</span>
+<span class="px-2 py-0.5 rounded text-[10px] font-caption text-text-muted bg-surface-elevated uppercase tracking-wider">EDGE IOT</span>
+</div>
+<div class="font-headline-sm text-headline-sm text-text-primary font-bold">Raspberry Pi / IoT Gateway</div>
+<div class="font-body-sm text-body-sm text-text-muted mt-1">ARM64 Linux edge node running libpcap &amp; gopacket</div>
+<div class="mt-space-lg w-full h-[6px] bg-chart-track rounded-full overflow-hidden">
+<div class="platform-bar h-full bg-chart-track rounded-full w-0 transition-all duration-300"></div>
+</div>
+</div>
+</div>
+<!-- ROW 2: ASYMMETRIC SPLIT (64% Left / 36% Right) -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter-desktop items-start">
+<!-- LEFT CARD: DEVICE REGISTRATION & INSTALL COMMANDS (64% = 8 cols) -->
+<div class="lg:col-span-8 bg-surface-card rounded-xl p-space-lg space-y-space-lg shadow-sm">
+<!-- Header -->
+<div class="flex items-start justify-between gap-space-md pb-space-sm border-b border-border-subtle/50">
+<div>
+<h3 class="font-headline-md text-headline-md text-text-primary tracking-tight">Device Registration &amp; 1-Line Install Command</h3>
+<p class="font-body-md text-body-md text-text-muted mt-1">Runs lightweight Go daemon for live packet extraction &amp; iptables enforcement</p>
+</div>
+<span class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-surface-elevated text-accent-cyan font-caption text-caption uppercase tracking-wider">
+<span class="material-symbols-outlined text-[14px]">terminal</span>
+            Zero Binaries
+          </span>
+</div>
+<!-- Form Parameter Matrix -->
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-space-md">
+<!-- Column 1: Device Name -->
+<div class="space-y-space-xs">
+<label class="block font-caption text-caption text-text-muted uppercase tracking-wider" for="deviceName">DEVICE NAME</label>
+<div class="relative">
+<input class="w-full h-[38px] px-3 font-mono text-body-sm bg-surface-elevated text-text-primary rounded-lg focus:outline-none focus:ring-1 focus:ring-primary-container" id="deviceName" oninput="updateDeviceName(this.value)" placeholder="e.g. edge-camera-01" type="text" value="smart-lock-04"/>
+<span class="material-symbols-outlined absolute right-2.5 top-2.5 text-[18px] text-text-muted">memory</span>
+</div>
+<p class="text-[11px] text-text-muted font-caption">Unique host identifier registered in the CICIoT23 fleet database.</p>
+</div>
+<!-- Column 2: Protection Mode Radio Toggle Pills -->
+<div class="space-y-space-xs">
+<label class="block font-caption text-caption text-text-muted uppercase tracking-wider">PROTECTION MODE</label>
+<div class="grid grid-cols-2 gap-2 h-[38px]">
+<!-- Option 1: Auto-Block (Selected) -->
+<button class="flex items-center justify-center gap-2 px-2.5 py-1 rounded-lg bg-surface-elevated text-text-primary text-caption font-caption tracking-wider uppercase font-semibold ring-1 ring-primary-container transition-all" id="mode-auto" onclick="setMode('auto')" type="button">
+<span class="w-2 h-2 rounded-full bg-primary-container"></span>
+<span class="truncate">Auto-Block: ON</span>
+</button>
+<!-- Option 2: Manual Approval -->
+<button class="flex items-center justify-center gap-2 px-2.5 py-1 rounded-lg bg-surface-elevated text-text-muted hover:text-text-primary text-caption font-caption tracking-wider uppercase font-semibold transition-all" id="mode-manual" onclick="setMode('manual')" type="button">
+<span class="w-2 h-2 rounded-full bg-border-subtle"></span>
+<span class="truncate">Manual Only</span>
+</button>
+</div>
+<p class="text-[11px] text-text-muted font-caption">Real-time local iptables drops upon ML inference confidence &gt; 90%.</p>
+</div>
+</div>
+<!-- Command Block 1: Option A (1-Line Install) -->
+<div class="space-y-2">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="px-2 py-0.5 rounded text-[10px] font-caption bg-surface-elevated text-text-muted uppercase tracking-widest font-bold">Option A</span>
+<span class="font-caption text-caption text-text-muted uppercase tracking-wider">1-Line Install Command (Run Inside Container or Host)</span>
+</div>
+<button class="flex items-center gap-1 text-[11px] font-caption text-accent-cyan hover:text-text-primary transition-colors" id="copy-btn-a" onclick="copySnippet('cmd-option-a', 'copy-btn-a')">
+<span class="material-symbols-outlined text-[14px]">content_copy</span>
+<span>Copy</span>
+</button>
+</div>
+<div class="relative bg-canvas-bg rounded-lg p-space-md font-mono text-body-sm leading-relaxed overflow-x-auto shadow-inner select-all">
+<span class="text-accent-cyan font-bold">curl</span>
+<span class="text-text-primary"> -sSL </span>
+<span class="text-text-primary underline decoration-border-subtle underline-offset-4">http://localhost:8000/install.sh</span>
+<span class="text-warning font-semibold"> | sudo sh -s -- </span>
+<span class="text-secondary font-medium">--name=</span><span class="text-tertiary" id="flag-name-a">"smart-lock-04"</span>
+<span class="text-secondary font-medium"> --token=</span><span class="text-secondary-fixed">"tok_sentinel_89f4c2a1"</span>
+<span class="text-secondary font-medium"> --iface=</span><span class="text-secondary-fixed">"eth0"</span>
+<input id="cmd-option-a" type="hidden" value='curl -sSL http://localhost:8000/install.sh | sudo sh -s -- --name="smart-lock-04" --token="tok_sentinel_89f4c2a1" --iface="eth0"'/>
+</div>
+</div>
+<!-- Command Block 2: Option B (Docker Simulated Container) -->
+<div class="space-y-2">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="px-2 py-0.5 rounded text-[10px] font-caption bg-surface-elevated text-text-muted uppercase tracking-widest font-bold">Option B</span>
+<span class="font-caption text-caption text-text-muted uppercase tracking-wider">Launch a New Simulated Docker IoT Device in 1 Command</span>
+</div>
+<button class="flex items-center gap-1 text-[11px] font-caption text-accent-cyan hover:text-text-primary transition-colors" id="copy-btn-b" onclick="copySnippet('cmd-option-b', 'copy-btn-b')">
+<span class="material-symbols-outlined text-[14px]">content_copy</span>
+<span>Copy</span>
+</button>
+</div>
+<div class="relative bg-canvas-bg rounded-lg p-space-md font-mono text-body-sm leading-relaxed overflow-x-auto shadow-inner select-all">
+<span class="text-accent-cyan font-bold">docker</span>
+<span class="text-text-primary"> run -d </span>
+<span class="text-secondary font-medium">--name </span><span class="text-tertiary" id="flag-name-b">smart-lock-04</span>
+<span class="text-secondary font-medium"> --network </span><span class="text-text-primary">sentinel-net</span>
+<span class="text-tertiary font-semibold"> --cap-add=</span><span class="text-text-primary">NET_ADMIN</span>
+<span class="text-tertiary font-semibold"> --cap-add=</span><span class="text-text-primary">NET_RAW</span>
+<span class="text-text-primary"> sentinel-device:latest </span>
+<span class="text-secondary font-medium">--token=</span><span class="text-secondary-fixed">"tok_sentinel_89f4c2a1"</span>
+<input id="cmd-option-b" type="hidden" value='docker run -d --name smart-lock-04 --network sentinel-net --cap-add=NET_ADMIN --cap-add=NET_RAW sentinel-device:latest --token="tok_sentinel_89f4c2a1"'/>
+</div>
+</div>
+<!-- Primary Action CTA Button & Security Notice -->
+<div class="pt-space-xs space-y-space-sm">
+<button class="w-full h-[42px] rounded-lg bg-primary-container hover:bg-blue-600 text-text-primary font-body-sm text-body-sm font-semibold flex items-center justify-center gap-2 shadow-lg shadow-primary-container/20 transition-all cursor-pointer" id="primary-copy-btn" onclick="copySnippet('cmd-option-a', 'primary-copy-btn-label')">
+<span class="material-symbols-outlined text-[18px]">content_copy</span>
+<span id="primary-copy-btn-label">Copy Install Command to Clipboard</span>
+</button>
+<div class="flex items-center justify-center gap-2 text-center text-text-muted font-caption text-caption">
+<span class="material-symbols-outlined text-[14px] text-tertiary">verified_user</span>
+<span>No binary downloads required. The installer sets up systemd service or Docker daemon automatically.</span>
+</div>
+</div>
+</div>
+<!-- RIGHT CARD: LIVE CONNECTION STATUS & SERVICE CAPABILITIES (36% = 4 cols) -->
+<div class="lg:col-span-4 bg-surface-card rounded-xl p-space-lg space-y-space-md shadow-sm">
+<!-- Header with Live Pulse Dot -->
+<div class="flex items-center justify-between">
+<div class="font-headline-sm text-headline-sm text-text-primary font-bold">Live Connection Status</div>
+<span class="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-surface-elevated text-tertiary font-caption text-[10px] uppercase font-bold tracking-wider">
+<span class="w-2 h-2 rounded-full bg-tertiary animate-ping"></span>
+            ACTIVE LISTENER
+          </span>
+</div>
+<!-- Signature Circular Ring Gauge Section -->
+<div class="flex flex-col items-center justify-center py-space-sm">
+<div class="relative w-[150px] h-[150px] flex items-center justify-center">
+<!-- Background Static Circle -->
+<svg class="w-full h-full -rotate-90 transform" viewbox="0 0 150 150">
+<circle cx="75" cy="75" fill="none" r="60" stroke="#1E1D2B" stroke-width="14"></circle>
+<!-- Animated Ring Track: 100% full arc emerald -->
+<circle class="transition-all duration-1000 ease-out" cx="75" cy="75" fill="none" r="60" stroke="#10B981" stroke-dasharray="376.99" stroke-dashoffset="0" stroke-linecap="round" stroke-width="14"></circle>
+</svg>
+<!-- Centered Metrics -->
+<div class="absolute inset-0 flex flex-col items-center justify-center text-center select-none pointer-events-none">
+<span class="font-display-kpi text-[24px] font-bold text-tertiary tracking-tight leading-none">ONLINE</span>
+<span class="font-caption text-[9px] uppercase tracking-widest text-text-muted font-bold mt-1">HEARTBEAT VERIFIED</span>
+</div>
+</div>
+</div>
+<!-- Connected Device Summary Box -->
+<div class="bg-surface-elevated rounded-lg p-space-md space-y-space-xs">
+<div class="flex items-center justify-between">
+<span class="font-headline-sm text-body-sm font-bold text-text-primary truncate" id="summary-device-name">smart-lock-04 (172.17.0.5)</span>
+<span class="w-2 h-2 rounded-full bg-tertiary"></span>
+</div>
+<div class="flex items-center justify-between font-caption text-caption text-text-muted font-mono">
+<span>UPTIME: 00h 00m 14s</span>
+<span class="text-border-subtle">·</span>
+<span>LATENCY: 3MS</span>
+</div>
+<div class="pt-1 flex items-center justify-between">
+<span class="text-[11px] font-caption text-text-muted uppercase">Fleet Sync</span>
+<a class="inline-flex items-center gap-1 font-body-sm text-caption font-semibold text-primary hover:text-accent-cyan transition-colors" href="#">
+<span>Open Device Controls</span>
+<span class="material-symbols-outlined text-[13px]">arrow_forward</span>
+</a>
+</div>
+</div>
+<!-- Subheading: Service Capabilities -->
+<div class="pt-space-xs">
+<div class="font-caption text-caption text-text-muted uppercase tracking-wider mb-space-sm font-bold">Active Daemon Capabilities</div>
+<div class="space-y-space-xs">
+<!-- Item 1: Window Extractor -->
+<div class="flex items-start gap-3 p-space-sm bg-surface-elevated rounded-lg">
+<div class="w-7 h-7 rounded-lg bg-surface-card flex items-center justify-center text-accent-cyan flex-shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-[16px]">dynamic_feed</span>
+</div>
+<div class="min-w-0">
+<div class="font-headline-sm text-body-sm text-text-primary font-semibold leading-tight">100-Packet Window Extractor</div>
+<div class="font-caption text-[11px] text-text-muted leading-tight mt-0.5">Computes 18 deterministic traffic features per stream</div>
+</div>
+</div>
+<!-- Item 2: Firewall & DNS -->
+<div class="flex items-start gap-3 p-space-sm bg-surface-elevated rounded-lg">
+<div class="w-7 h-7 rounded-lg bg-surface-card flex items-center justify-center text-primary flex-shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-[16px]">local_fire_department</span>
+</div>
+<div class="min-w-0">
+<div class="font-headline-sm text-body-sm text-text-primary font-semibold leading-tight">Remote Firewall &amp; DNS Control</div>
+<div class="font-caption text-[11px] text-text-muted leading-tight mt-0.5">Enforces iptables blocks &amp; /etc/resolv.conf routing</div>
+</div>
+</div>
+<!-- Item 3: Emergency Kill Switch -->
+<div class="flex items-start gap-3 p-space-sm bg-surface-elevated rounded-lg">
+<div class="w-7 h-7 rounded-lg bg-surface-card flex items-center justify-center text-danger-coral flex-shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-[16px]">power_settings_new</span>
+</div>
+<div class="min-w-0">
+<div class="font-headline-sm text-body-sm text-text-primary font-semibold leading-tight">Safe Emergency Kill Switch</div>
+<div class="font-caption text-[11px] text-text-muted leading-tight mt-0.5">Blocks all internet while keeping dashboard link intact</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<script>
+  function updateDeviceName(val) {
+    const clean = val.trim() || 'unnamed-device';
+    document.getElementById('flag-name-a').textContent = '"' + clean + '"';
+    document.getElementById('flag-name-b').textContent = clean;
+    document.getElementById('summary-device-name').textContent = clean + ' (172.17.0.5)';
+    
+    document.getElementById('cmd-option-a').value = 'curl -sSL http://localhost:8000/install.sh | sudo sh -s -- --name="' + clean + '" --token="tok_sentinel_89f4c2a1" --iface="eth0"';
+    document.getElementById('cmd-option-b').value = 'docker run -d --name ' + clean + ' --network sentinel-net --cap-add=NET_ADMIN --cap-add=NET_RAW sentinel-device:latest --token="tok_sentinel_89f4c2a1"';
+  }
+
+  function setMode(mode) {
+    const autoBtn = document.getElementById('mode-auto');
+    const manualBtn = document.getElementById('mode-manual');
+    if (mode === 'auto') {
+      autoBtn.className = 'flex items-center justify-center gap-2 px-2.5 py-1 rounded-lg bg-surface-elevated text-text-primary text-caption font-caption tracking-wider uppercase font-semibold ring-1 ring-primary-container transition-all';
+      autoBtn.querySelector('span').className = 'w-2 h-2 rounded-full bg-primary-container';
+      manualBtn.className = 'flex items-center justify-center gap-2 px-2.5 py-1 rounded-lg bg-surface-elevated text-text-muted hover:text-text-primary text-caption font-caption tracking-wider uppercase font-semibold transition-all';
+      manualBtn.querySelector('span').className = 'w-2 h-2 rounded-full bg-border-subtle';
+    } else {
+      manualBtn.className = 'flex items-center justify-center gap-2 px-2.5 py-1 rounded-lg bg-surface-elevated text-text-primary text-caption font-caption tracking-wider uppercase font-semibold ring-1 ring-warning transition-all';
+      manualBtn.querySelector('span').className = 'w-2 h-2 rounded-full bg-warning';
+      autoBtn.className = 'flex items-center justify-center gap-2 px-2.5 py-1 rounded-lg bg-surface-elevated text-text-muted hover:text-text-primary text-caption font-caption tracking-wider uppercase font-semibold transition-all';
+      autoBtn.querySelector('span').className = 'w-2 h-2 rounded-full bg-border-subtle';
+    }
+  }
+
+  function selectPlatform(id) {
+    const cards = document.querySelectorAll('.platform-card');
+    cards.forEach(card => {
+      card.classList.remove('ring-1', 'ring-primary-container', 'bg-gradient-to-b', 'from-primary-container/10', 'via-surface-card', 'to-surface-card');
+      card.classList.add('hover:bg-surface-elevated');
+      const bar = card.querySelector('.platform-bar');
+      if (bar) {
+        bar.classList.remove('bg-primary-container', 'w-full');
+        bar.classList.add('bg-chart-track', 'w-0');
+      }
+    });
+
+    const active = document.getElementById('platform-' + id);
+    if (active) {
+      active.classList.add('ring-1', 'ring-primary-container', 'bg-gradient-to-b', 'from-primary-container/10', 'via-surface-card', 'to-surface-card');
+      active.classList.remove('hover:bg-surface-elevated');
+      const activeBar = active.querySelector('.platform-bar');
+      if (activeBar) {
+        activeBar.classList.remove('bg-chart-track', 'w-0');
+        activeBar.classList.add('bg-primary-container', 'w-full');
+      }
+    }
+  }
+
+  function copySnippet(inputId, labelId) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    navigator.clipboard.writeText(input.value).then(() => {
+      const el = document.getElementById(labelId);
+      if (el) {
+        const originalText = el.innerText;
+        el.innerText = 'Copied!';
+        setTimeout(() => {
+          el.innerText = originalText;
+        }, 2000);
+      }
+    });
+  }
+</script></main>
+<!-- FIXED TELEMETRY FOOTER -->
+<footer class="fixed bottom-0 left-[240px] right-0 h-8 px-margin-desktop bg-sidebar-surface border-t border-border-subtle flex items-center justify-between font-caption text-caption text-text-muted tracking-wide select-none z-20">
+<div class="flex items-center gap-space-md">
+<span class="flex items-center gap-1.5 text-tertiary">
+<span class="w-1.5 h-1.5 rounded-[2px] bg-tertiary"></span>
+<span>SYSTEMS OPERATIONAL</span>
+</span>
+<span class="text-border-subtle">·</span>
+<span class="font-mono">GO COLLECTOR LATENCY: 4MS</span>
+<span class="text-border-subtle">·</span>
+<span class="flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+<span>DOCKER BRIDGE: CONNECTED</span>
+</span>
+</div>
+<div class="flex items-center gap-space-sm font-mono text-[10px]">
+<span>EVAL BENCHMARK: CICIoT23</span>
+<span class="text-border-subtle">·</span>
+<span>API V2.4.0</span>
+<span class="text-border-subtle">·</span>
+<span>LAST SYNC: 12:10:45 IST</span>
+</div>
+</footer>
+</body></html>

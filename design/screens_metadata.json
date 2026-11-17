@@ -1,0 +1,206 @@
+[
+  {
+    "name": "projects/1707026093540170097/screens/17386171342656955402",
+    "title": "Compliance Engine.png",
+    "screenshot": {
+      "name": "projects/1707026093540170097/files/17386171342656956661",
+      "downloadUrl": "https://stitch.googleapis.com/v1/projects/1707026093540170097/files/17386171342656956661:download",
+      "mimeType": "image/png"
+    },
+    "htmlCode": {},
+    "width": "1502",
+    "height": "1331",
+    "screenType": "IMAGE"
+  },
+  {
+    "name": "projects/1707026093540170097/screens/198773aaf88e47f884386bb15266f4f5",
+    "title": "Live Traffic & PCAP Explorer",
+    "screenshot": {
+      "name": "projects/1707026093540170097/screens/198773aaf88e47f884386bb15266f4f5/fileEntries/screenshot",
+      "downloadUrl": "https://stitch.googleapis.com/v1/projects/1707026093540170097/files/screenshot_00066022d90e9bc9022d4380b91fe32f:download",
+      "mimeType": "image/png"
+    },
+    "htmlCode": {
+      "name": "projects/1707026093540170097/screens/198773aaf88e47f884386bb15266f4f5/fileEntries/html",
+      "downloadUrl": "https://stitch.googleapis.com/v1/projects/1707026093540170097/files/198773aaf88e47f884386bb15266f4f5:download",
+      "mimeType": "text/html"
+    },
+    "width": "2560",
+    "height": "2974",
+    "deviceType": "DESKTOP",
+    "screenType": "DESIGN"
+  },
+  {
+    "name": "projects/1707026093540170097/screens/6b0636fa3e0344d695d87b7f92efbed1",
+    "title": "Admin Authentication & Workspace Access",
+    "screenshot": {
+      "name": "projects/1707026093540170097/files/2662040626595845678",
+      "downloadUrl": "https://stitch.googleapis.com/v1/projects/1707026093540170097/files/2662040626595845678:download",
+      "mimeType": "image/jpeg"
+    },
+    "htmlCode": {
+      "name": "projects/1707026093540170097/files/15253739803872314185",
+      "downloadUrl": "https://stitch.googleapis.com/v1/projects/1707026093540170097/files/15253739803872314185:download",
+      "mimeType": "text/html"
+    },
+    "width": "2560",
+    "height": "2048",
+    "deviceType": "DESKTOP",
+    "screenType": "DESIGN"
+  },
+  {
+    "name": "projects/1707026093540170097/screens/b5f9cbb156dc45e59e121b23c3ba4944",
+    "title": "First-Device Onboarding (\"Set Up Your First Monitored Device\")",
+    "screenshot": {
+      "name": "projects/1707026093540170097/screens/b5f9cbb156dc45e59e121b23c3ba4944/fileEntries/screenshot",
+      "downloadUrl": "https://stitch.googleapis.com/v1/projects/1707026093540170097/files/screenshot_00066023d40ffa4d03386bcb4f101c9c:download",
+      "mimeType": "image/png"
+    },
+    "htmlCode": {
+      "name": "projects/1707026093540170097/screens/b5f9cbb156dc45e59e121b23c3ba4944/fileEntries/html",
+      "downloadUrl": "https://stitch.googleapis.com/v1/projects/1707026093540170097/files/b5f9cbb156dc45e59e121b23c3ba4944:download",
+      "mimeType": "text/html"
+    },
+    "width": "2560",
+    "height": "2048",
+    "deviceType": "DESKTOP",
+    "screenType": "DESIGN"
+  },
+  {
+    "name": "projects/1707026093540170097/screens/17386171342656954764",
+    "title": "Global Enterprise.png",
+    "screenshot": {
+      "name": "projects/1707026093540170097/files/17386171342656956023",
+      "downloadUrl": "https://stitch.googleapis.com/v1/projects/1707026093540170097/files/17386171342656956023:download",
+      "mimeType": "image/png"
+    },
+    "htmlCode": {},
+    "width": "1502",
+    "height": "1386",
+    "screenType": "IMAGE"
+  },
+  {
+    "name": "projects/1707026093540170097/screens/9a8524e21eae4b669ed379675dc8da56",
+    "title": "Model Comparison & Attack History",
+    "screenshot": {
+      "name": "projects/1707026093540170097/screens/9a8524e21eae4b669ed379675dc8da56/fileEntries/screenshot",
+      "downloadUrl": "https://stitch.googleapis.com/v1/projects/1707026093540170097/files/screenshot_000660230239e1a407799edbc8299d63:download",
+      "mimeType": "image/png"
+    },
+    "htmlCode": {
+      "name": "projects/1707026093540170097/screens/9a8524e21eae4b669ed379675dc8da56/fileEntries/html",
+      "downloadUrl": "https://stitch.googleapis.com/v1/projects/1707026093540170097/files/9a8524e21eae4b669ed379675dc8da56:download",
+      "mimeType": "text/html"
+    },
+    "width": "2560",
+    "height": "2488",
+    "deviceType": "DESKTOP",
+    "screenType": "DESIGN"
+  },
+  {
+    "name": "projects/1707026093540170097/screens/17386171342656956980",
+    "title": "Fortify360 Enterprise IAM.png",
+    "screenshot": {
+      "name": "projects/1707026093540170097/files/17386171342656958239",
+      "downloadUrl": "https://stitch.googleapis.com/v1/projects/1707026093540170097/files/17386171342656958239:download",
+      "mimeType": "image/png"
+    },
+    "htmlCode": {},
+    "width": "1503",
+    "height": "1162",
+    "screenType": "IMAGE"
+  },
+  {
+    "name": "projects/1707026093540170097/screens/17386171342656957920",
+    "title": "Compliance Status.png",
+    "screenshot": {
+      "name": "projects/1707026093540170097/files/17386171342656955083",
+      "downloadUrl": "https://stitch.googleapis.com/v1/projects/1707026093540170097/files/17386171342656955083:download",
+      "mimeType": "image/png"
+    },
+    "htmlCode": {},
+    "width": "1502",
+    "height": "1223",
+    "screenType": "IMAGE"
+  },
+  {
+    "name": "projects/1707026093540170097/screens/b18fe87aeab74947a53017f65263f61c",
+    "title": "Security Overview",
+    "screenshot": {
+      "name": "projects/1707026093540170097/screens/b18fe87aeab74947a53017f65263f61c/fileEntries/screenshot",
+      "downloadUrl": "https://stitch.googleapis.com/v1/projects/1707026093540170097/files/screenshot_00066022cdc21c3502a9a7d67c064baf:download",
+      "mimeType": "image/png"
+    },
+    "htmlCode": {
+      "name": "projects/1707026093540170097/screens/b18fe87aeab74947a53017f65263f61c/fileEntries/html",
+      "downloadUrl": "https://stitch.googleapis.com/v1/projects/1707026093540170097/files/b18fe87aeab74947a53017f65263f61c:download",
+      "mimeType": "text/html"
+    },
+    "width": "2560",
+    "height": "2048",
+    "deviceType": "DESKTOP",
+    "screenType": "DESIGN"
+  },
+  {
+    "name": "projects/1707026093540170097/screens/ed6fedea00484d12b9e09e201b8fdbac",
+    "title": "Connected Devices & Controls",
+    "screenshot": {
+      "name": "projects/1707026093540170097/screens/ed6fedea00484d12b9e09e201b8fdbac/fileEntries/screenshot",
+      "downloadUrl": "https://stitch.googleapis.com/v1/projects/1707026093540170097/files/screenshot_00066022f59c66f701a611448f0b664b:download",
+      "mimeType": "image/png"
+    },
+    "htmlCode": {
+      "name": "projects/1707026093540170097/screens/ed6fedea00484d12b9e09e201b8fdbac/fileEntries/html",
+      "downloadUrl": "https://stitch.googleapis.com/v1/projects/1707026093540170097/files/ed6fedea00484d12b9e09e201b8fdbac:download",
+      "mimeType": "text/html"
+    },
+    "width": "2560",
+    "height": "2048",
+    "deviceType": "DESKTOP",
+    "screenType": "DESIGN"
+  },
+  {
+    "name": "projects/1707026093540170097/screens/017f090a5037490092a703cd6050e953",
+    "title": "Enroll New Device (CLI Installer)",
+    "screenshot": {
+      "name": "projects/1707026093540170097/screens/017f090a5037490092a703cd6050e953/fileEntries/screenshot",
+      "downloadUrl": "https://stitch.googleapis.com/v1/projects/1707026093540170097/files/screenshot_00066023092673f4022d687ef7117459:download",
+      "mimeType": "image/png"
+    },
+    "htmlCode": {
+      "name": "projects/1707026093540170097/screens/017f090a5037490092a703cd6050e953/fileEntries/html",
+      "downloadUrl": "https://stitch.googleapis.com/v1/projects/1707026093540170097/files/017f090a5037490092a703cd6050e953:download",
+      "mimeType": "text/html"
+    },
+    "width": "2560",
+    "height": "2168",
+    "deviceType": "DESKTOP",
+    "screenType": "DESIGN"
+  },
+  {
+    "name": "projects/1707026093540170097/screens/11339812348696450834",
+    "title": "DESIGN.md",
+    "screenshot": {},
+    "htmlCode": {
+      "name": "projects/1707026093540170097/files/11339812348696449351",
+      "downloadUrl": "https://stitch.googleapis.com/v1/projects/1707026093540170097/files/11339812348696449351:download",
+      "mimeType": "text/markdown"
+    },
+    "width": "780",
+    "height": "1768",
+    "screenType": "DOCUMENT"
+  },
+  {
+    "name": "projects/1707026093540170097/screens/17386171342656956342",
+    "title": "Endpoint Management.png",
+    "screenshot": {
+      "name": "projects/1707026093540170097/files/17386171342656957601",
+      "downloadUrl": "https://stitch.googleapis.com/v1/projects/1707026093540170097/files/17386171342656957601:download",
+      "mimeType": "image/png"
+    },
+    "htmlCode": {},
+    "width": "1502",
+    "height": "1056",
+    "screenType": "IMAGE"
+  }
+]

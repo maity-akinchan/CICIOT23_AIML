@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CICIoT23 Sentinel - Model Comparison &amp; Attack History</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+          "secondary-fixed": "#e1e0ff",
+          "error-critical": "#EF4444",
+          "on-secondary-fixed-variant": "#2f2ebe",
+          "on-primary": "#002a78",
+          "surface-elevated": "#1A1826",
+          "border-subtle": "#222030",
+          "on-tertiary-fixed-variant": "#005236",
+          "surface-tint": "#b4c5ff",
+          "on-secondary-container": "#b0b2ff",
+          "error": "#ffb4ab",
+          "on-surface-variant": "#c3c6d7",
+          "outline-variant": "#434655",
+          "surface-container-highest": "#35343d",
+          "tertiary-fixed": "#6ffbbe",
+          "background": "#13121b",
+          "warning": "#F59E0B",
+          "text-muted": "#8E8CA3",
+          "primary-container": "#2563eb",
+          "tertiary": "#4edea3",
+          "outline": "#8d90a0",
+          "secondary": "#c0c1ff",
+          "accent-cyan": "#06B6D4",
+          "primary-fixed": "#dbe1ff",
+          "secondary-container": "#3131c0",
+          "inverse-primary": "#0053db",
+          "on-error": "#690005",
+          "on-tertiary-container": "#bdffdb",
+          "on-primary-fixed": "#00174b",
+          "surface-dim": "#13121b",
+          "surface-card": "#13121D",
+          "on-tertiary": "#003824",
+          "on-background": "#e5e0ed",
+          "on-primary-fixed-variant": "#003ea8",
+          "on-surface": "#e5e0ed",
+          "inverse-surface": "#e5e0ed",
+          "secondary-fixed-dim": "#c0c1ff",
+          "surface": "#13121b",
+          "inverse-on-surface": "#312f38",
+          "on-tertiary-fixed": "#002113",
+          "on-secondary-fixed": "#07006c",
+          "danger-coral": "#F97316",
+          "surface-container-lowest": "#0e0d15",
+          "surface-variant": "#35343d",
+          "surface-bright": "#3a3841",
+          "on-error-container": "#ffdad6",
+          "sidebar-surface": "#100F18",
+          "canvas-bg": "#0D0C14",
+          "on-secondary": "#1000a9",
+          "on-primary-container": "#eeefff",
+          "chart-track": "#1E1D2B",
+          "text-primary": "#F8FAFC",
+          "surface-container-high": "#2a2932",
+          "border-highlight": "#3B3854",
+          "surface-container-low": "#1c1b23",
+          "tertiary-fixed-dim": "#4edea3",
+          "primary": "#b4c5ff",
+          "tertiary-container": "#007d55",
+          "primary-fixed-dim": "#b4c5ff",
+          "surface-container": "#201f27",
+          "error-container": "#93000a"
+        },
+        "borderRadius": {
+          "DEFAULT": "0.25rem",
+          "lg": "0.5rem",
+          "xl": "0.75rem",
+          "full": "9999px"
+        },
+        "spacing": {
+          "space-xl": "2rem",
+          "space-sm": "0.5rem",
+          "gutter-desktop": "1.5rem",
+          "margin-desktop": "1.5rem",
+          "space-lg": "1.5rem",
+          "space-xs": "0.25rem",
+          "space-md": "1rem",
+          "margin": "1rem",
+          "gutter": "1rem"
+        },
+        "fontFamily": {
+          "caption": ["Plus Jakarta Sans"],
+          "display-kpi": ["Plus Jakarta Sans"],
+          "body-md": ["Plus Jakarta Sans"],
+          "headline-sm": ["Plus Jakarta Sans"],
+          "body-md-medium": ["Plus Jakarta Sans"],
+          "headline-lg-mobile": ["Plus Jakarta Sans"],
+          "headline-lg": ["Plus Jakarta Sans"],
+          "headline-md": ["Plus Jakarta Sans"],
+          "body-sm": ["Plus Jakarta Sans"]
+        },
+        "fontSize": {
+          "caption": ["11px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+          "display-kpi": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+          "body-md": ["14px", { "lineHeight": "22px", "fontWeight": "400" }],
+          "headline-sm": ["16px", { "lineHeight": "24px", "fontWeight": "600" }],
+          "body-md-medium": ["14px", { "lineHeight": "22px", "fontWeight": "500" }],
+          "headline-lg-mobile": ["22px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+          "headline-lg": ["28px", { "lineHeight": "36px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+          "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+          "body-sm": ["13px", { "lineHeight": "18px", "fontWeight": "500" }]
+        }
+      }
+    }
+  };
+</script>
+<style>
+  @layer base {
+    html {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #0D0C14;
+      color: #F8FAFC;
+      overscroll-behavior-y: none;
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0D0C14;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #222030;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #3B3854;
+    }
+  }
+</style>
+<meta content="web_dashboard" name="shell-type"/>
+</head>
+<body class="bg-canvas-bg text-text-primary antialiased min-h-screen">
+<!-- LEFT FIXED SIDEBAR -->
+<aside class="fixed top-0 bottom-0 left-0 w-[240px] bg-sidebar-surface border-r border-border-subtle flex flex-col justify-between select-none z-30">
+<div>
+<!-- Brand Lockup -->
+<div class="h-14 px-margin flex items-center gap-space-sm border-b border-border-subtle">
+<div class="w-8 h-8 rounded-lg bg-primary-container flex items-center justify-center text-text-primary shadow-lg flex-shrink-0">
+<span class="material-symbols-outlined text-[18px]">shield</span>
+</div>
+<div class="overflow-hidden leading-tight">
+<div class="font-headline-sm text-body-sm font-bold text-text-primary truncate">CICIoT23 Sentinel</div>
+<div class="font-caption text-caption text-text-muted uppercase tracking-wider truncate">Network Defense SOC</div>
+</div>
+</div>
+<!-- Navigation Sections -->
+<div class="px-space-xs py-space-md space-y-space-lg">
+<!-- Section: MONITORING -->
+<div>
+<div class="px-space-sm mb-space-xs font-caption text-caption text-text-muted uppercase tracking-wider">Monitoring</div>
+<nav class="space-y-space-xs" data-active-classes="bg-surface-elevated text-text-primary border border-border-subtle shadow-sm font-semibold">
+<a class="block px-space-sm py-space-xs rounded-lg text-text-muted hover:text-text-primary hover:bg-surface-card font-body-sm text-body-sm transition-colors" data-path="security-overview" href="#">Security Overview</a>
+<a class="block px-space-sm py-space-xs rounded-lg text-text-muted hover:text-text-primary hover:bg-surface-card font-body-sm text-body-sm transition-colors" data-path="live-traffic-pcap-explorer" href="#">Live Traffic &amp; PCAP</a>
+<a class="flex items-center justify-between px-space-sm py-space-xs rounded-lg text-text-muted hover:text-text-primary hover:bg-surface-card font-body-sm text-body-sm transition-colors" data-path="connected-devices-controls" href="#">
+<span>Connected Devices</span>
+<span class="px-1.5 py-0.5 rounded text-[10px] font-caption bg-surface-elevated text-text-muted">4</span>
+</a>
+</nav>
+</div>
+<!-- Section: INTELLIGENCE -->
+<div>
+<div class="px-space-sm mb-space-xs font-caption text-caption text-text-muted uppercase tracking-wider">Intelligence</div>
+<nav class="space-y-space-xs" data-active-classes="bg-surface-elevated text-text-primary border border-border-subtle shadow-sm font-semibold">
+<a class="block px-space-sm py-space-xs rounded-lg bg-surface-elevated text-text-primary border border-border-subtle shadow-sm font-semibold font-body-sm text-body-sm transition-colors" data-path="model-comparison-attack-history" href="#">Model Comparison</a>
+<a class="block px-space-sm py-space-xs rounded-lg text-text-muted hover:text-text-primary hover:bg-surface-card font-body-sm text-body-sm transition-colors" data-path="add-device-cli" href="#">Add Device (CLI)</a>
+</nav>
+</div>
+</div>
+</div>
+<!-- Bottom Sidebar Actions -->
+<div class="p-space-sm border-t border-border-subtle space-y-space-xs">
+<a class="block px-space-sm py-space-xs rounded-lg text-text-muted hover:text-text-primary hover:bg-surface-card font-body-sm text-body-sm transition-colors" data-path="settings" href="#">Settings</a>
+<button class="w-full flex items-center justify-between px-space-sm py-space-xs rounded-lg bg-error-critical/10 border border-error-critical/30 text-error-critical hover:bg-error-critical/20 font-body-sm text-body-sm font-semibold transition-all">
+<div class="flex items-center gap-space-xs">
+<span class="w-2 h-2 rounded-full bg-error-critical animate-pulse"></span>
+<span>Lockdown Mode</span>
+</div>
+<span class="material-symbols-outlined text-[14px]">lock</span>
+</button>
+</div>
+</aside>
+<!-- FIXED HEADER BAR -->
+<header class="fixed top-0 left-[240px] right-0 h-14 bg-canvas-bg/95 backdrop-blur border-b border-border-subtle px-margin-desktop flex items-center justify-between z-20">
+<!-- Left: Section Title & Fleet Context -->
+<div class="flex items-center gap-space-md min-w-0">
+<div class="flex items-center gap-space-sm">
+<span class="w-2 h-2 rounded-full bg-tertiary"></span>
+<h1 class="font-headline-sm text-headline-sm text-text-primary truncate tracking-tight">Model Comparison &amp; Attack History</h1>
+</div>
+<div class="hidden md:flex items-center gap-space-xs px-2.5 py-1 rounded bg-surface-elevated border border-border-subtle">
+<span class="font-caption text-caption text-text-muted uppercase">Fleet:</span>
+<span class="font-caption text-caption text-text-primary font-semibold">CIC-Cluster-A</span>
+</div>
+</div>
+<!-- Right: Operational Controls & Profile -->
+<div class="flex items-center gap-space-sm">
+<!-- Action: Re-Run Validation -->
+<button class="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-surface-elevated border border-border-subtle hover:border-border-highlight text-text-primary font-body-sm text-body-sm font-medium transition-all">
+<span class="material-symbols-outlined text-[15px] text-accent-cyan">play_arrow</span>
+<span>Re-Run Validation</span>
+</button>
+<!-- Action: Export Attack CSV -->
+<button class="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-primary-container hover:opacity-90 text-text-primary font-body-sm text-body-sm font-semibold transition-all shadow-sm shadow-primary-container/30">
+<span class="material-symbols-outlined text-[15px]">download</span>
+<span>Export Attack CSV</span>
+</button>
+<!-- Active Telemetry Status Badge -->
+<div class="hidden xl:flex items-center gap-1.5 px-2.5 h-8 rounded-lg bg-surface-elevated border border-border-subtle font-caption text-caption text-text-muted">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+<span>XGBoost</span>
+<span class="text-text-primary font-semibold font-mono">91.4% Acc</span>
+</div>
+<!-- SOC Operator Profile -->
+<div class="flex items-center gap-2 pl-space-sm border-l border-border-subtle">
+<div class="w-8 h-8 rounded-full bg-gradient-to-tr from-primary-container to-secondary-container flex items-center justify-center font-caption text-caption font-bold text-text-primary">
+        AM
+      </div>
+<div class="text-left leading-none hidden lg:block">
+<div class="font-body-sm text-body-sm font-semibold text-text-primary">A. Maity</div>
+<div class="font-caption text-caption text-text-muted">SOC Lead</div>
+</div>
+</div>
+</div>
+</header>
+<!-- MAIN CONTENT SLOT -->
+<main class="pl-[240px] pt-14 pb-8 min-h-screen bg-canvas-bg">
+<div class="p-margin-desktop">
+<div class="flex flex-col w-full space-y-space-lg">
+<!-- TOP ROW: 4 TRAINED MODEL EVALUATION CARDS -->
+<section class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-gutter-desktop">
+<!-- Card 1: XGBoost (Active & Selected) -->
+<div class="relative bg-surface-elevated rounded-xl p-5 shadow-lg flex flex-col justify-between transition-all cursor-pointer group" style="box-shadow: 0 0 20px rgba(78, 222, 163, 0.08);">
+<div class="flex items-start justify-between">
+<div class="w-9 h-9 rounded-lg bg-tertiary-container/30 flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined text-[20px]">memory</span>
+</div>
+<div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-tertiary/15 text-tertiary font-caption text-caption tracking-wider">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary animate-pulse"></span>
+<span>ACTIVE MODEL</span>
+</div>
+</div>
+<div class="mt-4 mb-3">
+<div class="font-headline-sm text-headline-sm text-text-primary tracking-tight">XGBoost (GPU)</div>
+<div class="font-body-sm text-body-sm text-text-muted mt-0.5">22 features · Depth 12 · Tree Booster</div>
+</div>
+<div class="space-y-2 pt-2">
+<div class="flex items-center justify-between font-caption text-caption">
+<span class="text-tertiary font-bold tracking-tight">91.4% Acc</span>
+<span class="text-text-muted font-mono">0.4ms Latency</span>
+</div>
+<div class="w-full h-1.5 rounded-full bg-chart-track overflow-hidden">
+<div class="h-full rounded-full bg-tertiary transition-all duration-700" style="width: 91.4%;"></div>
+</div>
+</div>
+</div>
+<!-- Card 2: Balanced Random Forest -->
+<div class="bg-surface-card hover:bg-surface-elevated rounded-xl p-5 shadow-md flex flex-col justify-between transition-all cursor-pointer group">
+<div class="flex items-start justify-between">
+<div class="w-9 h-9 rounded-lg bg-surface-elevated flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined text-[20px]">account_tree</span>
+</div>
+<div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-tertiary/10 text-tertiary font-caption text-caption tracking-wider">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+<span>READY</span>
+</div>
+</div>
+<div class="mt-4 mb-3">
+<div class="font-headline-sm text-headline-sm text-text-primary tracking-tight">Balanced Random Forest</div>
+<div class="font-body-sm text-body-sm text-text-muted mt-0.5">250 trees · Depth 14 · OOB Balanced</div>
+</div>
+<div class="space-y-2 pt-2">
+<div class="flex items-center justify-between font-caption text-caption">
+<span class="text-tertiary font-bold tracking-tight">89.8% Acc</span>
+<span class="text-text-muted font-mono">1.8ms Latency</span>
+</div>
+<div class="w-full h-1.5 rounded-full bg-chart-track overflow-hidden">
+<div class="h-full rounded-full bg-tertiary transition-all duration-700" style="width: 89.8%;"></div>
+</div>
+</div>
+</div>
+<!-- Card 3: Calibrated SVM -->
+<div class="bg-surface-card hover:bg-surface-elevated rounded-xl p-5 shadow-md flex flex-col justify-between transition-all cursor-pointer group">
+<div class="flex items-start justify-between">
+<div class="w-9 h-9 rounded-lg bg-warning/10 flex items-center justify-center text-warning">
+<span class="material-symbols-outlined text-[20px]">grain</span>
+</div>
+<div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-warning/10 text-warning font-caption text-caption tracking-wider">
+<span class="w-1.5 h-1.5 rounded-full bg-warning"></span>
+<span>BASELINE</span>
+</div>
+</div>
+<div class="mt-4 mb-3">
+<div class="font-headline-sm text-headline-sm text-text-primary tracking-tight">Calibrated SVM</div>
+<div class="font-body-sm text-body-sm text-text-muted mt-0.5">Nystroem RBF Kernel · Platt Scaling</div>
+</div>
+<div class="space-y-2 pt-2">
+<div class="flex items-center justify-between font-caption text-caption">
+<span class="text-warning font-bold tracking-tight">77.4% Acc</span>
+<span class="text-text-muted font-mono">0.2ms Latency</span>
+</div>
+<div class="w-full h-1.5 rounded-full bg-chart-track overflow-hidden">
+<div class="h-full rounded-full bg-warning transition-all duration-700" style="width: 77.4%;"></div>
+</div>
+</div>
+</div>
+<!-- Card 4: Logistic Regression -->
+<div class="bg-surface-card hover:bg-surface-elevated rounded-xl p-5 shadow-md flex flex-col justify-between transition-all cursor-pointer group">
+<div class="flex items-start justify-between">
+<div class="w-9 h-9 rounded-lg bg-error-critical/10 flex items-center justify-center text-error-critical">
+<span class="material-symbols-outlined text-[20px]">linear_scale</span>
+</div>
+<div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-error-critical/10 text-error-critical font-caption text-caption tracking-wider">
+<span class="w-1.5 h-1.5 rounded-full bg-error-critical"></span>
+<span>LINEAR</span>
+</div>
+</div>
+<div class="mt-4 mb-3">
+<div class="font-headline-sm text-headline-sm text-text-primary tracking-tight">Logistic Regression</div>
+<div class="font-body-sm text-body-sm text-text-muted mt-0.5">L2 Standardized · Baseline Linear</div>
+</div>
+<div class="space-y-2 pt-2">
+<div class="flex items-center justify-between font-caption text-caption">
+<span class="text-error-critical font-bold tracking-tight">74.1% Acc</span>
+<span class="text-text-muted font-mono">0.1ms Latency</span>
+</div>
+<div class="w-full h-1.5 rounded-full bg-chart-track overflow-hidden">
+<div class="h-full rounded-full bg-error-critical transition-all duration-700" style="width: 74.1%;"></div>
+</div>
+</div>
+</div>
+</section>
+<!-- MIDDLE ROW: 3-COLUMN SPLIT (28% Gauge / 38% Features / 34% Matrix) -->
+<section class="grid grid-cols-1 lg:grid-cols-12 gap-gutter-desktop items-stretch">
+<!-- Card 1: Selected Model Macro-F1 (28% => ~3.5 -> 4 cols on xl) -->
+<div class="lg:col-span-12 xl:col-span-3 bg-surface-card rounded-xl p-space-md flex flex-col justify-between shadow-md">
+<div>
+<div class="flex items-center justify-between">
+<h2 class="font-headline-sm text-headline-sm text-text-primary tracking-tight">Control Coverage</h2>
+<span class="material-symbols-outlined text-[18px] text-text-muted cursor-pointer hover:text-text-primary">info</span>
+</div>
+<div class="font-caption text-caption text-text-muted mt-0.5 uppercase tracking-wider">Selected Model Macro-F1</div>
+<!-- Circular Ring Gauge -->
+<div class="relative flex items-center justify-center my-6">
+<svg class="w-44 h-44 -rotate-90 transform" viewbox="0 0 160 160">
+<!-- Track -->
+<circle class="text-chart-track" cx="80" cy="80" fill="transparent" r="64" stroke="currentColor" stroke-width="14"></circle>
+<!-- Segment 1: DoS recall base arc -->
+<circle class="text-warning/30" cx="80" cy="80" fill="transparent" r="64" stroke="currentColor" stroke-dasharray="402.12" stroke-dashoffset="60" stroke-linecap="round" stroke-width="14"></circle>
+<!-- Segment 2: DDoS recall mid arc -->
+<circle class="text-primary-container" cx="80" cy="80" fill="transparent" r="64" stroke="currentColor" stroke-dasharray="402.12" stroke-dashoffset="110" stroke-linecap="round" stroke-width="14"></circle>
+<!-- Segment 3: Macro-F1 primary progress arc (91.8% of 402.12 = 369.14 => offset 32.98) -->
+<circle class="text-tertiary transition-all duration-1000 ease-out" cx="80" cy="80" fill="transparent" r="64" stroke="currentColor" stroke-dasharray="402.12" stroke-dashoffset="33" stroke-linecap="round" stroke-width="14"></circle>
+</svg>
+<div class="absolute inset-0 flex flex-col items-center justify-center text-center select-none">
+<span class="font-display-kpi text-display-kpi text-text-primary tabular-nums font-bold">91.8%</span>
+<span class="font-caption text-caption text-text-muted uppercase tracking-widest -mt-1">MACRO-F1</span>
+</div>
+</div>
+</div>
+<!-- Recall Breakdown Legend -->
+<div class="space-y-2.5 pt-2">
+<div class="flex items-center justify-between text-body-sm">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-tertiary"></span>
+<span class="text-text-muted font-body-sm">Normal Recall</span>
+</div>
+<span class="font-headline-sm text-body-sm text-text-primary tabular-nums font-semibold">99.97%</span>
+</div>
+<div class="flex items-center justify-between text-body-sm">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-primary-container"></span>
+<span class="text-text-muted font-body-sm">DDoS Recall</span>
+</div>
+<span class="font-headline-sm text-body-sm text-text-primary tabular-nums font-semibold">91.20%</span>
+</div>
+<div class="flex items-center justify-between text-body-sm">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-warning"></span>
+<span class="text-text-muted font-body-sm">DoS Recall</span>
+</div>
+<span class="font-headline-sm text-body-sm text-text-primary tabular-nums font-semibold">86.45%</span>
+</div>
+</div>
+</div>
+<!-- Card 2: Most Important Traffic Features (38% => 5 cols on xl) -->
+<div class="lg:col-span-12 xl:col-span-5 bg-surface-card rounded-xl p-space-md flex flex-col justify-between shadow-md">
+<div>
+<div class="flex items-center justify-between mb-space-sm">
+<div>
+<h2 class="font-headline-sm text-headline-sm text-text-primary tracking-tight">Most Important Traffic Features</h2>
+<div class="font-caption text-caption text-text-muted uppercase tracking-wider">Information Gain Rank</div>
+</div>
+<span class="px-2 py-0.5 rounded bg-surface-elevated text-text-muted font-caption text-caption uppercase tracking-wider">XGBoost Gain Weight</span>
+</div>
+<!-- Ranked Feature Stack -->
+<div class="space-y-2.5 mt-4">
+<!-- Feature 1 -->
+<div class="p-3 rounded-lg bg-surface-elevated hover:bg-surface-container transition-all">
+<div class="flex items-center justify-between mb-1">
+<span class="font-body-md-medium text-body-sm text-text-primary">1. ICMP Protocol Ratio</span>
+<span class="font-caption text-caption text-primary font-bold tabular-nums">21.4% weight</span>
+</div>
+<p class="font-caption text-caption text-text-muted mb-2 leading-relaxed">Primary separator for Ping of Death and ICMP floods</p>
+<div class="w-full h-1.5 rounded-full bg-chart-track overflow-hidden">
+<div class="h-full rounded-full bg-primary-container" style="width: 21.4%;"></div>
+</div>
+</div>
+<!-- Feature 2 -->
+<div class="p-3 rounded-lg bg-surface-elevated hover:bg-surface-container transition-all">
+<div class="flex items-center justify-between mb-1">
+<span class="font-body-md-medium text-body-sm text-text-primary">2. SYN-to-ACK Ratio (Unfinished)</span>
+<span class="font-caption text-caption text-primary font-bold tabular-nums">18.2% weight</span>
+</div>
+<p class="font-caption text-caption text-text-muted mb-2 leading-relaxed">Detects half-open TCP handshakes and SYN flood attacks</p>
+<div class="w-full h-1.5 rounded-full bg-chart-track overflow-hidden">
+<div class="h-full rounded-full bg-primary-container" style="width: 18.2%;"></div>
+</div>
+</div>
+<!-- Feature 3 -->
+<div class="p-3 rounded-lg bg-surface-elevated hover:bg-surface-container transition-all">
+<div class="flex items-center justify-between mb-1">
+<span class="font-body-md-medium text-body-sm text-text-primary">3. Packet Size Variation</span>
+<span class="font-caption text-caption text-primary font-bold tabular-nums">14.6% weight</span>
+</div>
+<p class="font-caption text-caption text-text-muted mb-2 leading-relaxed">High variance in volumetric DDoS vs zero variance in bot DoS</p>
+<div class="w-full h-1.5 rounded-full bg-chart-track overflow-hidden">
+<div class="h-full rounded-full bg-primary-container" style="width: 14.6%;"></div>
+</div>
+</div>
+<!-- Feature 4 -->
+<div class="p-3 rounded-lg bg-surface-elevated hover:bg-surface-container transition-all">
+<div class="flex items-center justify-between mb-1">
+<span class="font-body-md-medium text-body-sm text-text-primary">4. FIN &amp; RST Connection Flags</span>
+<span class="font-caption text-caption text-primary font-bold tabular-nums">11.8% weight</span>
+</div>
+<p class="font-caption text-caption text-text-muted mb-2 leading-relaxed">Identifies abnormal teardowns and reset flooding patterns</p>
+<div class="w-full h-1.5 rounded-full bg-chart-track overflow-hidden">
+<div class="h-full rounded-full bg-primary-container" style="width: 11.8%;"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Card 3: 3x3 Test Confusion Matrix & Model Switcher (34% => 4 cols on xl) -->
+<div class="lg:col-span-12 xl:col-span-4 bg-surface-card rounded-xl p-space-md flex flex-col justify-between shadow-md">
+<div>
+<div class="flex items-center justify-between mb-space-sm">
+<div>
+<h2 class="font-headline-sm text-headline-sm text-text-primary tracking-tight">3×3 Test Confusion Matrix</h2>
+<div class="font-caption text-caption text-text-muted uppercase tracking-wider">Classification Precision</div>
+</div>
+<span class="px-2 py-0.5 rounded bg-surface-elevated font-mono text-caption text-text-muted">651,869 Windows</span>
+</div>
+<!-- Confusion Grid -->
+<div class="mt-4 p-3 rounded-lg bg-sidebar-surface select-none">
+<div class="grid grid-cols-4 gap-1.5 text-center font-caption text-caption mb-1.5">
+<span class="text-text-muted font-normal text-left pl-1">Actual \ Pred</span>
+<span class="text-text-muted uppercase">Normal</span>
+<span class="text-text-muted uppercase">DDoS</span>
+<span class="text-text-muted uppercase">DoS</span>
+</div>
+<!-- Row 1: Normal -->
+<div class="grid grid-cols-4 gap-1.5 items-center mb-1.5">
+<span class="text-caption text-text-muted font-medium text-left pl-1">Normal</span>
+<div class="p-2 rounded bg-tertiary-container/20 text-tertiary font-bold tabular-nums font-mono text-caption">26,219</div>
+<div class="p-2 rounded bg-surface-elevated text-text-muted tabular-nums font-mono text-caption">2</div>
+<div class="p-2 rounded bg-surface-elevated text-text-muted tabular-nums font-mono text-caption">5</div>
+</div>
+<!-- Row 2: DDoS -->
+<div class="grid grid-cols-4 gap-1.5 items-center mb-1.5">
+<span class="text-caption text-text-muted font-medium text-left pl-1">DDoS</span>
+<div class="p-2 rounded bg-surface-elevated text-text-muted tabular-nums font-mono text-caption">210</div>
+<div class="p-2 rounded bg-secondary-container/40 text-secondary font-bold tabular-nums font-mono text-caption">422,324</div>
+<div class="p-2 rounded bg-surface-elevated text-text-muted tabular-nums font-mono text-caption">40,541</div>
+</div>
+<!-- Row 3: DoS -->
+<div class="grid grid-cols-4 gap-1.5 items-center">
+<span class="text-caption text-text-muted font-medium text-left pl-1">DoS</span>
+<div class="p-2 rounded bg-surface-elevated text-text-muted tabular-nums font-mono text-caption">85</div>
+<div class="p-2 rounded bg-surface-elevated text-text-muted tabular-nums font-mono text-caption">21,932</div>
+<div class="p-2 rounded bg-warning/20 text-warning font-bold tabular-nums font-mono text-caption">140,551</div>
+</div>
+</div>
+</div>
+<!-- Action & Switcher Strip -->
+<div class="mt-6 pt-4 space-y-3">
+<div class="flex items-start gap-2 text-caption text-text-muted leading-tight">
+<span class="material-symbols-outlined text-[16px] text-tertiary flex-shrink-0 mt-0.5">verified</span>
+<span>XGBoost (GPU) currently active for live inference across all 4 fleet nodes</span>
+</div>
+<button class="w-full h-10 px-4 rounded-lg bg-primary-container hover:opacity-90 active:scale-[0.99] text-text-primary font-body-sm text-body-sm font-semibold flex items-center justify-center gap-2 shadow-md transition-all">
+<span class="material-symbols-outlined text-[18px]">published_with_changes</span>
+<span>Active in Production (Switch Model)</span>
+</button>
+</div>
+</div>
+</section>
+<!-- BOTTOM ROW: ATTACK & MITIGATION HISTORY LOG -->
+<section class="bg-surface-card rounded-xl p-space-md shadow-md">
+<!-- Log Section Header -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-space-sm pb-space-md">
+<div class="flex items-center gap-space-sm flex-wrap">
+<h2 class="font-headline-sm text-headline-sm text-text-primary tracking-tight">Attack &amp; Mitigation History Log</h2>
+<div class="flex items-center gap-1.5">
+<span class="px-2 py-0.5 rounded-full bg-tertiary-container/30 text-tertiary font-caption text-caption font-bold">42 RESOLVED</span>
+<span class="px-2 py-0.5 rounded-full bg-error-critical/15 text-error-critical font-caption text-caption font-bold">1 ISOLATED</span>
+</div>
+</div>
+<div class="flex items-center gap-space-xs">
+<button class="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-surface-elevated text-text-primary font-body-sm text-body-sm hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined text-[16px]">filter_list</span>
+<span>Filter Log</span>
+</button>
+<button class="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-primary-container text-text-primary font-body-sm text-body-sm font-medium hover:opacity-90 transition-opacity">
+<span class="material-symbols-outlined text-[16px]">file_download</span>
+<span>Export CSV</span>
+</button>
+</div>
+</div>
+<!-- Data Table -->
+<div class="overflow-x-auto -mx-space-md px-space-md">
+<table class="w-full text-left font-body-sm text-body-sm select-text">
+<thead>
+<tr class="bg-surface-elevated/70 text-text-muted font-caption text-caption uppercase tracking-wider">
+<th class="py-2.5 px-3 rounded-l-lg font-semibold">TIMESTAMP</th>
+<th class="py-2.5 px-3 font-semibold">TRIGGERED BY</th>
+<th class="py-2.5 px-3 font-semibold">ACTION TAKEN</th>
+<th class="py-2.5 px-3 font-semibold">TARGET DEVICE</th>
+<th class="py-2.5 px-3 font-semibold">SEVERITY</th>
+<th class="py-2.5 px-3 rounded-r-lg font-semibold text-right">STATUS</th>
+</tr>
+</thead>
+<tbody class="divide-y-0 space-y-1">
+<!-- Row 1 -->
+<tr class="hover:bg-surface-elevated/40 transition-colors group">
+<td class="py-3 px-3 font-mono text-caption text-text-muted whitespace-nowrap">2024-05-11 12:10:44</td>
+<td class="py-3 px-3 whitespace-nowrap">
+<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-surface-elevated text-text-primary font-caption text-caption">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+<span>XGBoost AI (98.4%)</span>
+</span>
+</td>
+<td class="py-3 px-3 whitespace-nowrap">
+<code class="px-2 py-1 rounded bg-sidebar-surface text-tertiary font-mono text-[12px]">iptables DROP 172.17.0.99</code>
+</td>
+<td class="py-3 px-3 font-body-md-medium text-body-sm text-text-primary whitespace-nowrap">smart-camera-01</td>
+<td class="py-3 px-3 whitespace-nowrap">
+<span class="px-2 py-0.5 rounded-full bg-error-critical/15 text-error-critical font-caption text-caption font-bold">CRITICAL</span>
+</td>
+<td class="py-3 px-3 text-right whitespace-nowrap">
+<span class="inline-flex items-center gap-1.5 text-tertiary font-caption text-caption font-semibold">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+<span>Mitigated</span>
+</span>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-surface-elevated/40 transition-colors group">
+<td class="py-3 px-3 font-mono text-caption text-text-muted whitespace-nowrap">2024-05-11 12:08:12</td>
+<td class="py-3 px-3 whitespace-nowrap">
+<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-surface-elevated text-text-primary font-caption text-caption">
+<span class="w-1.5 h-1.5 rounded-full bg-accent-cyan"></span>
+<span>SOC Lead (A. Maity)</span>
+</span>
+</td>
+<td class="py-3 px-3 whitespace-nowrap text-error font-body-md-medium text-body-sm">
+              Emergency Cutoff: Block All Internet
+            </td>
+<td class="py-3 px-3 font-body-md-medium text-body-sm text-text-primary whitespace-nowrap">smart-plug-03</td>
+<td class="py-3 px-3 whitespace-nowrap">
+<span class="px-2 py-0.5 rounded-full bg-error-critical/15 text-error-critical font-caption text-caption font-bold">CRITICAL</span>
+</td>
+<td class="py-3 px-3 text-right whitespace-nowrap">
+<span class="inline-flex items-center gap-1.5 text-warning font-caption text-caption font-semibold">
+<span class="w-1.5 h-1.5 rounded-full bg-warning"></span>
+<span>Quarantined</span>
+</span>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-surface-elevated/40 transition-colors group">
+<td class="py-3 px-3 font-mono text-caption text-text-muted whitespace-nowrap">2024-05-11 11:55:03</td>
+<td class="py-3 px-3 whitespace-nowrap">
+<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-surface-elevated text-text-primary font-caption text-caption">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+<span>XGBoost AI (94.1%)</span>
+</span>
+</td>
+<td class="py-3 px-3 whitespace-nowrap">
+<code class="px-2 py-1 rounded bg-sidebar-surface text-tertiary font-mono text-[12px]">iptables DROP 172.17.0.105</code>
+</td>
+<td class="py-3 px-3 font-body-md-medium text-body-sm text-text-primary whitespace-nowrap">smart-camera-01</td>
+<td class="py-3 px-3 whitespace-nowrap">
+<span class="px-2 py-0.5 rounded-full bg-warning/15 text-warning font-caption text-caption font-bold">HIGH</span>
+</td>
+<td class="py-3 px-3 text-right whitespace-nowrap">
+<span class="inline-flex items-center gap-1.5 text-tertiary font-caption text-caption font-semibold">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+<span>Mitigated</span>
+</span>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="hover:bg-surface-elevated/40 transition-colors group">
+<td class="py-3 px-3 font-mono text-caption text-text-muted whitespace-nowrap">2024-05-11 11:32:19</td>
+<td class="py-3 px-3 whitespace-nowrap">
+<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-surface-elevated text-text-primary font-caption text-caption">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span>
+<span>Auto-Block Rule</span>
+</span>
+</td>
+<td class="py-3 px-3 whitespace-nowrap">
+<code class="px-2 py-1 rounded bg-sidebar-surface text-tertiary font-mono text-[12px]">iptables DROP 172.17.0.84</code>
+</td>
+<td class="py-3 px-3 font-body-md-medium text-body-sm text-text-primary whitespace-nowrap">smart-thermostat-02</td>
+<td class="py-3 px-3 whitespace-nowrap">
+<span class="px-2 py-0.5 rounded-full bg-warning/15 text-warning font-caption text-caption font-bold">HIGH</span>
+</td>
+<td class="py-3 px-3 text-right whitespace-nowrap">
+<span class="inline-flex items-center gap-1.5 text-tertiary font-caption text-caption font-semibold">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+<span>Mitigated</span>
+</span>
+</td>
+</tr>
+<!-- Row 5 -->
+<tr class="hover:bg-surface-elevated/40 transition-colors group">
+<td class="py-3 px-3 font-mono text-caption text-text-muted whitespace-nowrap">2024-05-11 10:14:50</td>
+<td class="py-3 px-3 whitespace-nowrap">
+<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-surface-elevated text-text-primary font-caption text-caption">
+<span class="w-1.5 h-1.5 rounded-full bg-accent-cyan"></span>
+<span>Manual Admin</span>
+</span>
+</td>
+<td class="py-3 px-3 whitespace-nowrap text-on-surface-variant font-mono text-[13px]">
+              DNS Failover to Quad9 (9.9.9.9)
+            </td>
+<td class="py-3 px-3 font-body-md-medium text-body-sm text-text-primary whitespace-nowrap">Fleet-wide (4 devices)</td>
+<td class="py-3 px-3 whitespace-nowrap">
+<span class="px-2 py-0.5 rounded-full bg-primary-container/20 text-primary font-caption text-caption font-bold">INFO</span>
+</td>
+<td class="py-3 px-3 text-right whitespace-nowrap">
+<span class="inline-flex items-center gap-1.5 text-tertiary font-caption text-caption font-semibold">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+<span>Success</span>
+</span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Pagination & Meta Footer -->
+<div class="flex flex-col sm:flex-row items-center justify-between gap-space-sm pt-space-md font-caption text-caption text-text-muted">
+<div>Showing 1-5 of 43 events</div>
+<div class="flex items-center gap-1">
+<button class="w-7 h-7 rounded flex items-center justify-center bg-surface-elevated hover:bg-surface-container text-text-muted hover:text-text-primary transition-colors">
+<span class="material-symbols-outlined text-[14px]">chevron_left</span>
+</button>
+<button class="w-7 h-7 rounded flex items-center justify-center bg-primary-container text-text-primary font-bold">1</button>
+<button class="w-7 h-7 rounded flex items-center justify-center bg-surface-elevated hover:bg-surface-container text-text-muted hover:text-text-primary transition-colors">2</button>
+<button class="w-7 h-7 rounded flex items-center justify-center bg-surface-elevated hover:bg-surface-container text-text-muted hover:text-text-primary transition-colors">3</button>
+<span class="px-1 text-text-muted">...</span>
+<button class="w-7 h-7 rounded flex items-center justify-center bg-surface-elevated hover:bg-surface-container text-text-muted hover:text-text-primary transition-colors">9</button>
+<button class="w-7 h-7 rounded flex items-center justify-center bg-surface-elevated hover:bg-surface-container text-text-muted hover:text-text-primary transition-colors">
+<span class="material-symbols-outlined text-[14px]">chevron_right</span>
+</button>
+</div>
+</div>
+</section>
+</div>
+</div>
+</main>
+<!-- FIXED TELEMETRY FOOTER -->
+<footer class="fixed bottom-0 left-[240px] right-0 h-8 px-margin-desktop bg-sidebar-surface border-t border-border-subtle flex items-center justify-between font-caption text-caption text-text-muted tracking-wide select-none z-20">
+<div class="flex items-center gap-space-md">
+<span class="flex items-center gap-1.5 text-tertiary">
+<span class="w-1.5 h-1.5 rounded-[2px] bg-tertiary"></span>
+<span>SYSTEMS OPERATIONAL</span>
+</span>
+<span class="text-border-subtle">·</span>
+<span class="font-mono">GO COLLECTOR LATENCY: 4MS</span>
+<span class="text-border-subtle">·</span>
+<span class="flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+<span>DOCKER BRIDGE: CONNECTED</span>
+</span>
+</div>
+<div class="flex items-center gap-space-sm font-mono text-[10px]">
+<span>EVAL BENCHMARK: CICIoT23</span>
+<span class="text-border-subtle">·</span>
+<span>API V2.4.0</span>
+<span class="text-border-subtle">·</span>
+<span>LAST SYNC: 12:10:45 IST</span>
+</div>
+</footer>
+</body></html>
