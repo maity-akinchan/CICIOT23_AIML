@@ -1,5 +1,5 @@
 import { WorkspaceNavigation } from './components/layout/WorkspaceNavigation';
-import { pages, SummaryPage, PcapPage, TrafficPage, ServiceSetupPage } from './components/workspace/WorkspacePages';
+import { pages, SummaryPage, CaptureHistoryPage, PcapPage, TrafficPage, ServiceSetupPage } from './components/workspace/WorkspacePages';
 import { AlertCircle, X } from 'lucide-react';
 import { useState } from 'react';
 import { getApiBaseUrl, setApiBaseUrl } from './api/client';
@@ -176,6 +176,7 @@ export function App() {
             </div>
           )}
 
+          {activePage === 'capture-history' && <CaptureHistoryPage/>}
           {activePage === 'overview' && <SummaryPage kpis={telemetry.kpis} onNavigate={setActivePage}/>}
           {activePage === 'pcap-analysis' && <PcapPage onUpload={telemetry.handleFileUpload}/>}
           {['live-traffic','flow-explorer'].includes(activePage)&&<label className="block text-sm text-slate-400">Search windows<input className="workspace-input mt-2" value={searchQuery} onChange={e=>setSearchQuery(e.target.value)} placeholder="Search by IP, protocol or window"/></label>}

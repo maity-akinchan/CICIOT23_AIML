@@ -25,3 +25,11 @@ The contributor supports additional protocols/link types beyond the Python PCAP
 upload subset; cross-language parity is currently tested for Ethernet/IPv4/TCP.
 Do not claim all supported Go formats have been independently parity-verified.
 See ../collector-go/README.md for build, tests and runtime commands.
+
+Completion update: Linux live builds use scripts/build-live-service.sh; install
+with scripts/install-monitoring-service.sh. Service tokens are hashed, expiring,
+revocable and bound to collector_id. Monitoring service is live-only; PCAP analysis
+and Analysis history remain separate. Alerts use persisted server records and
+acknowledgement endpoints. Capture history stores metadata and original model
+identity but never raw packets. See agents/remaining_components.md for validation
+limits and README for deployment, credential rotation and uninstall instructions.

@@ -23,3 +23,11 @@ status, model details and probe controls. Remove browser simulations/probes.
 The monitoring service page contains installation/live connection only: no capture
 uploads, replay instructions or simulator commands. Only offer live-capable builds
 there; current generated replay builds are not live-capable downloads.
+
+Completion update: Linux live builds use scripts/build-live-service.sh; install
+with scripts/install-monitoring-service.sh. Service tokens are hashed, expiring,
+revocable and bound to collector_id. Monitoring service is live-only; PCAP analysis
+and Analysis history remain separate. Alerts use persisted server records and
+acknowledgement endpoints. Capture history stores metadata and original model
+identity but never raw packets. See agents/remaining_components.md for validation
+limits and README for deployment, credential rotation and uninstall instructions.

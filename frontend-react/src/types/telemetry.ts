@@ -272,6 +272,7 @@ export interface TimeSeriesPoint {
  * Active Dashboard Pages (only features supported by FastAPI are exposed)
  */
 export type DashboardPageId =
+  | 'capture-history'
   | 'system-console'
   | 'pcap-analysis'
   | 'overview'

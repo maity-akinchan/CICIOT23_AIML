@@ -88,3 +88,26 @@ class DeviceAction(Base):
     action_type = mapped_column(String(32))
     target_value = mapped_column(String(128))
     reason = mapped_column(String(256))
+
+class ServiceCredential(Base):
+    __tablename__ = 'service_credentials'
+    id = mapped_column(String(64), primary_key=True)
+    collector_id = mapped_column(String(64), index=True)
+    token_hash = mapped_column(String(64), unique=True)
+    created_at = mapped_column(DateTime, default=datetime.utcnow)
+    expires_at = mapped_column(DateTime)
+    revoked = mapped_column(Boolean, default=False)
+    last_used_at = mapped_column(DateTime, nullable=True)
+
+class CaptureSession(Base):
+    __tablename__ = 'capture_sessions'
+    id = mapped_column(String(64), primary_key=True)
+    filename = mapped_column(String(255))
+    uploaded_at = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    file_sha256 = mapped_column(String(64))
+    size_bytes = mapped_column(Integer)
+    artifact_sha256 = mapped_column(String(64))
+    processed_windows = mapped_column(Integer)
+    benign_count = mapped_column(Integer)
+    dos_count = mapped_column(Integer)
+    ddos_count = mapped_column(Integer)

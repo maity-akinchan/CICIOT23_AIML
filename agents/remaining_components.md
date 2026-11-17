@@ -1,28 +1,25 @@
-# Remaining implementation and validation
+# Completion status — 2026-11-17
 
-Checked against the current local implementation on 2026-11-17.
+Implemented: native Linux live-service build, authenticated live downloads,
+Linux/systemd installer with checksum and credential-binding verification,
+protected credential environment, automatic startup/restart, per-service hashed
+expiring/revocable credentials and rotation workflow, persisted alert polling and
+acknowledgements, capture metadata/history with pagination and reopening results.
+The contributor WebSocket buffer remains; its missing public broadcast interface
+and a missing datetime import in ingestion were fixed after integration testing.
 
-1. Live monitoring distributions: generated cross-platform binaries use CGO=0
-   and cannot capture a network interface. Linux capture source exists and its
-   tests build with libpcap. Package live-capable releases with runtime dependency
-   checks before offering them on Monitoring service. Current replay downloads
-   remain available through the operator API, not as live service downloads.
-2. Background service installation: setup script downloads/checksums/installs an
-   executable only. It does not register systemd, launchd or a Windows service,
-   manage restarts, securely persist service credentials or configure interfaces.
-3. Credential management: current operator/collector authentication uses separate
-   environment-provided shared secrets. No account provisioning, per-device token
-   issuance/revocation, password recovery or audit trail is implemented.
-4. Alert persistence: the UI derives alerts from received flow predictions and
-   acknowledges them locally. Wire the persisted backend alert list and acknowledge
-   endpoint to make acknowledgements survive refresh and agree across clients.
-5. Observation history: current telemetry view keeps a bounded recent feed and
-   initial snapshot. Add paginated server history/session listing for older uploads
-   and observations after reload. Individual upload results are scoped correctly
-   while that analysis page is open; a permanent upload-history screen is absent.
-6. Attack evidence: actual labeled benign/DoS/DDoS PCAP validation has not been
-   performed. Integration fixtures exercise the model pipeline but do not establish
-   real attack accuracy under the approximate packet feature representation.
+Validation still needing deployment/user data:
+- Actual labeled benign/DoS/DDoS PCAP evaluation. Use scripts/validate-captures.py;
+  report agreement honestly without changing model weights or adjusting outputs.
+- Install/restart the systemd unit on the intended monitored Linux machine.
+  This workspace is not running a systemd-managed deployment. Installer syntax
+  and native binary build are checked; do not claim host installation was tested.
+- CI builds ARM64 on a native ARM runner. Only AMD64 is built in this workspace.
+  Publish CI artifacts to the backend's dist/collectors directory. Do not claim
+  ARM64 or other OS live deployment was exercised locally.
 
+Scope: Linux live monitoring. Windows/macOS live capture backends and background
+service installers are not implemented and are not offered on the service page.
+Shared operator bootstrap credentials remain; this is not a multi-user account
+system. Service credentials are independently scoped, bound and revocable.
 Device/firewall actions intentionally remain disabled in observe-only mode.
-Those controls are not part of the active detection demonstration.

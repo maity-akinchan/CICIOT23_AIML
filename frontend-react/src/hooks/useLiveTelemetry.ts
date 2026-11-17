@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   analyzeUploadedFile,
+  apiClient,
   checkBackendHealth,
   getWsLiveUrl,
   type BackendHealthStatus,
@@ -106,40 +107,6 @@ export function useLiveTelemetry() {
       return [...prev, point].slice(-MAX_CHART_POINTS);
     });
 
-    // Generate alerts from real DoS / DDoS predictions returned by FastAPI
-    const maliciousFlows = fresh.filter((f) => f.predicted_class !== 'Benign');
-    if (maliciousFlows.length > 0) {
-      setAlerts((prevAlerts) => {
-        const nextAlerts = [...prevAlerts];
-        for (const mal of maliciousFlows) {
-          // Debounce identical (dst_ip, predicted_class) within 10s
-          const recentDuplicate = nextAlerts.find(
-            (a) =>
-              a.dst_ip === mal.dst_ip &&
-              a.attack_type === mal.predicted_class &&
-              Math.abs(Date.parse(mal.timestamp) - Date.parse(a.timestamp)) < 10000
-          );
-          if (recentDuplicate) continue;
-
-          const newAlert: SecurityAlert = {
-            id: `alert-${mal.window_id}`,
-            window_id: mal.window_id,
-            timestamp: mal.timestamp,
-            attack_type: mal.predicted_class === 'DDoS' ? 'DDoS' : 'DoS',
-            severity: mal.predicted_class === 'DDoS' ? 'CRITICAL' : 'HIGH',
-            src_ip: mal.src_ip,
-            dst_ip: mal.dst_ip,
-            protocol: mal.protocol,
-            confidence: mal.confidence,
-            model_used: mal.model_used,
-            top_anomalies: mal.top_anomalies,
-            acknowledged: false,
-          };
-          nextAlerts.unshift(newAlert);
-        }
-        return nextAlerts.slice(0, 100);
-      });
-    }
   }, []);
 
   const refreshBackendHealth = useCallback(async (overrideUrl?: string) => {
@@ -297,21 +264,26 @@ export function useLiveTelemetry() {
     return { TCP: tcp, UDP: udp, ICMP: icmp };
   }, [flows]);
 
-  const handleAcknowledgeAlert = useCallback((alertId: string) => {
-    setAlerts((prev) =>
-      prev.map((a) => (a.id === alertId ? { ...a, acknowledged: true } : a))
-    );
-  }, []);
-
+  const refreshAlerts = useCallback(async () => {
+    try {
+      const {data}=await apiClient.get('/api/v1/alerts?limit=1000');
+      setAlerts(data.map((a:SecurityAlert & {id:number})=>({...a,id:String(a.id),window_id:`incident-${a.id}`,model_used:''})));
+    } catch { /* The connection banner is managed by health and upload requests. */ }
+  },[]);
+  useEffect(()=>{void refreshAlerts();const timer=setInterval(()=>void refreshAlerts(),5000);return()=>clearInterval(timer);},[refreshAlerts]);
+  const handleAcknowledgeAlert = useCallback((id:string) => {
+    void apiClient.patch(`/api/v1/alerts/${id}/acknowledge`).then(()=>refreshAlerts()).catch(()=>setApiError('Could not save alert acknowledgement.'));
+  },[refreshAlerts]);
   const handleAcknowledgeAllAlerts = useCallback(() => {
-    setAlerts((prev) => prev.map((a) => ({ ...a, acknowledged: true })));
-  }, []);
+    void Promise.all(alerts.filter(a=>!a.acknowledged).map(a=>apiClient.patch(`/api/v1/alerts/${a.id}/acknowledge`))).then(()=>refreshAlerts()).catch(()=>setApiError('Some acknowledgements failed. Please refresh and retry.'));
+  },[alerts,refreshAlerts]);
 
   const handleFileUpload = useCallback(
     async (file: File): Promise<UploadAnalysisSummary> => {
       setApiError(null);
       try {
         const summary = await analyzeUploadedFile(file);
+        void refreshAlerts();
         if (summary.flows.length > 0) {
           ingestFlowsIntoState(summary.flows);
         }
@@ -325,7 +297,7 @@ export function useLiveTelemetry() {
         throw err;
       }
     },
-    [ingestFlowsIntoState]
+    [ingestFlowsIntoState,refreshAlerts]
   );
 
   const handleResetSoc = useCallback(() => {
