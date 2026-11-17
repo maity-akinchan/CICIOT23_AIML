@@ -40,7 +40,7 @@ export function FlowExplorerTable({
     });
   }, [flows, ipSearch, globalSearch, classFilter, protocolFilter, minConfidence]);
 
-  const activeFlow = selectedFlow ?? filtered[0] ?? null;
+  const activeFlow = selectedFlow;
 
   const handleExportCsv = () => {
     const header =

@@ -2,10 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   analyzeUploadedFile,
   checkBackendHealth,
-  getApiBaseUrl,
   getWsLiveUrl,
-  sendCollectorIngestBatch,
-  sendLiveTrafficBatchToFastApi,
   type BackendHealthStatus,
   type UploadAnalysisSummary,
 } from '../api/client';
@@ -22,7 +19,7 @@ import { formatClockTime } from '../utils/plainEnglish';
 const MAX_FLOWS = 250;
 const MAX_CHART_POINTS = 60;
 
-export function useLiveTelemetry(batchSize = 5) {
+export function useLiveTelemetry() {
   const [wsConnected, setWsConnected] = useState(false);
   const [health, setHealth] = useState<BackendHealthStatus>({
     online: false,
@@ -34,8 +31,6 @@ export function useLiveTelemetry(batchSize = 5) {
   const [apiError, setApiError] = useState<string | null>(null);
 
   const [streamPaused, setStreamPaused] = useState(false);
-  const [isReplaying, setIsReplaying] = useState(false);
-  const [replaySpeedFps, setReplaySpeedFps] = useState<5 | 15 | 30>(15);
 
   const [flows, setFlows] = useState<FlowRecord[]>([]);
   const [timeSeries, setTimeSeries] = useState<TimeSeriesPoint[]>([]);
@@ -189,7 +184,7 @@ export function useLiveTelemetry(batchSize = 5) {
           ws.onclose = null;
           ws.close();
         }
-        ws = new WebSocket(getWsLiveUrl());
+        ws = new WebSocket(getWsLiveUrl(), sessionStorage.getItem('sentinel_operator_token') ? ['sentinel.'+sessionStorage.getItem('sentinel_operator_token')] : []);
         ws.onopen = () => {
           if (!unmounted) {
             setWsConnected(true);
@@ -235,32 +230,6 @@ export function useLiveTelemetry(batchSize = 5) {
   const reconnectWebSocket = useCallback(() => {
     reconnectWsRef.current?.();
   }, []);
-
-  // Live Traffic Simulation Loop -> calls real FastAPI POST /api/v1/predict/batch
-  useEffect(() => {
-    if (!isReplaying || streamPaused) return;
-    const intervalMs = replaySpeedFps === 30 ? 1000 : replaySpeedFps === 15 ? 1800 : 3000;
-    const count = Math.max(1, batchSize);
-
-    const runBatch = async () => {
-      try {
-        const res = await sendLiveTrafficBatchToFastApi(count);
-        setApiError(null);
-        setHealth((prev) => ({ ...prev, online: true, modelLoaded: true }));
-        ingestFlowsIntoState(res.predictions);
-      } catch {
-        setIsReplaying(false);
-        setHealth((prev) => ({ ...prev, online: false }));
-        setApiError(
-          `Cannot reach FastAPI at ${getApiBaseUrl()}. Start uvicorn (uvicorn app.main:app --port 8000 --reload) and try again.`
-        );
-      }
-    };
-
-    runBatch();
-    const timer = setInterval(runBatch, intervalMs);
-    return () => clearInterval(timer);
-  }, [isReplaying, replaySpeedFps, streamPaused, batchSize, ingestFlowsIntoState]);
 
   // Dynamically aggregate target endpoints from real FastAPI flows
   const discoveredEndpoints: DiscoveredEndpoint[] = useMemo(() => {
@@ -314,10 +283,10 @@ export function useLiveTelemetry(batchSize = 5) {
       dos_count: counters.dos,
       ddos_count: counters.ddos,
       attack_percentage: attackPct,
-      current_fps: streamPaused || !isReplaying ? 0 : counters.fps,
+      current_fps: streamPaused ? 0 : counters.fps,
       active_alerts_count: unackedAlerts,
     };
-  }, [counters, alerts, streamPaused, isReplaying]);
+  }, [counters, alerts, streamPaused]);
 
   const protocolSplit = useMemo(() => {
     if (flows.length === 0) return { TCP: 0, UDP: 0, ICMP: 0 };
@@ -338,26 +307,6 @@ export function useLiveTelemetry(batchSize = 5) {
     setAlerts((prev) => prev.map((a) => ({ ...a, acknowledged: true })));
   }, []);
 
-  const handleSendTestIngestBatch = useCallback(
-    async (collectorId = 'onboarding-probe', count = 3) => {
-      setApiError(null);
-      try {
-        const res = await sendCollectorIngestBatch(collectorId, count);
-        setHealth((prev) => ({ ...prev, online: true, modelLoaded: true }));
-        ingestFlowsIntoState(res.predictions);
-        return res;
-      } catch (err) {
-        const message =
-          err instanceof Error
-            ? err.message
-            : `Failed to reach FastAPI POST /api/v1/ingest/windows at ${getApiBaseUrl()}`;
-        setApiError(message);
-        throw err;
-      }
-    },
-    [ingestFlowsIntoState]
-  );
-
   const handleFileUpload = useCallback(
     async (file: File): Promise<UploadAnalysisSummary> => {
       setApiError(null);
@@ -371,7 +320,7 @@ export function useLiveTelemetry(batchSize = 5) {
         const message =
           err instanceof Error
             ? err.message
-            : 'CSV upload failed. Make sure FastAPI is running on port 8000.';
+            : 'Capture upload failed. Check the server connection and try again.';
         setApiError(message);
         throw err;
       }
@@ -404,10 +353,6 @@ export function useLiveTelemetry(batchSize = 5) {
     clearApiError: () => setApiError(null),
     streamPaused,
     setStreamPaused,
-    isReplaying,
-    setIsReplaying,
-    replaySpeedFps,
-    setReplaySpeedFps,
     flows,
     timeSeries,
     protocolSplit,
@@ -416,7 +361,6 @@ export function useLiveTelemetry(batchSize = 5) {
     alerts,
     handleAcknowledgeAlert,
     handleAcknowledgeAllAlerts,
-    handleSendTestIngestBatch,
     handleFileUpload,
     handleResetSoc,
     lastUpdated,

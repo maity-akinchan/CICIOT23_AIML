@@ -12,6 +12,8 @@ services:
       - ./:/repo
     environment:
       - PYTHONUNBUFFERED=1
+      - SENTINEL_OPERATOR_TOKEN=${SENTINEL_OPERATOR_TOKEN:?Set operator token}
+      - SENTINEL_COLLECTOR_TOKEN=${SENTINEL_COLLECTOR_TOKEN:?Set collector token}
     networks:
       sentinel_net:
         ipv4_address: 172.18.0.20
@@ -56,6 +58,8 @@ services:
              go run . --mode live --iface eth0 --api-url http://172.18.0.20:8000/api/v1/ingest/windows --collector-id go-sensor-docker0"
     volumes:
       - ./collector-go:/app
+    environment:
+      - SENTINEL_COLLECTOR_TOKEN=${SENTINEL_COLLECTOR_TOKEN:?Set collector token}
     network_mode: "service:iot-target"
     cap_add:
       - NET_ADMIN
