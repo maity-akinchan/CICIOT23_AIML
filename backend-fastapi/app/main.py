@@ -24,7 +24,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     import os
     import asyncio
     app.state.ingest_lock = asyncio.Lock()
-    model_dir = Path(os.getenv('MODEL_DIR', str(Path(__file__).resolve().parents[2] / 'ml/artifacts/retrained')))
+    model_dir = Path(os.getenv('MODEL_DIR', str(Path(__file__).resolve().parents[2] / 'ml/artifacts')))
     app.state.db_engine, app.state.sessions = initialize()
     app.state.incidents = IncidentManager()
     from app.services.auto_blocker import AutoBlocker
@@ -66,7 +66,11 @@ async def unhandled_exception(request: Request, exc: Exception) -> JSONResponse:
 async def health() -> dict[str, object]:
     engine = app.state.inference_engine
     return {"status": "ok", "model_loaded": engine.is_loaded,
-            "is_bootstrap_model": False, "reason": engine.error}
+            "is_bootstrap_model": False, "reason": engine.error,
+            "allowed_contracts":[__import__('sentinel_ml.approximation',fromlist=['CONTRACT_ID']).CONTRACT_ID] if engine.is_loaded and engine.bundle.get('is_legacy') else [],
+            "allowed_input_modes":['PCAP_REPLAY','PCAP_UPLOAD','LIVE_INTERFACE'],
+            "contract_hash":__import__('sentinel_ml.approximation',fromlist=['CONTRACT_HASH']).CONTRACT_HASH,
+            "packet_compatibility":"approximate", "observe_only":True}
 
 
 app.include_router(ingest.router, prefix="/api/v1")
@@ -86,5 +90,9 @@ app.include_router(replay.router,prefix="/api/v1")
 
 @app.get('/api/v1/contracts/current')
 def contract():
-    from sentinel_ml.contract import SPEC, CONTRACT_HASH
-    return {'specification':SPEC,'contract_hash':CONTRACT_HASH}
+    from sentinel_ml.csv_contract import SPEC, CONTRACT_HASH
+    from sentinel_ml.approximation import SPEC as PACKET_SPEC, CONTRACT_HASH as PACKET_HASH
+    engine=app.state.inference_engine
+    return {'csv_specification':SPEC,'csv_contract_hash':CONTRACT_HASH,
+            'packet_specification':PACKET_SPEC,'packet_contract_hash':PACKET_HASH,
+            'active_model_contract':engine.bundle['contract_id'] if engine.is_loaded else None}

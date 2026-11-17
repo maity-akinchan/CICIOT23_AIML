@@ -26,6 +26,7 @@ class Device(Base):
 
 class Flow(Base):
     __tablename__ = 'flow_logs'
+    input_representation = mapped_column(String(64), default='dataset_features')
     capture_session_id = mapped_column(String(64), default='', index=True)
     id = mapped_column(Integer, primary_key=True)
     window_id = mapped_column(String(128), unique=True, index=True)

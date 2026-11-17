@@ -17,7 +17,7 @@ class InferenceEngine:
         self.bundle=load(self.artifact_path)
         self.error=None
     def _frame(self,payloads):
-        from sentinel_ml.contract import matrix
+        from sentinel_ml.csv_contract import matrix
         return matrix(pd.DataFrame([{k:getattr(p,k) for k in BASE} for p in payloads],columns=BASE))
     def predict_batch(self,payloads):
         if self.bundle is None:raise RuntimeError(self.error)
@@ -28,6 +28,8 @@ class InferenceEngine:
             label=max(probabilities,key=probabilities.get)
             result.append(PredictionResult(window_id=p.window_id,timestamp=p.timestamp,src_ip=p.src_ip,dst_ip=p.dst_ip,
                 predicted_class=label,confidence_score=probabilities[label],is_anomaly=label!='Benign',probabilities=probabilities,
+                input_representation=p.input_representation,
+                compatibility_warning=__import__('sentinel_ml.approximation',fromlist=['WARNING']).WARNING if p.input_representation=='packet_approximation' else None,
                 model_used=self.bundle['model_id'],artifact_sha256=self.bundle['artifact_sha256'],
                 features_22=x.iloc[i].astype(float).to_dict(),top_anomalies=[]))
         return result

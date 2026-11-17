@@ -8,7 +8,7 @@ import (
 
 const minFlowDuration = 1e-6
 
-// Compute calculates the 18 sentinel-pcap22-v2 base features for one flow window.
+// Compute calculates the 18 sentinel-packet-approx22-v1 base features for one flow window.
 //
 //	flow_duration = max(latest_timestamp - earliest_timestamp, 1e-6) seconds
 //	Rate          = N / flow_duration

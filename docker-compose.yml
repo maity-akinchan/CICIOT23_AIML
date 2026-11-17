@@ -2,15 +2,14 @@ services:
   backend-fastapi:
     container_name: sentinel-api
     image: python:3.11-slim
-    working_dir: /app
+    working_dir: /repo/backend-fastapi
     command: >
-      sh -c "pip install --no-cache-dir -r requirements.txt &&
+      sh -c "pip install --no-cache-dir -e /repo -r requirements.txt &&
              uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
     ports:
       - "8000:8000"
     volumes:
-      - ./backend-fastapi:/app
-      - ./ml:/ml
+      - ./:/repo
     environment:
       - PYTHONUNBUFFERED=1
     networks:

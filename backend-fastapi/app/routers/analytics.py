@@ -85,7 +85,8 @@ def analytics(model_id:str,request:Request):
             'test_macro_f1':scores.get('macro_f1',scores.get('test_macro_f1')),
             'confusion_matrix':test.get('confusion_matrix'), 'classification_report':test.get('classification_report'),
             'feature_importances':b.get('feature_importance',metrics.get('feature_importances',{})),
-            'training_scope':b.get('training_scope',{})}
+            'training_scope':b.get('training_scope',{}), 'packet_compatibility':'approximate' if b.get('is_legacy') else 'contract_dependent',
+            'parity_validation':b.get('parity_validation','golden_rows_verified')}
 
 from pydantic import BaseModel
 from typing import Literal

@@ -208,19 +208,25 @@ func buildWindow(session string, st *flowWin) (Window, error) {
 	if protocol != "TCP" && protocol != "UDP" && protocol != "ICMP" {
 		return Window{}, fmt.Errorf("protocol %q is not a schema literal", protocol)
 	}
+	var transportMean float64
+	for _, p := range st.packets {
+		transportMean += float64(p.TransportBytes)
+	}
+	transportMean /= float64(len(st.packets))
 	return Window{
 		WindowID:       windowID(session, st.key, st.seq, start),
 		TimestampStart: start.UTC(),
 		TimestampEnd:   end.UTC(),
 		PacketCount:    len(st.packets),
 		Metadata: Metadata{
-			SrcIP:            st.key.SrcIP,
-			DstIP:            st.key.DstIP,
-			SrcMAC:           srcMAC,
-			DstMAC:           dstMAC,
-			SrcPort:          st.key.SrcPort,
-			DstPort:          st.key.DstPort,
-			DominantProtocol: protocol,
+			TransportHeaderMean: transportMean,
+			SrcIP:               st.key.SrcIP,
+			DstIP:               st.key.DstIP,
+			SrcMAC:              srcMAC,
+			DstMAC:              dstMAC,
+			SrcPort:             st.key.SrcPort,
+			DstPort:             st.key.DstPort,
+			DominantProtocol:    protocol,
 		},
 		Features: features,
 	}, nil

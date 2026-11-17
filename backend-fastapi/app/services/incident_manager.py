@@ -37,7 +37,7 @@ class IncidentManager:
                 flows.append(serialize(existing))
                 continue
             now = payload.timestamp.astimezone(timezone.utc).replace(tzinfo=None)
-            flow = Flow(capture_session_id=payload.capture_session_id,window_id=payload.window_id or str(uuid4()), timestamp=now,
+            flow = Flow(input_representation=prediction.input_representation,capture_session_id=payload.capture_session_id,window_id=payload.window_id or str(uuid4()), timestamp=now,
                 capture_mode=payload.capture_mode, src_ip=payload.src_ip, dst_ip=payload.dst_ip,
                 src_mac=payload.src_mac, dst_mac=payload.dst_mac, src_port=payload.src_port,
                 dst_port=payload.dst_port, protocol=payload.dominant_protocol, packet_count=payload.packet_count,

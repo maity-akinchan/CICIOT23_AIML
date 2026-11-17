@@ -14,7 +14,7 @@ import (
 
 // Config is the collector CLI. Defaults match docker-compose.yml.
 // --stride exists because operators expect a window step, but the architecture
-// blueprint does not define an overlapping stride. sentinel-pcap22-v2 is a
+// blueprint does not define an overlapping stride. sentinel-packet-approx22-v1 is a
 // tumbling window, so stride must equal window size (default 100).
 type Config struct {
 	Mode        string
@@ -80,10 +80,10 @@ func (c *Config) validate() error {
 		c.Stride = c.WindowSize
 	}
 	if c.Stride != c.WindowSize {
-		return errors.New("--stride must equal --window-size: sentinel-pcap22-v2 uses non-overlapping tumbling windows (the architecture blueprint defines no overlapping stride; default 100)")
+		return errors.New("--stride must equal --window-size: sentinel-packet-approx22-v1 uses non-overlapping tumbling windows (the architecture blueprint defines no overlapping stride; default 100)")
 	}
 	if c.WindowSize != defaultWindowSize {
-		return fmt.Errorf("--window-size %d would define a new feature contract; sentinel-pcap22-v2 requires %d", c.WindowSize, defaultWindowSize)
+		return fmt.Errorf("--window-size %d would define a new feature contract; sentinel-packet-approx22-v1 requires %d", c.WindowSize, defaultWindowSize)
 	}
 	u, err := url.Parse(c.APIURL)
 	if err != nil || u.Scheme == "" || u.Host == "" {

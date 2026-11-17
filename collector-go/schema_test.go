@@ -44,7 +44,7 @@ func TestIngestJSONMatchesFastAPISchema(t *testing.T) {
 	if err := json.Unmarshal(body, &top); err != nil {
 		t.Fatal(err)
 	}
-	assertKeys(t, "batch", top, "collector_id", "capture_mode", "source_ref", "windows")
+	assertKeys(t, "batch", top, "feature_contract_id", "contract_hash", "capture_session_id", "collector_id", "capture_mode", "source_ref", "windows")
 	if top["collector_id"] != defaultCollectorID || top["capture_mode"] != "PCAP_REPLAY" {
 		t.Fatalf("identity = %v %v", top["collector_id"], top["capture_mode"])
 	}

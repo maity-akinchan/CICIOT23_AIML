@@ -22,6 +22,7 @@ class FlowWindowPayload(BaseModel):
     capture_session_id: str = ""
     src_ip: str = Field(min_length=1, max_length=64)
     dst_ip: str = Field(min_length=1, max_length=64)
+    input_representation: str = "dataset_features"
     src_mac: str = Field(default="", max_length=32)
     dst_mac: str = ""
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -74,6 +75,7 @@ class CollectorMetadata(BaseModel):
     dst_port: int = Field(default=0, ge=0, le=65535)
     dominant_protocol: Literal["TCP", "UDP", "ICMP"] = "TCP"
     device_vendor: str = ""
+    transport_header_mean: float | None = None
 
 
 class Features18Payload(BaseModel):
@@ -168,6 +170,8 @@ class PredictionResult(BaseModel):
     confidence_score: float
     is_anomaly: bool
     probabilities: dict[str, float]
+    input_representation: str = "dataset_features"
+    compatibility_warning: str | None = None
     artifact_sha256: str = ""
     model_used: str
     features_22: dict[str, float]

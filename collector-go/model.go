@@ -28,14 +28,15 @@ type Features18 struct {
 // Metadata is an observed endpoint, never a majority vote across a window.
 // device_vendor is always empty: packet bytes do not establish a vendor.
 type Metadata struct {
-	SrcIP            string `json:"src_ip"`
-	DstIP            string `json:"dst_ip"`
-	SrcMAC           string `json:"src_mac"`
-	DstMAC           string `json:"dst_mac"`
-	SrcPort          int    `json:"src_port"`
-	DstPort          int    `json:"dst_port"`
-	DominantProtocol string `json:"dominant_protocol"`
-	DeviceVendor     string `json:"device_vendor"`
+	TransportHeaderMean float64 `json:"transport_header_mean,omitempty"`
+	SrcIP               string  `json:"src_ip"`
+	DstIP               string  `json:"dst_ip"`
+	SrcMAC              string  `json:"src_mac"`
+	DstMAC              string  `json:"dst_mac"`
+	SrcPort             int     `json:"src_port"`
+	DstPort             int     `json:"dst_port"`
+	DominantProtocol    string  `json:"dominant_protocol"`
+	DeviceVendor        string  `json:"device_vendor"`
 }
 
 // Window is one CollectorWindow. window_id stays stable across HTTP retries.
@@ -50,10 +51,13 @@ type Window struct {
 
 // ingestRequest is IngestBatchRequest. Unknown JSON fields are rejected by the API.
 type ingestRequest struct {
-	CollectorID string   `json:"collector_id"`
-	CaptureMode string   `json:"capture_mode"`
-	SourceRef   string   `json:"source_ref"`
-	Windows     []Window `json:"windows"`
+	FeatureContractID string   `json:"feature_contract_id"`
+	ContractHash      string   `json:"contract_hash"`
+	CaptureSessionID  string   `json:"capture_session_id"`
+	CollectorID       string   `json:"collector_id"`
+	CaptureMode       string   `json:"capture_mode"`
+	SourceRef         string   `json:"source_ref"`
+	Windows           []Window `json:"windows"`
 }
 
 // Packet is one accepted packet after header validation.
@@ -61,18 +65,19 @@ type ingestRequest struct {
 // HeaderBytes is the measured network plus transport header, including TCP
 // options and supported IPv6 extension headers, excluding the link header.
 type Packet struct {
-	Timestamp   time.Time
-	WireBytes   int
-	HeaderBytes int
-	TTL         int
-	SrcIP       string
-	DstIP       string
-	SrcMAC      string
-	DstMAC      string
-	SrcPort     int
-	DstPort     int
-	Protocol    string
-	TCPFlags    uint8
+	TransportBytes int
+	Timestamp      time.Time
+	WireBytes      int
+	HeaderBytes    int
+	TTL            int
+	SrcIP          string
+	DstIP          string
+	SrcMAC         string
+	DstMAC         string
+	SrcPort        int
+	DstPort        int
+	Protocol       string
+	TCPFlags       uint8
 }
 
 const (

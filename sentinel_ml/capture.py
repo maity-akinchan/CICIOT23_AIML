@@ -1,11 +1,12 @@
-"""Single reference extractor used by dataset construction and FastAPI."""
+"""Packet approximation extractor for inference only; never a training source."""
 from collections import Counter
 from pathlib import Path
 import struct
 import socket
 import dpkt
 import numpy as np
-from .contract import BASE, CONTRACT_ID, CONTRACT_HASH
+from .contract import BASE
+from .approximation import CONTRACT_ID, CONTRACT_HASH
 
 def summarize(packets):
     n=len(packets);duration=max(packets[-1]['ts']-packets[0]['ts'],1e-6)
@@ -65,7 +66,7 @@ def extract(stream, diagnostics=None):
         sport=getattr(t,'sport',0);dport=getattr(t,'dport',0)
         key=(src,dst,protocol,sport,dport)
         if key not in groups and len(groups)>=4096:raise ValueError('Active flow capacity exceeded')
-        p=dict(ts=ts,size=wirelen,header=ip.hl*4+transport,ttl=ip.ttl,src_ip=src,dst_ip=dst,src_port=sport,dst_port=dport,
+        p=dict(ts=ts,size=wirelen,header=transport,ttl=ip.ttl,src_ip=src,dst_ip=dst,src_port=sport,dst_port=dport,
                protocol=protocol,flags=t.flags if protocol=='TCP' else 0,src_mac=eth.src.hex(':'),dst_mac=eth.dst.hex(':'))
         groups.setdefault(key,[]).append(p)
         if len(groups[key])==100:

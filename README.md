@@ -1,53 +1,36 @@
-# CICIoT23 Sentinel
+# CICIoT23 Sentinel — Go + FastAPI prototype
 
-An AIML project demonstrating how a trained CICIoT2023 classifier can be served
-through FastAPI and used in a traffic-analysis application.
+The supplied trained XGBoost is used directly; retraining is optional. The active
+path is PCAP/live capture -> contributor Go collector -> FastAPI approximate adapter
+-> 22-feature CSV/DataFrame -> XGBoost -> stored predictions/WebSocket updates.
 
-**Current status:** the uploaded XGBoost model and training notebook are present;
-the backend has partial functionality and known defects. The Go collector and
-React app entry points are empty. The full-stack live demonstration is not yet
-implemented or validated.
+Packet measurements are explicitly approximate representations of the original
+Kaggle training inputs. Outputs identify that limitation. The original artifact,
+encoder and historical metrics are preserved; no synthetic model substitutes or
+arbitrary scaling are used. Device/firewall actions are disabled.
 
-The key outstanding scientific issue is feature compatibility: the supplied
-model was trained on pre-extracted CSV rows whose measurements differ from the
-proposed 100-packet extractor. Identical feature names do not establish parity.
-Use the existing artifact for compatible dataset features; verify the original
-extractor or retrain with a shared capture extractor before claiming live accuracy.
+See [build/run instructions](collector-go/README.md), [current architecture](agents/master_architecture_integration_blueprint.md),
+and [model/measurement definitions](agents/machine_learning_pipeline_22_feature_contract.md).
+Backend docs: http://127.0.0.1:8000/docs. Default model path:
+ml/artifacts/ciciot_22f_xgb.joblib. MODEL_DIR overrides its directory;
+DATABASE_URL overrides SQLite storage. Use one backend worker.
 
-## Review and plan
+POST /api/v1/pcap/upload accepts classic Ethernet/IPv4 TCP/UDP/ICMP PCAPs.
+The Go collector supports more formats; parity is tested on the supported reference
+fixture, not every protocol. POST /api/v1/csv/upload accepts original feature CSVs.
+GET /api/v1/features/export?capture_session_id=ID exports all 22 values fed to the
+model, in order. DataFrame prediction avoids unnecessary disk round trips.
 
-- [Evidence-based project audit and prioritized fixes](agents/project_audit.md)
-- [Architecture and milestones](agents/master_architecture_integration_blueprint.md)
-- [Training, evaluation and feature contracts](agents/machine_learning_pipeline_22_feature_contract.md)
-- [Current quickstart](agents/readme_quickstart_guide.md)
-- [Coding-agent instructions](AGENTS.md)
+Run python -m pytest -q; set SENTINEL_GO to a real Go executable to include the
+cross-process test. Run go test ./... in collector-go as well. No full React UI
+or end-to-end Compose demonstration is claimed yet. Operator APIs should run in
+an isolated local environment pending authentication hardening.
 
-The v3 plan prioritizes one real model, correct inference, three useful dashboard
-views, and independent capture evaluation. Fleet management, firewall/DNS changes
-and automatic blocking are optional later extensions. The specifications describe
-target behavior; the prototype does not yet enforce all of their gates.
+The original notebook is ciciot23_training_legacy.ipynb. The main notebook remains
+an optional CSV-only retraining workflow using himadri07/ciciot2023. Its data is
+not required to start the supplied model. See ml/provenance for recovered
+supplementary extractor evidence and unresolved original CSV measurement parity.
 
-## Supplied experiment
-
-Notebook: `ml/notebooks/ciciot23_training.ipynb`.
-Model: `ml/artifacts/ciciot_22f_xgb.joblib`.
-
-The bundle records test accuracy **89.37%** and macro-F1 **90.16%** on its cleaned
-CSV test split. These are saved training-run results, not newly measured live
-performance. The notebook explicitly leaves packet-window provenance and capture-
-group independence unverified. Other trained model bundles were not supplied.
-The repository's `test_sample_500.csv` has seven fixture rows, not a verified
-500-row held-out test set.
-
-See the quickstart for local backend inspection and the steps required for an
-honest dataset-replay, PCAP and live demonstration. Do not treat the current
-Compose file as a working one-command full-stack deployment.
-
-## Retraining milestone
-
-The corrected notebook now delegates to a shared capture/training/serving package.
-See [training and backend instructions](ml/training/README.md) for setup, manifest
-format, mismatch checks and supported inputs. [Recovery findings](ml/provenance/README.md)
-explain why the published supplementary extractor cannot certify the old model.
-New models are unavailable until you retrain; the API never substitutes synthetic
-weights. The original notebook is preserved as `ciciot23_training_legacy.ipynb`.
+PCAPs are inference/test inputs only. The PCAP-first training pipeline and model
+contract have been removed; optional training uses the given Kaggle CSVs only.
+Raw captures are ignored by Git and are not included in the repository.
