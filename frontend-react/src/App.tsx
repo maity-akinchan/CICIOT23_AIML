@@ -1,15 +1,12 @@
+import { WorkspaceNavigation } from './components/layout/WorkspaceNavigation';
+import { pages, SummaryPage, CaptureHistoryPage, PcapPage, TrafficPage, ServiceSetupPage } from './components/workspace/WorkspacePages';
 import { AlertCircle, X } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { getApiBaseUrl, setApiBaseUrl } from './api/client';
-import { GlassDock } from './components/layout/GlassDock';
-import { TopStatusBar } from './components/layout/TopStatusBar';
 import { AttackAlertsPanel } from './components/modules/AttackAlertsPanel';
 import { FlowExplorerTable } from './components/modules/FlowExplorerTable';
-import { LiveTrafficView } from './components/modules/LiveTrafficView';
-import { OverviewBento } from './components/modules/OverviewBento';
 import { AuthPage } from './components/pages/AuthPage';
 import { LandingPage } from './components/pages/LandingPage';
-import { OnboardingPage } from './components/pages/OnboardingPage';
 import { ProfileSetupPage } from './components/pages/ProfileSetupPage';
 import { useLiveTelemetry } from './hooks/useLiveTelemetry';
 import {
@@ -44,12 +41,7 @@ export function App() {
     orgName: '',
   });
 
-  const telemetry = useLiveTelemetry(profile?.batchSize ?? 5);
-
-  const unacknowledgedAlertsCount = useMemo(
-    () => telemetry.alerts.filter((a) => !a.acknowledged).length,
-    [telemetry.alerts]
-  );
+  const telemetry = useLiveTelemetry();
 
   const handleSaveProfile = (nextProfile: OperatorProfile, fromConsole = false) => {
     setApiBaseUrl(nextProfile.apiBaseUrl);
@@ -75,6 +67,7 @@ export function App() {
 
   const handleSignOut = () => {
     window.localStorage.removeItem(PROFILE_STORAGE_KEY);
+    window.sessionStorage.removeItem('sentinel_operator_token');
     setProfile(null);
     setStage('landing');
   };
@@ -134,20 +127,7 @@ export function App() {
 
   // Stage 4: FastAPI Pipeline Onboarding Page
   if (stage === 'onboarding') {
-    return (
-      <OnboardingPage
-        health={telemetry.health}
-        wsConnected={telemetry.wsConnected}
-        activeModelName={telemetry.activeModelName}
-        apiBaseUrl={profile?.apiBaseUrl || getApiBaseUrl()}
-        totalFlows={telemetry.kpis.total_flows}
-        timeSeries={telemetry.timeSeries}
-        onRefreshHealth={telemetry.refreshBackendHealth}
-        onSendTestIngest={telemetry.handleSendTestIngestBatch}
-        onUploadCsv={telemetry.handleFileUpload}
-        onCompleteOnboarding={handleCompleteOnboarding}
-      />
-    );
+    return <div className="max-w-6xl mx-auto p-5 sm:p-10 space-y-6"><div className="flex flex-wrap justify-between items-center gap-4"><div><p className="eyebrow">Workspace ready</p><h1 className="text-2xl font-semibold mt-2">Install the monitoring service</h1></div><button className="primary-action" onClick={handleCompleteOnboarding}>Continue to workspace</button></div><p className="subtle-note">You can finish service setup later from the workspace.</p><ServiceSetupPage/></div>;
   }
 
   // Ensure a profile exists before rendering the console
@@ -164,38 +144,12 @@ export function App() {
   // Stage 5: Security Console (Only FastAPI-backed pages)
   return (
     <div className="min-h-screen bg-[#0D0C14] text-[#F8FAFC]">
-      <GlassDock
-        activePage={activePage}
-        onSelectPage={setActivePage}
-        unacknowledgedAlertsCount={unacknowledgedAlertsCount}
-        totalFlowsCount={telemetry.kpis.total_flows}
-        backendOnline={telemetry.health.online}
-        latencyMs={telemetry.health.latencyMs}
-        activeModelName={telemetry.activeModelName}
-        lastUpdated={telemetry.lastUpdated}
-        onGoToLanding={() => setStage('landing')}
-      />
-
-      <div className="pl-[240px] flex flex-col min-h-screen">
-        <TopStatusBar
-          wsConnected={telemetry.wsConnected}
-          backendOnline={telemetry.health.online}
-          activeModelName={telemetry.activeModelName}
-          currentFps={telemetry.kpis.current_fps}
-          isReplaying={telemetry.isReplaying}
-          onToggleReplay={() => telemetry.setIsReplaying((v) => !v)}
-          replaySpeedFps={telemetry.replaySpeedFps}
-          onChangeReplaySpeed={telemetry.setReplaySpeedFps}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          onNavigateTo={setActivePage}
-          onResetSoc={telemetry.handleResetSoc}
-          unacknowledgedAlertsCount={unacknowledgedAlertsCount}
-          profile={activeProfile}
-        />
-
-        <main className="flex-1 p-6 pb-14 max-w-[1600px] w-full mx-auto space-y-5">
-          {/* Honest FastAPI Connection Error Banner */}
+      <WorkspaceNavigation active={activePage} onNavigate={setActivePage} onHome={()=>setStage('landing')}/>
+      <div className="workspace-main">
+        <header className="workspace-topbar"><span className="text-sm text-slate-400">Detection workspace <span className="mx-2 text-slate-600">/</span><span className="text-slate-200">{pages.find(p=>p.id===activePage)?.label}</span></span>{activePage!=='onboarding'&&<button className="secondary-action" onClick={()=>setActivePage('pcap-analysis')}>Upload PCAP</button>}</header>
+        <main className="workspace-content space-y-6">
+          <div><p className="eyebrow mb-2">Network analysis</p><h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">{pages.find(p=>p.id===activePage)?.label}</h1><p className="text-sm sm:text-base text-slate-400 mt-2">{pages.find(p=>p.id===activePage)?.description}</p></div>
+          {/* Connection errors */}
           {telemetry.apiError && (
             <div className="p-3.5 rounded-xl bg-[#EF4444]/10 border border-[#EF4444]/30 text-[#EF4444] text-xs flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
@@ -222,37 +176,11 @@ export function App() {
             </div>
           )}
 
-          {activePage === 'overview' && (
-            <OverviewBento
-              kpis={telemetry.kpis}
-              timeSeries={telemetry.timeSeries}
-              discoveredEndpoints={telemetry.discoveredEndpoints}
-              alerts={telemetry.alerts}
-              onAcknowledgeAlert={telemetry.handleAcknowledgeAlert}
-              onSendTestBatch={() => {
-                telemetry.handleSendTestIngestBatch('overview-probe', 3).catch(() => {});
-              }}
-              onStartStream={() => telemetry.setIsReplaying(true)}
-              onNavigate={setActivePage}
-            />
-          )}
-
-          {activePage === 'live-traffic' && (
-            <LiveTrafficView
-              flows={telemetry.flows}
-              timeSeries={telemetry.timeSeries}
-              protocolSplit={telemetry.protocolSplit}
-              discoveredEndpoints={telemetry.discoveredEndpoints}
-              streamPaused={telemetry.streamPaused}
-              onTogglePause={() => telemetry.setStreamPaused((p) => !p)}
-              onUploadFile={telemetry.handleFileUpload}
-              onSendTestBatch={async () => {
-                await telemetry.handleSendTestIngestBatch('live-traffic-probe', 3);
-              }}
-              globalSearch={searchQuery}
-            />
-          )}
-
+          {activePage === 'capture-history' && <CaptureHistoryPage/>}
+          {activePage === 'overview' && <SummaryPage kpis={telemetry.kpis} onNavigate={setActivePage}/>}
+          {activePage === 'pcap-analysis' && <PcapPage onUpload={telemetry.handleFileUpload}/>}
+          {['live-traffic','flow-explorer'].includes(activePage)&&<label className="block text-sm text-slate-400">Search windows<input className="workspace-input mt-2" value={searchQuery} onChange={e=>setSearchQuery(e.target.value)} placeholder="Search by IP, protocol or window"/></label>}
+          {activePage === 'live-traffic' && <TrafficPage flows={telemetry.flows} timeSeries={telemetry.timeSeries} search={searchQuery}/>}
           {activePage === 'alerts' && (
             <AttackAlertsPanel
               alerts={telemetry.alerts}
@@ -268,23 +196,10 @@ export function App() {
             />
           )}
 
-          {activePage === 'onboarding' && (
-            <OnboardingPage
-              embedded
-              health={telemetry.health}
-              wsConnected={telemetry.wsConnected}
-              activeModelName={telemetry.activeModelName}
-              apiBaseUrl={activeProfile.apiBaseUrl}
-              totalFlows={telemetry.kpis.total_flows}
-              timeSeries={telemetry.timeSeries}
-              onRefreshHealth={telemetry.refreshBackendHealth}
-              onSendTestIngest={telemetry.handleSendTestIngestBatch}
-              onUploadCsv={telemetry.handleFileUpload}
-              onCompleteOnboarding={() => setActivePage('overview')}
-            />
-          )}
+          {activePage === 'onboarding' && <ServiceSetupPage/>}
 
-          {activePage === 'profile' && (
+          {activePage === 'system-console' && <section className="workspace-card space-y-5"><h2 className="text-lg font-semibold">Connection details</h2><dl className="diagnostic-list">{[['API server',telemetry.health.online?'Online':'Offline'],['Live updates',telemetry.wsConnected?'Connected':'Disconnected'],['Model',telemetry.activeModelName],['Model loaded',telemetry.health.modelLoaded?'Yes':'No'],['Server URL',getApiBaseUrl()],['Health latency',telemetry.health.latencyMs===null?'Unavailable':`${telemetry.health.latencyMs} ms`],['Last observation',telemetry.lastUpdated]].map(([label,value])=><div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl><button className="secondary-action" onClick={()=>void telemetry.refreshBackendHealth()}>Refresh connection</button></section>}
+          {activePage === 'profile'  && (
             <ProfileSetupPage
               embedded
               initialProfile={activeProfile}

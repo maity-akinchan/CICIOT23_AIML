@@ -1,3 +1,4 @@
+import { apiClient } from '../../api/client';
 import { Shield, ArrowRight, ArrowLeft } from 'lucide-react';
 import { useState } from 'react';
 import {
@@ -24,7 +25,7 @@ export function AuthPage({
   const [orgName, setOrgName] = useState(initialOrgName);
   const [authError, setAuthError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const parsed = WorkspaceAuthSchema.safeParse({
       email,
@@ -32,11 +33,18 @@ export function AuthPage({
       orgName: authMode === 'create' ? orgName : undefined,
     });
     if (!parsed.success) {
-      setAuthError(parsed.error.issues[0]?.message || 'Invalid credentials');
+      setAuthError(parsed.error.issues[0]?.message || 'Invalid local profile details');
       return;
     }
     if (authMode === 'create' && (!orgName || orgName.trim().length < 2)) {
       setAuthError('Please enter your Workspace or Organization name');
+      return;
+    }
+    try {
+      await apiClient.get('/api/v1/flows?limit=1',{headers:{Authorization:`Bearer ${password}`}});
+      sessionStorage.setItem('sentinel_operator_token',password);
+    } catch {
+      setAuthError('Server rejected the operator token or could not be reached');
       return;
     }
     setAuthError(null);
@@ -79,7 +87,7 @@ export function AuthPage({
               <span>Workspace Access</span>
             </div>
             <h1 className="text-2xl font-bold tracking-tight text-[#F8FAFC]">
-              {authMode === 'create' ? 'Create Operator Account' : 'Sign In to Workspace'}
+              {authMode === 'create' ? 'Configure Local Profile' : 'Connect to Server'}
             </h1>
             <p className="text-xs text-[#8E8CA3] mt-1 leading-relaxed">
               Authenticate to configure your operator profile, connect to the FastAPI engine, and
@@ -101,7 +109,7 @@ export function AuthPage({
                   : 'text-[#8E8CA3] hover:text-[#F8FAFC] border border-transparent'
               }`}
             >
-              Create Account
+              New Profile
             </button>
             <button
               type="button"
@@ -115,7 +123,7 @@ export function AuthPage({
                   : 'text-[#8E8CA3] hover:text-[#F8FAFC] border border-transparent'
               }`}
             >
-              Sign In
+              Connect
             </button>
           </div>
 
@@ -161,14 +169,14 @@ export function AuthPage({
                 htmlFor="auth-password"
                 className="block text-[11px] font-semibold text-[#8E8CA3] uppercase tracking-wider"
               >
-                Password
+                Operator access token
               </label>
               <input
                 id="auth-password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter at least 4 characters"
+                placeholder="Enter the server operator token"
                 className="w-full h-10 px-3.5 bg-[#1A1826] border border-[#222030] rounded-lg text-xs text-[#F8FAFC] placeholder-[#8E8CA3]/60 focus:outline-none focus:border-[#6366F1]"
               />
             </div>
@@ -186,7 +194,7 @@ export function AuthPage({
               <span>
                 {authMode === 'create'
                   ? 'Continue to Profile Setup'
-                  : 'Sign In & Continue'}
+                  : 'Connect & Continue'}
               </span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>

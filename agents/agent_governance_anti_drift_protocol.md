@@ -19,3 +19,12 @@ Run root pytest with SENTINEL_GO set to a real Go executable for cross-process t
 Run collector-go go test ./... with CGO_ENABLED=0 and with CGO_ENABLED=1/libpcap.
 Synthetic fixtures verify integration only. Actual model weights are used in the
 Go/HTTP integration test. Observe-only actions remain disabled.
+
+Current integration update: React PCAP upload is in scope. Upload classic PCAPs,
+show session-specific Benign/DoS/DDoS windows and preserve model provenance.
+HTTP APIs require operator bearer credentials; collectors have ingestion-only
+credentials. Set SENTINEL_OPERATOR_TOKEN and SENTINEL_COLLECTOR_TOKEN externally.
+SENTINEL_AUTH_DISABLED=1 is only for explicit isolated development/tests.
+Downloads are built by scripts/build-collectors.sh and installed by
+scripts/setup-collector.sh. Cross-compiled binaries support replay only; Linux
+live capture needs a native CGO/libpcap build. Use HTTPS outside localhost.

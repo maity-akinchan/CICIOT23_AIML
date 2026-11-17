@@ -1,13 +1,33 @@
-# UI integration requirements (deferred)
+# Responsive detection workspace
 
-Current decision (2026-11-17): use the existing supplied XGBoost artifact without
-retraining. Preserve contributor Go code. The user explicitly authorizes approximate
-packet measurements despite unverified parity with Kaggle. Do not substitute models,
-fabricate compatibility, or enable firewall actions. The implementation scope is
-Go + FastAPI; UI implementation is deferred.
+The user authorizes a full UI revamp while retaining the dark indigo visual style.
+The active pages are Overview, PCAP analysis, Live traffic, Flow explorer,
+Attack alerts, Collector setup and Workspace settings. Keep each workflow focused.
+PCAP results must be scoped to the uploaded session. Empty, loading, error and
+zero-window outcomes must remain explicit. Keep model provenance in flow objects.
 
-React entry files remain incomplete. Current work targets Go and FastAPI only.
-Future UI should show model identity, packet_approximation warnings, data-source
-mode, real features/probabilities and exported inputs. Keep dataset benchmark
-metrics separate from live predictions. Do not label a sent command as executed,
-and do not render unimplemented security controls as operational.
+Desktop navigation uses a sidebar. Tablets/phones use an expandable menu with
+an overlay; selecting a page closes it. Use at least 44px primary controls,
+visible keyboard focus, readable contrast and local horizontal table scrolling.
+Feature inspection opens only on selection. Do not force an inspector into every
+page or mix setup commands with upload analysis. Honor reduced-motion preferences.
+
+Use real backend responses. Download buttons use authenticated blob requests.
+Never put credentials into download URLs or render fake service verification.
+Maintain the supplied XGBoost and shared preprocessing. Packet representations
+remain approximate and observe-only. Original contributor source/history remains.
+
+Product naming: Monitoring service (never Go service), System console for server
+status and developer diagnostics. Keep the landing page short and free of server
+status, model details and probe controls. Remove browser simulations/probes.
+The monitoring service page contains installation/live connection only: no capture
+uploads, replay instructions or simulator commands. Only offer live-capable builds
+there; current generated replay builds are not live-capable downloads.
+
+Completion update: Linux live builds use scripts/build-live-service.sh; install
+with scripts/install-monitoring-service.sh. Service tokens are hashed, expiring,
+revocable and bound to collector_id. Monitoring service is live-only; PCAP analysis
+and Analysis history remain separate. Alerts use persisted server records and
+acknowledgement endpoints. Capture history stores metadata and original model
+identity but never raw packets. See agents/remaining_components.md for validation
+limits and README for deployment, credential rotation and uninstall instructions.

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 )
@@ -44,7 +45,7 @@ func parseArgsOutput(args []string, output io.Writer) (Config, error) {
 	fs.StringVar(&cfg.CollectorID, "collector-id", defaultCollectorID, "sensor identifier")
 	fs.IntVar(&cfg.WindowSize, "window-size", defaultWindowSize, "packets per tumbling window")
 	fs.IntVar(&cfg.Stride, "stride", defaultWindowSize, "step between windows; must equal --window-size (tumbling, no overlap)")
-	fs.StringVar(&cfg.AuthToken, "auth-token", "", "optional bearer token for the ingest request")
+	fs.StringVar(&cfg.AuthToken, "auth-token", os.Getenv("SENTINEL_COLLECTOR_TOKEN"), "optional bearer token for the ingest request")
 	if err := fs.Parse(args); err != nil {
 		return Config{}, err
 	}

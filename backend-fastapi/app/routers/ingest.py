@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, HTTPException, Request
 
 from app.schemas import BatchPredictionRequest, BatchPredictionResponse, IngestBatchRequest, PredictionResult
@@ -40,6 +42,9 @@ async def _predict(request: Request, payloads) -> BatchPredictionResponse:
 
 @router.post("/ingest/windows", response_model=BatchPredictionResponse)
 async def ingest_windows(request: Request, payload: IngestBatchRequest) -> BatchPredictionResponse:
+    expected=getattr(request.state,'collector_id',None)
+    if expected is not None and payload.collector_id!=expected:
+        raise HTTPException(403,'Credential belongs to a different service')
     verify_contract(payload,request)
     from sentinel_ml.approximation import CONTRACT_ID as APPROX_ID
     approximate=payload.feature_contract_id==APPROX_ID

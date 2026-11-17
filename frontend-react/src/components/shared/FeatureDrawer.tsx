@@ -46,7 +46,7 @@ export function FeatureDrawer({ flow, onClose }: FeatureDrawerProps) {
   };
 
   return (
-    <div className="w-full xl:w-[430px] shrink-0 rounded-xl bg-[#13121D] border border-[#222030] p-5 shadow-2xl flex flex-col gap-5 select-none">
+    <div className="feature-inspector w-full xl:w-[430px] shrink-0 rounded-xl bg-[#13121D] border border-[#222030] p-5 shadow-2xl flex flex-col gap-5 select-none">
       {/* Top Header */}
       <div className="space-y-2.5 border-b border-[#222030] pb-4">
         <div className="flex items-center justify-between">
@@ -185,7 +185,7 @@ export function FeatureDrawer({ flow, onClose }: FeatureDrawerProps) {
               All 22 Traffic Measurements
             </h4>
             <p className="text-[11px] text-[#8E8CA3]">
-              18 base packet metrics + 4 computed ratios from FastAPI
+              18 base packet metrics + 4 computed ratios used by the model
             </p>
           </div>
           <span className="px-2 py-0.5 rounded text-[11px] bg-[#1A1826] border border-[#222030] text-[#6366F1] font-mono font-bold">

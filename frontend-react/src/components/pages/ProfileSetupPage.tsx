@@ -105,10 +105,10 @@ export function ProfileSetupPage({
               {embedded ? 'Workspace & Operator Settings' : 'Step 2 of 3 · Profile Setup'}
             </div>
             <h1 className="text-2xl font-bold tracking-tight text-[#F8FAFC]">
-              {embedded ? 'Operator Profile & FastAPI Configuration' : 'Set Up Your Operator Profile'}
+              {embedded ? 'Operator Profile & Connection settings' : 'Set Up Your Operator Profile'}
             </h1>
             <p className="text-xs text-[#8E8CA3] mt-1">
-              Configure your identity, workspace name, and the FastAPI backend endpoint URL.
+              Configure your identity, workspace name, and the server address.
             </p>
           </div>
 
@@ -202,12 +202,12 @@ export function ProfileSetupPage({
             </div>
           </div>
 
-          {/* FastAPI Backend Connection Settings */}
+          {/* Server Backend Connection Settings */}
           <div className="pt-3 border-t border-[#222030] space-y-4">
             <div className="flex items-center gap-2">
               <Server className="w-4 h-4 text-[#6366F1]" />
               <h2 className="text-sm font-bold text-[#F8FAFC]">
-                FastAPI Server Connection &amp; Batch Preferences
+                Server Server Connection &amp; Batch Preferences
               </h2>
             </div>
 
@@ -217,7 +217,7 @@ export function ProfileSetupPage({
                   htmlFor="profile-api-url"
                   className="block text-[11px] font-semibold uppercase tracking-wider text-[#8E8CA3]"
                 >
-                  FastAPI Backend URL
+                  Server Backend URL
                 </label>
                 <input
                   id="profile-api-url"
@@ -278,12 +278,12 @@ export function ProfileSetupPage({
                   )}
                   <span>
                     {apiTestResult.online
-                      ? `Connected to FastAPI (${apiTestResult.latencyMs}ms) · Model Loaded: ${
+                      ? `Connected to Server (${apiTestResult.latencyMs}ms) · Model Loaded: ${
                           apiTestResult.isBootstrapModel
                             ? 'Bootstrap Model'
                             : 'XGBoost Artifact'
                         }`
-                      : `FastAPI not reachable at ${apiBaseUrl}. Run: uvicorn app.main:app --port 8000 --reload`}
+                      : `Server not reachable at ${apiBaseUrl}. Run: uvicorn app.main:app --port 8000 --reload`}
                   </span>
                 </div>
               </div>
@@ -299,7 +299,7 @@ export function ProfileSetupPage({
           {savedNotice && (
             <div className="p-3 rounded-lg bg-[#10B981]/10 border border-[#10B981]/30 text-[#10B981] text-xs flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4" />
-              <span>Operator profile and FastAPI settings saved.</span>
+              <span>Operator profile and Server settings saved.</span>
             </div>
           )}
 

@@ -1,6 +1,6 @@
 import io
 from uuid import uuid4
-from fastapi import APIRouter,UploadFile,Request,HTTPException
+from fastapi import APIRouter,UploadFile,Request,HTTPException,Query
 from starlette.concurrency import run_in_threadpool
 from app.services.pcap_runner import pcap_windows
 from app.routers.ingest import _response
@@ -22,9 +22,15 @@ async def upload(request:Request,file:UploadFile):
         if len(windows)>10000:raise ValueError('Upload exceeds 10,000 windows')
         for window in windows:window.capture_session_id=session
         predictions=engine.predict_batch(windows) if windows else []
+        result=_response(predictions)
+        from app.models import CaptureSession
+        import hashlib
         with request.app.state.sessions.begin() as db:
             request.app.state.incidents.record(db,windows,predictions)
-        result=_response(predictions)
+            db.add(CaptureSession(id=session,filename=(file.filename or 'capture.pcap')[:255],
+                file_sha256=hashlib.sha256(data).hexdigest(),size_bytes=len(data),
+                artifact_sha256=engine.bundle['artifact_sha256'],processed_windows=result.processed_windows,
+                benign_count=result.benign_count,dos_count=result.dos_count,ddos_count=result.ddos_count))
         return {k:getattr(result,k) for k in ('processed_windows','benign_count','dos_count','ddos_count')} | {'capture_session_id':session,'artifact_sha256':engine.bundle['artifact_sha256']}
     async with request.app.state.ingest_lock:
         try:return await run_in_threadpool(analyze)
@@ -70,3 +76,12 @@ def export_features(request:Request,capture_session_id:str):
             writer.writerow(json.loads(flow.features_22_json))
     return Response(output.getvalue(),media_type='text/csv',headers={'Content-Disposition':'attachment; filename="model-inputs-22f.csv"',
         'X-Measurement-Compatibility':'packet-approximation-unverified'})
+
+@router.get('/captures')
+def captures(request:Request,limit:int=Query(25,ge=1,le=100),offset:int=Query(0,ge=0)):
+    from sqlalchemy import select,func
+    from app.models import CaptureSession
+    from app.services.incident_manager import serialize
+    with request.app.state.sessions() as db:
+        return {'total':db.scalar(select(func.count()).select_from(CaptureSession)),
+                'items':[serialize(c) for c in db.scalars(select(CaptureSession).order_by(CaptureSession.uploaded_at.desc()).offset(offset).limit(limit))]}

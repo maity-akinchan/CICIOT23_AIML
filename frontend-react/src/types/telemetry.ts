@@ -112,16 +112,18 @@ export const FlowRecordSchema = z
     protocol: z.string().optional(),
     dominant_protocol: z.string().optional(),
     packet_count: z.number().optional().default(100),
-    predicted_class: TrafficClassSchema.catch('Benign'),
+    predicted_class: TrafficClassSchema,
     confidence: finiteNumber.optional(),
     confidence_score: finiteNumber.optional(),
     is_anomaly: z.boolean().optional(),
     probabilities: z
-      .record(z.string(), finiteNumber)
-      .optional()
-      .default({ Benign: 1, DoS: 0, DDoS: 0 }),
+      .record(z.string(), finiteNumber),
     model_used: z.string().optional().default('XGBoost (22F)'),
     top_anomalies: z.array(AnomalyExplanationSchema).optional().default([]),
+    capture_session_id: z.string().optional(),
+    artifact_sha256: z.string().optional(),
+    input_representation: z.string().optional(),
+    compatibility_warning: z.string().nullable().optional(),
     features_22: Features22Schema,
   })
   .transform((raw) => {
@@ -158,6 +160,10 @@ export const FlowRecordSchema = z
       },
       model_used: raw.model_used,
       top_anomalies: raw.top_anomalies,
+      capture_session_id: raw.capture_session_id,
+      artifact_sha256: raw.artifact_sha256,
+      input_representation: raw.input_representation,
+      compatibility_warning: raw.compatibility_warning,
       features_22: raw.features_22,
     };
   });
@@ -266,6 +272,9 @@ export interface TimeSeriesPoint {
  * Active Dashboard Pages (only features supported by FastAPI are exposed)
  */
 export type DashboardPageId =
+  | 'capture-history'
+  | 'system-console'
+  | 'pcap-analysis'
   | 'overview'
   | 'live-traffic'
   | 'alerts'

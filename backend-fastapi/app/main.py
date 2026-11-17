@@ -97,3 +97,11 @@ def contract():
     return {'csv_specification':SPEC,'csv_contract_hash':CONTRACT_HASH,
             'packet_specification':PACKET_SPEC,'packet_contract_hash':PACKET_HASH,
             'active_model_contract':engine.bundle['contract_id'] if engine.is_loaded else None}
+
+from app.security import authorize
+app.middleware("http")(authorize)
+from app.routers import downloads
+app.include_router(downloads.router,prefix="/api/v1")
+
+from app.routers import services
+app.include_router(services.router,prefix='/api/v1')

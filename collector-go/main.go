@@ -22,7 +22,7 @@ func main() {
 		os.Exit(2)
 	}
 	if cfg.AuthToken == "" {
-		log.Printf("collector authentication token is not set; the legacy ingest route does not require one")
+		log.Printf("service token is not set; authenticated servers will reject ingestion")
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()

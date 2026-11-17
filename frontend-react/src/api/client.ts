@@ -1,11 +1,9 @@
 /// <reference types="vite/client" />
 import axios from 'axios';
 import {
-  BASE_FEATURE_NAMES,
-  BatchPredictionResponseSchema,
   HealthResponseSchema,
-  type BatchPredictionResponse,
   type FlowRecord,
+  FlowRecordSchema,
 } from '../types/telemetry';
 
 const STORAGE_KEY_API_URL = 'sentinel_api_base_url';
@@ -50,6 +48,14 @@ export const apiClient = axios.create({
   },
 });
 
+export function getOperatorToken(): string {
+  return sessionStorage.getItem('sentinel_operator_token') || '';
+}
+apiClient.interceptors.request.use(config => {
+  const token=getOperatorToken();
+  if(token && !config.headers.Authorization) config.headers.Authorization=`Bearer ${token}`;
+  return config;
+});
 export interface BackendHealthStatus {
   online: boolean;
   modelLoaded: boolean;
@@ -157,8 +163,6 @@ export async function sendLiveTrafficBatchToFastApi(
   });
 
   const { data } = await apiClient.post('/api/v1/predict/batch', {
-    feature_contract_id: CSV_FEATURE_CONTRACT_ID,
-    contract_hash: CSV_FEATURE_CONTRACT_HASH,
     data: batchPayload,
   });
   return BatchPredictionResponseSchema.parse(data);
@@ -264,11 +268,7 @@ export interface UploadAnalysisSummary {
   flows: FlowRecord[];
 }
 
-/**
- * Parses a `.csv` file containing the 18 CICIoT23 base feature columns (same format as
- * `testSimulator.py` and `ml/sample_data/test_sample_500.csv`) and sends batches of up to
- * 100 rows to FastAPI `POST /api/v1/predict/batch`.
- */
+/** Upload a capture and fetch only the predictions from its analysis session. */
 export async function analyzeUploadedFile(file: File): Promise<UploadAnalysisSummary> {
   if (!file.name.toLowerCase().endsWith('.csv')) {
     throw new Error(
@@ -333,8 +333,6 @@ export async function analyzeUploadedFile(file: File): Promise<UploadAnalysisSum
   });
 
   const { data } = await apiClient.post('/api/v1/predict/batch', {
-    feature_contract_id: CSV_FEATURE_CONTRACT_ID,
-    contract_hash: CSV_FEATURE_CONTRACT_HASH,
     data: payloads,
   });
   const parsed = BatchPredictionResponseSchema.parse(data);

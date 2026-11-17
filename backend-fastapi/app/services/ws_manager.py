@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import asyncio
 from collections import deque
+from typing import Any
 import logging
-import asyncio
 
 from fastapi import WebSocket
 
@@ -31,6 +31,9 @@ class ConnectionManager:
         flows = list(self.telemetry_buffer)
         self.telemetry_buffer.clear()
         return flows
+
+    async def broadcast(self, message: dict[str, Any]) -> None:
+        await self._broadcast(message)
 
     async def _broadcast(self, message: dict[str, Any]) -> None:
         failed: list[WebSocket] = []

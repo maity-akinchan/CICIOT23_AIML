@@ -19,7 +19,7 @@ ROOT=Path(__file__).resolve().parents[1]
 GO=os.environ.get('SENTINEL_GO')
 @pytest.mark.skipif(not GO,reason='Set SENTINEL_GO to a real Go toolchain executable for cross-process verification')
 def test_real_go_to_fastapi(tmp_path):
-    env=os.environ.copy();env.update(CGO_ENABLED='0',GOCACHE=os.environ.get('GOCACHE',str(tmp_path/'go-cache')),GOPATH=os.environ.get('GOPATH',str(tmp_path/'go-path')))
+    env=os.environ.copy();env.pop('SENTINEL_AUTH_DISABLED',None);env['SENTINEL_OPERATOR_TOKEN']='integration-operator-secret';env.update(CGO_ENABLED='0',GOCACHE=os.environ.get('GOCACHE',str(tmp_path/'go-cache')),GOPATH=os.environ.get('GOPATH',str(tmp_path/'go-path')))
 
     binary=tmp_path/'collector'
     subprocess.run([GO,'build','-o',str(binary),'.'],cwd=ROOT/'collector-go',env=env,check=True)
@@ -30,6 +30,7 @@ def test_real_go_to_fastapi(tmp_path):
     import sys
     process=subprocess.Popen([sys.executable,'-m','uvicorn','app.main:app','--host','127.0.0.1','--port',str(port)],cwd=ROOT,env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
     base=f'http://127.0.0.1:{port}'
+    headers={'Authorization':'Bearer integration-operator-secret'}
     try:
         for _ in range(200):
             try:
@@ -37,9 +38,12 @@ def test_real_go_to_fastapi(tmp_path):
             except requests.RequestException:pass
             time.sleep(.1)
         else:pytest.fail('API did not become ready')
-        completed=subprocess.run([str(binary),'--mode','pcap','--pcap-file',str(source),'--replay-speed','0','--api-url',base+'/api/v1/ingest/windows'],capture_output=True,text=True,timeout=30)
+        credential=requests.post(base+'/api/v1/services/credentials',headers=headers,json={'collector_id':'go-sensor-docker0'},timeout=5)
+        assert credential.status_code==201,credential.text
+        env['SENTINEL_COLLECTOR_TOKEN']=credential.json()['token']
+        completed=subprocess.run([str(binary),'--mode','pcap','--pcap-file',str(source),'--replay-speed','0','--api-url',base+'/api/v1/ingest/windows'],capture_output=True,text=True,timeout=30,env=env)
         assert completed.returncode==0,completed.stderr
-        flows=requests.get(base+'/api/v1/flows',timeout=5).json()
+        flows=requests.get(base+'/api/v1/flows',timeout=5,headers=headers).json()
         assert flows['total']==1
         row=flows['items'][0]
         assert row['input_representation']=='packet_approximation'
@@ -50,11 +54,11 @@ def test_real_go_to_fastapi(tmp_path):
         x,scores=predict(bundle,pd.DataFrame([reference['features_18']],columns=BASE))
         assert np.allclose(list(row['features_22'].values()),x.iloc[0],rtol=1e-5)
         assert np.allclose([row['probabilities'][c] for c in bundle['classes']],scores[0],atol=1e-5)
-        exported=requests.get(base+'/api/v1/features/export',params={'capture_session_id':row['capture_session_id']},timeout=5)
+        exported=requests.get(base+'/api/v1/features/export',params={'capture_session_id':row['capture_session_id']},timeout=5,headers=headers)
         table=pd.read_csv(io.StringIO(exported.text))
         assert list(table.columns)==list(FEATURES)
         assert np.allclose(table.iloc[0],x.iloc[0],rtol=1e-5)
-        upload=requests.post(base+'/api/v1/pcap/upload',files={'file':('syn.pcap',source.read_bytes())},timeout=10)
+        upload=requests.post(base+'/api/v1/pcap/upload',files={'file':('syn.pcap',source.read_bytes())},timeout=10,headers=headers)
         assert upload.status_code==200,upload.text
     finally:
         process.terminate()

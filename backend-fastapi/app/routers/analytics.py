@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Request, Query
 from sqlalchemy import select, func, or_, delete
-from app.models import Flow, Alert, Incident, Device
+from app.models import Flow, Alert, Incident, Device, CaptureSession
 from app.services.incident_manager import serialize
 
 router = APIRouter()
@@ -54,7 +54,7 @@ async def acknowledge(alert_id:int, request:Request):
 async def reset(request:Request):
     async with request.app.state.ingest_lock:
         with request.app.state.sessions.begin() as db:
-            for model in (Alert,Incident,Flow): db.execute(delete(model))
+            for model in (Alert,Incident,Flow,CaptureSession): db.execute(delete(model))
             for device in db.scalars(select(Device)):
                 device.total_flows_seen=0
                 device.attack_flows_seen=0

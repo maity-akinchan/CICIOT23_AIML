@@ -21,3 +21,12 @@ The model's original dataset and this measurement contract remain distinct.
 
 Historical artifacts and source provenance are preserved. CSV-only retraining is
 optional and uses only himadri07/ciciot2023. No PCAP training is required.
+
+Current integration update: React PCAP upload is in scope. Upload classic PCAPs,
+show session-specific Benign/DoS/DDoS windows and preserve model provenance.
+HTTP APIs require operator bearer credentials; collectors have ingestion-only
+credentials. Set SENTINEL_OPERATOR_TOKEN and SENTINEL_COLLECTOR_TOKEN externally.
+SENTINEL_AUTH_DISABLED=1 is only for explicit isolated development/tests.
+Downloads are built by scripts/build-collectors.sh and installed by
+scripts/setup-collector.sh. Cross-compiled binaries support replay only; Linux
+live capture needs a native CGO/libpcap build. Use HTTPS outside localhost.
