@@ -98,8 +98,6 @@ def contract():
             'packet_specification':PACKET_SPEC,'packet_contract_hash':PACKET_HASH,
             'active_model_contract':engine.bundle['contract_id'] if engine.is_loaded else None}
 
-from app.security import authorize
-app.middleware("http")(authorize)
 from app.routers import downloads
 app.include_router(downloads.router,prefix="/api/v1")
 

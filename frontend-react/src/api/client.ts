@@ -1,7 +1,10 @@
 /// <reference types="vite/client" />
 import axios from 'axios';
 import {
+  BASE_FEATURE_NAMES,
+  BatchPredictionResponseSchema,
   HealthResponseSchema,
+  type BatchPredictionResponse,
   type FlowRecord,
   FlowRecordSchema,
 } from '../types/telemetry';
@@ -163,6 +166,8 @@ export async function sendLiveTrafficBatchToFastApi(
   });
 
   const { data } = await apiClient.post('/api/v1/predict/batch', {
+    feature_contract_id: CSV_FEATURE_CONTRACT_ID,
+    contract_hash: CSV_FEATURE_CONTRACT_HASH,
     data: batchPayload,
   });
   return BatchPredictionResponseSchema.parse(data);
@@ -270,9 +275,38 @@ export interface UploadAnalysisSummary {
 
 /** Upload a capture and fetch only the predictions from its analysis session. */
 export async function analyzeUploadedFile(file: File): Promise<UploadAnalysisSummary> {
-  if (!file.name.toLowerCase().endsWith('.csv')) {
+  const lowerName = file.name.toLowerCase();
+  if (lowerName.endsWith('.pcap')) {
+    const formData = new FormData();
+    formData.append('file', file, file.name);
+    const { data: result } = await apiClient.post<{
+      processed_windows: number;
+      benign_count: number;
+      dos_count: number;
+      ddos_count: number;
+      capture_session_id: string;
+    }>('/api/v1/pcap/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+
+    const { data: flowResponse } = await apiClient.get<{ items: unknown[] }>(
+      '/api/v1/flows',
+      { params: { capture_session_id: result.capture_session_id, limit: 1000 } }
+    );
+
+    return {
+      fileName: file.name,
+      processedWindows: result.processed_windows,
+      benignCount: result.benign_count,
+      dosCount: result.dos_count,
+      ddosCount: result.ddos_count,
+      flows: flowResponse.items.map((item) => FlowRecordSchema.parse(item)),
+    };
+  }
+
+  if (!lowerName.endsWith('.csv')) {
     throw new Error(
-      'FastAPI currently accepts 18-feature .csv flow files via POST /api/v1/predict/batch.'
+      'Upload a classic Ethernet .pcap or an 18-feature .csv file.'
     );
   }
 
@@ -333,6 +367,8 @@ export async function analyzeUploadedFile(file: File): Promise<UploadAnalysisSum
   });
 
   const { data } = await apiClient.post('/api/v1/predict/batch', {
+    feature_contract_id: CSV_FEATURE_CONTRACT_ID,
+    contract_hash: CSV_FEATURE_CONTRACT_HASH,
     data: payloads,
   });
   const parsed = BatchPredictionResponseSchema.parse(data);
