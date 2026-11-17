@@ -20,7 +20,7 @@ established. Read the current code and tests before claiming a feature works.
 
 ## Non-negotiable evidence rules
 
-- Preserve the uploaded notebook and model as historical experiment artifacts.
+- Preserve the uploaded notebook (`ciciot23_training_legacy.ipynb`) and model as historical experiment artifacts.
   Do not edit their metrics or mark provenance verified without evidence.
 - Identical feature names do not establish identical feature meanings. The
   existing CSV-trained model must not be declared compatible with the proposed
@@ -51,3 +51,13 @@ unimplemented capabilities must be visibly unavailable. Reuse existing modules
 where coherent; there is no fixed file-name hierarchy that forces empty stubs.
 Run checks relevant to the change and distinguish blocked checks from passes.
 Use the canonical `AGENTS.md`; `Agents.md` is a compatibility pointer only.
+
+## Executable contract after retraining revision
+
+`sentinel_ml/contract.py` defines the exact ordered base/derived schema, formulas,
+validation, float32 dtype and version hash. `sentinel_ml/capture.py` is shared by
+training and the API. No independent Go or Python feature implementation may be
+used for this model without parity tests. The corrected main notebook delegates
+to `sentinel_ml/training.py`; split independent recording groups before extraction.
+Run `python -m pytest -q` from the root for the integration contract tests. Models
+must pass `sentinel_ml.artifacts.load` golden-row verification before use.

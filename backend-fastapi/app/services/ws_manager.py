@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import asyncio
 
 from fastapi import WebSocket
 
@@ -24,7 +25,7 @@ class ConnectionManager:
         failed: list[WebSocket] = []
         for connection in tuple(self.active_connections):
             try:
-                await connection.send_json(json_safe(message))
+                await asyncio.wait_for(connection.send_json(json_safe(message)),timeout=1.0)
             except Exception:
                 failed.append(connection)
         for connection in failed:

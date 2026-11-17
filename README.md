@@ -42,3 +42,12 @@ The repository's `test_sample_500.csv` has seven fixture rows, not a verified
 See the quickstart for local backend inspection and the steps required for an
 honest dataset-replay, PCAP and live demonstration. Do not treat the current
 Compose file as a working one-command full-stack deployment.
+
+## Retraining milestone
+
+The corrected notebook now delegates to a shared capture/training/serving package.
+See [training and backend instructions](ml/training/README.md) for setup, manifest
+format, mismatch checks and supported inputs. [Recovery findings](ml/provenance/README.md)
+explain why the published supplementary extractor cannot certify the old model.
+New models are unavailable until you retrain; the API never substitutes synthetic
+weights. The original notebook is preserved as `ciciot23_training_legacy.ipynb`.

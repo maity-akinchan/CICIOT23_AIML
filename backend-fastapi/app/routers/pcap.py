@@ -1,27 +1,29 @@
 import io
-from fastapi import APIRouter, UploadFile, Request, HTTPException
-from app.services.pcap_runner import csv_windows,pcap_windows
-from app.routers.ingest import _predict
+from uuid import uuid4
+from fastapi import APIRouter,UploadFile,Request,HTTPException
+from starlette.concurrency import run_in_threadpool
+from app.services.pcap_runner import pcap_windows
+from app.routers.ingest import _response
 router=APIRouter()
 
 @router.post('/pcap/upload')
 async def upload(request:Request,file:UploadFile):
-    data=await file.read(32*1024*1024+1)
-    if len(data)>32*1024*1024: raise HTTPException(413,'Maximum upload size is 32 MiB')
-    suffix=(file.filename or '').rsplit('.',1)[-1].lower()
-    if suffix not in ('csv','pcap','pcapng'): raise HTTPException(415,'Upload a CSV, PCAP or PCAPNG file')
-    counts=dict(processed_windows=0,benign_count=0,dos_count=0,ddos_count=0)
-    try:
-        windows=csv_windows(data.decode('utf-8-sig')) if suffix=='csv' else pcap_windows(io.BytesIO(data))
-        batch=[]
-        for window in windows:
-            batch.append(window)
-            if len(batch)==100:
-                result=await _predict(request,batch)
-                for key in counts:counts[key]+=getattr(result,key)
-                batch=[]
-        if batch:
-            result=await _predict(request,batch)
-            for key in counts:counts[key]+=getattr(result,key)
-    except (ValueError,UnicodeError) as exc: raise HTTPException(422,str(exc)) from exc
-    return counts
+    engine=request.app.state.inference_engine
+    if not engine.is_loaded:raise HTTPException(503,engine.error)
+    try:data=await file.read(32*1024*1024+1)
+    finally:await file.close()
+    if len(data)>32*1024*1024:raise HTTPException(413,'Maximum upload size is 32 MiB')
+    if not (file.filename or '').lower().endswith('.pcap'):raise HTTPException(415,'Only classic Ethernet PCAP is supported by this contract')
+    session=str(uuid4())
+    def analyze():
+        windows=list(pcap_windows(io.BytesIO(data)))
+        if len(windows)>10000:raise ValueError('Upload exceeds 10,000 windows')
+        for window in windows:window.capture_session_id=session
+        predictions=engine.predict_batch(windows) if windows else []
+        with request.app.state.sessions.begin() as db:
+            request.app.state.incidents.record(db,windows,predictions)
+        result=_response(predictions)
+        return {k:getattr(result,k) for k in ('processed_windows','benign_count','dos_count','ddos_count')} | {'capture_session_id':session,'artifact_sha256':engine.bundle['artifact_sha256']}
+    async with request.app.state.ingest_lock:
+        try:return await run_in_threadpool(analyze)
+        except ValueError as exc:raise HTTPException(422,str(exc)) from exc

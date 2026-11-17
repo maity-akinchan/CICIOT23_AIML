@@ -1,3 +1,9 @@
+> Follow-up (2026-11-16): extractor recovery, a new shared capture contract,
+> corrected retraining notebook, strict artifact loading and backend parity tests
+> have been implemented. The findings below describe the earlier review snapshot.
+> See [recovery evidence](../ml/provenance/README.md) and
+> [retraining instructions](../ml/training/README.md) for current behavior.
+
 # Project audit: training to real application
 
 **Date:** 2026-11-15 (Asia/Kolkata).

@@ -1,3 +1,9 @@
+> Retraining update (2026-11-16): the new notebook and FastAPI use the shared
+> `sentinel_ml` package. See [training and API instructions](../ml/training/README.md).
+> Supported trained-model IDs are `xgb`, `rf`, `lr`; they are unavailable until
+> the corrected capture-based training completes. The legacy artifact is not
+> loaded into this new measurement contract. Observe-only controls are enforced.
+
 # AIML demonstration dashboard — v3
 
 **Status:** target UI. The current React app entry points and components are

@@ -21,24 +21,24 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    artifact = Path(__file__).resolve().parents[2] / "ml" / "artifacts" / "ciciot_22f_xgb.joblib"
-    engine = InferenceEngine(artifact)
-    try:
-        engine.load()
-    except Exception:
-        logger.exception("Unable to load the configured ML artifact")
-        raise
+    import os
+    import asyncio
+    app.state.ingest_lock = asyncio.Lock()
+    model_dir = Path(os.getenv('MODEL_DIR', str(Path(__file__).resolve().parents[2] / 'ml/artifacts/retrained')))
     app.state.db_engine, app.state.sessions = initialize()
     app.state.incidents = IncidentManager()
     from app.services.auto_blocker import AutoBlocker
     app.state.auto_blocker = AutoBlocker()
     app.state.registry = {}
-    for model_id in ("xgb", "brf", "svm", "lr"):
-        candidate = engine if model_id == "xgb" else InferenceEngine(artifact.with_name(f"ciciot_22f_{model_id}.joblib"))
-        if model_id != "xgb": candidate.load()
-        candidate.bundle["model_id"] = model_id
+    for model_id in ('xgb','rf','lr'):
+        candidate = InferenceEngine(model_dir / f'ciciot_22f_{model_id}.joblib')
+        try:
+            candidate.load()
+        except Exception as exc:
+            candidate.error = str(exc)
+            logger.warning('Model %s unavailable: %s', model_id, exc)
         app.state.registry[model_id] = candidate
-    app.state.inference_engine = engine
+    app.state.inference_engine = app.state.registry['xgb']
     app.state.ws_manager = manager
     app.state.replay = dict(is_running=False, speed_fps=10, rows_streamed=0)
     app.state.replay_task = None
@@ -66,7 +66,7 @@ async def unhandled_exception(request: Request, exc: Exception) -> JSONResponse:
 async def health() -> dict[str, object]:
     engine = app.state.inference_engine
     return {"status": "ok", "model_loaded": engine.is_loaded,
-            "is_bootstrap_model": engine.is_bootstrap_model}
+            "is_bootstrap_model": False, "reason": engine.error}
 
 
 app.include_router(ingest.router, prefix="/api/v1")
@@ -83,3 +83,8 @@ app.include_router(pcap.router,prefix='/api/v1')
 
 from app.routers import replay
 app.include_router(replay.router,prefix="/api/v1")
+
+@app.get('/api/v1/contracts/current')
+def contract():
+    from sentinel_ml.contract import SPEC, CONTRACT_HASH
+    return {'specification':SPEC,'contract_hash':CONTRACT_HASH}

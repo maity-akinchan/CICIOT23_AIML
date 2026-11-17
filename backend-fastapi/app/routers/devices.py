@@ -78,21 +78,7 @@ def history(device_id:str,request:Request):
 
 @router.post('/api/devices/{device_id}/action')
 async def action(device_id:str,payload:Action,request:Request):
-    with request.app.state.sessions.begin() as db:
-        d=find(db,device_id)
-        if payload.action=='AUTO_BLOCK':
-            if payload.enabled is None: raise HTTPException(422,'enabled is required')
-            d.auto_block_enabled=payload.enabled
-            return serialize(d)
-        if payload.action in ('BLOCK_IP','UNBLOCK_IP','SET_DNS') and payload.ip is None:
-            raise HTTPException(422,'ip is required')
-        socket=connections.get(device_id)
-        if socket is None: raise HTTPException(409,'Device control channel is offline')
-        command={'command_id':str(uuid4()),'action':payload.action,'payload':{'ip':str(payload.ip) if payload.ip else None,'reason':payload.reason}}
-        await socket.send_json(command)
-        db.add(DeviceAction(device_id=device_id,triggered_by='ADMIN_MANUAL',action_type=payload.action,
-                            target_value=str(payload.ip or ''),reason=payload.reason))
-    return {**command,'status':'DISPATCHED'}
+    raise HTTPException(403, 'Device actions are disabled: observe-only project mode')
 
 @router.websocket('/ws/agent/{device_id}')
 async def agent(socket:WebSocket,device_id:str,token:str=''):

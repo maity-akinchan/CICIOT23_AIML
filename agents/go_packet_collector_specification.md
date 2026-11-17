@@ -1,3 +1,14 @@
+> Implementation update (2026-11-16): `sentinel_ml.contract` and
+> `sentinel_ml.capture` are the executable specification for new retraining.
+> See [training instructions](../ml/training/README.md) and
+> [extractor recovery evidence](../ml/provenance/README.md). This update supersedes
+> the candidate-policy details below where they differ. The implemented subset is
+> classic Ethernet PCAP, unfragmented IPv4 TCP/UDP/ICMP only; other formats reject.
+> Training and application share exactly the same extractor and matrix builder.
+> New bundles require the contract hash and passing golden-row verification.
+> No implicit bootstrap, imputation, legacy-model conversion or auto-blocking.
+> The historical notebook is `_legacy`; the main notebook is the corrected retraining workflow.
+
 # Capture collector and Go integration — v3
 
 **Status:** target for M3/M4; current Go source files are empty. A collector is a

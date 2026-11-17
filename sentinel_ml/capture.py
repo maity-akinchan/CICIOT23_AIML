@@ -1,0 +1,76 @@
+"""Single reference extractor used by dataset construction and FastAPI."""
+from collections import Counter
+from pathlib import Path
+import struct
+import socket
+import dpkt
+import numpy as np
+from .contract import BASE, CONTRACT_ID, CONTRACT_HASH
+
+def summarize(packets):
+    n=len(packets);duration=max(packets[-1]['ts']-packets[0]['ts'],1e-6)
+    f=dict.fromkeys(BASE,0.0)
+    f.update(flow_duration=duration,Rate=n/duration,Header_Length=float(np.mean([p['header'] for p in packets])),
+             Duration=float(np.mean([p['ttl'] for p in packets])),AVG=float(np.mean([p['size'] for p in packets])),Std=float(np.std([p['size'] for p in packets])))
+    for name,mask in [('fin',1),('syn',2),('rst',4),('psh',8),('ack',16)]:
+        count=sum(bool(p['flags']&mask) for p in packets);f[name+'_flag_number']=count/n
+        if name!='psh':f[name+'_count']=count
+    for name in ('TCP','UDP','ICMP'):f[name]=sum(p['protocol']==name for p in packets)/n
+    return {**{k:packets[0][k] for k in ('src_ip','dst_ip','src_port','dst_port','protocol','src_mac','dst_mac')},
+            'timestamp_start':packets[0]['ts'],'timestamp_end':packets[-1]['ts'],'packet_count':n,
+            'features_18':f,'feature_contract_id':CONTRACT_ID,'contract_hash':CONTRACT_HASH}
+
+def extract(stream, diagnostics=None):
+    """Strict bounded-format reader preserving original wire length; no silent fallback."""
+    stats=diagnostics if diagnostics is not None else {}
+    stats.update(packets=0,windows=0,insufficient_packets=0)
+    header=stream.read(24)
+    endian={'d4c3b2a1':'<','a1b2c3d4':'>','4d3cb2a1':'<','a1b23c4d':'>'}.get(header[:4].hex())
+    if len(header)!=24 or endian is None:raise ValueError('Expected classic PCAP (PCAPNG unsupported)')
+    if struct.unpack(endian+'I',header[20:24])[0]!=1:raise ValueError('Only Ethernet PCAP is supported')
+    scale=1e9 if header[:4].hex() in ('4d3cb2a1','a1b23c4d') else 1e6
+    groups={};previous=-float('inf')
+    def close(key):
+        packets=groups.pop(key)
+        if len(packets)<5:stats['insufficient_packets']+=len(packets);return None
+        stats['windows']+=1;return summarize(packets)
+    while True:
+        raw_header=stream.read(16)
+        if not raw_header:break
+        if len(raw_header)!=16:raise ValueError('Truncated PCAP record header')
+        seconds,frac,caplen,wirelen=struct.unpack(endian+'IIII',raw_header)
+        if caplen>1048576 or caplen!=wirelen:raise ValueError('Truncated/oversized packet is unsupported')
+        raw=stream.read(caplen)
+        if len(raw)!=caplen:raise ValueError('Truncated PCAP packet')
+        ts=seconds+frac/scale
+        if ts<previous:raise ValueError('Out-of-order packet timestamps')
+        previous=ts;stats['packets']+=1
+        for key in list(groups):
+            if ts-groups[key][0]['ts']>=2:
+                row=close(key)
+                if row:yield row
+        try:eth=dpkt.ethernet.Ethernet(raw)
+        except dpkt.UnpackError as exc:raise ValueError('Malformed Ethernet packet') from exc
+        if eth.type==dpkt.ethernet.ETH_TYPE_ARP:continue
+        if eth.type!=dpkt.ethernet.ETH_TYPE_IP:raise ValueError('Unsupported Ethernet protocol (requires IPv4)')
+        ip=eth.data
+        if not isinstance(ip,dpkt.ip.IP) or ip.offset or ip.mf:raise ValueError('Fragments/malformed IPv4 unsupported')
+        t=ip.data
+        if isinstance(t,dpkt.tcp.TCP):protocol='TCP';transport=t.off*4
+        elif isinstance(t,dpkt.udp.UDP):protocol='UDP';transport=8
+        elif isinstance(t,dpkt.icmp.ICMP):protocol='ICMP';transport=8
+        else:raise ValueError('Unsupported transport')
+        if ip.hl*4+transport>len(ip):raise ValueError('Incomplete packet headers')
+        src=socket.inet_ntoa(ip.src);dst=socket.inet_ntoa(ip.dst)
+        sport=getattr(t,'sport',0);dport=getattr(t,'dport',0)
+        key=(src,dst,protocol,sport,dport)
+        if key not in groups and len(groups)>=4096:raise ValueError('Active flow capacity exceeded')
+        p=dict(ts=ts,size=wirelen,header=ip.hl*4+transport,ttl=ip.ttl,src_ip=src,dst_ip=dst,src_port=sport,dst_port=dport,
+               protocol=protocol,flags=t.flags if protocol=='TCP' else 0,src_mac=eth.src.hex(':'),dst_mac=eth.dst.hex(':'))
+        groups.setdefault(key,[]).append(p)
+        if len(groups[key])==100:
+            row=close(key)
+            if row:yield row
+    for key in list(groups):
+        row=close(key)
+        if row:yield row

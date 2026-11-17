@@ -1,7 +1,7 @@
 """Transactional flow persistence and incident aggregation."""
 import json
 from collections import defaultdict, deque
-from datetime import timedelta
+from datetime import timedelta, timezone
 from uuid import uuid4
 from sqlalchemy import select
 from app.models import Flow, Device, Incident, Alert
@@ -30,13 +30,19 @@ class IncidentManager:
         flows, alerts, incidents = [], [], []
         for payload, prediction in zip(payloads, predictions):
             p = prediction.model_dump(mode='json')
-            now = payload.timestamp.replace(tzinfo=None)
-            flow = Flow(window_id=payload.window_id or str(uuid4()), timestamp=now,
+            existing = db.scalar(select(Flow).where(Flow.window_id == payload.window_id)) if payload.window_id else None
+            if existing is not None:
+                if existing.features_22_json != json.dumps(p['features_22']) or existing.src_ip != payload.src_ip or existing.dst_ip != payload.dst_ip:
+                    raise ValueError('Observation ID reused with different content')
+                flows.append(serialize(existing))
+                continue
+            now = payload.timestamp.astimezone(timezone.utc).replace(tzinfo=None)
+            flow = Flow(capture_session_id=payload.capture_session_id,window_id=payload.window_id or str(uuid4()), timestamp=now,
                 capture_mode=payload.capture_mode, src_ip=payload.src_ip, dst_ip=payload.dst_ip,
                 src_mac=payload.src_mac, dst_mac=payload.dst_mac, src_port=payload.src_port,
                 dst_port=payload.dst_port, protocol=payload.dominant_protocol, packet_count=payload.packet_count,
                 predicted_class=prediction.predicted_class, confidence=prediction.confidence_score,
-                model_used=prediction.model_used, probabilities_json=json.dumps(p['probabilities']),
+                model_used=prediction.model_used, artifact_sha256=prediction.artifact_sha256, probabilities_json=json.dumps(p['probabilities']),
                 top_anomalies_json=json.dumps(p['top_anomalies']), features_22_json=json.dumps(p['features_22']))
             db.add(flow)
             for ip, mac in {(payload.src_ip, payload.src_mac), (payload.dst_ip, payload.dst_mac)}:
@@ -50,20 +56,20 @@ class IncidentManager:
                 device.last_seen = now
             if prediction.is_anomaly:
                 self.benign_counts[payload.dst_ip] = 0
-                key = (payload.dst_ip, prediction.predicted_class)
+                key = (payload.dst_ip, prediction.predicted_class, payload.capture_session_id)
                 queue = self.pending[key]
                 queue.append(flow)
                 while queue and (now - queue[0].timestamp).total_seconds() > 5:
                     queue.popleft()
                 incident = db.scalar(select(Incident).where(Incident.target_ip == key[0],
-                    Incident.attack_category == key[1], Incident.status == 'ACTIVE',
+                    Incident.attack_category == key[1], Incident.capture_session_id == key[2], Incident.status == 'ACTIVE',
                     Incident.last_seen_at >= now - timedelta(seconds=15)).order_by(Incident.id.desc()))
                 if incident or len(queue) >= (1 if payload.capture_mode == 'PCAP_UPLOAD' else 3):
                     batch = list(queue)
                     queue.clear()
                     fresh = incident is None
                     if fresh:
-                        incident = Incident(title=f'{flow.protocol} {key[1]} Flood targeting {key[0]}',
+                        incident = Incident(capture_session_id=payload.capture_session_id,title=f'{flow.protocol} {key[1]} Flood targeting {key[0]}',
                             attack_category=key[1], severity='CRITICAL' if key[1]=='DDoS' else 'HIGH',
                             target_ip=key[0], source_ips_json='[]', started_at=batch[0].timestamp,
                             last_seen_at=now, affected_flows_count=0, peak_rate_pps=0, model_used=flow.model_used)
