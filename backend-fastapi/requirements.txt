@@ -8,7 +8,9 @@ websockets>=12.0
 numpy>=1.26.0
 pandas>=2.2.0
 scikit-learn==1.6.1
-xgboost>=2.0.3
+# The supplied historical .joblib contains a pickled XGBoost booster and must
+# be loaded with the compatible runtime rather than a newer major version.
+xgboost==2.0.3
 imbalanced-learn>=0.12.0
 joblib>=1.3.2
 pytest>=8.1.0

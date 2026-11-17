@@ -9,6 +9,9 @@ import {
 } from '../types/telemetry';
 
 const STORAGE_KEY_API_URL = 'sentinel_api_base_url';
+const CSV_FEATURE_CONTRACT_ID = 'ciciot23-kaggle-csv22-v2';
+const CSV_FEATURE_CONTRACT_HASH =
+  '7c9b337a461ca64acabd1b62dd44025b2d3c46148888151a98d137468fa16506';
 
 export function getApiBaseUrl(): string {
   if (typeof window !== 'undefined') {
@@ -154,6 +157,8 @@ export async function sendLiveTrafficBatchToFastApi(
   });
 
   const { data } = await apiClient.post('/api/v1/predict/batch', {
+    feature_contract_id: CSV_FEATURE_CONTRACT_ID,
+    contract_hash: CSV_FEATURE_CONTRACT_HASH,
     data: batchPayload,
   });
   return BatchPredictionResponseSchema.parse(data);
@@ -328,6 +333,8 @@ export async function analyzeUploadedFile(file: File): Promise<UploadAnalysisSum
   });
 
   const { data } = await apiClient.post('/api/v1/predict/batch', {
+    feature_contract_id: CSV_FEATURE_CONTRACT_ID,
+    contract_hash: CSV_FEATURE_CONTRACT_HASH,
     data: payloads,
   });
   const parsed = BatchPredictionResponseSchema.parse(data);
