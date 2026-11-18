@@ -91,9 +91,8 @@ async def csv_upload(request:Request,file:UploadFile):
     engine=request.app.state.inference_engine
     if not engine.is_loaded:raise HTTPException(503,engine.error)
     if engine.bundle['contract_id'] not in (CONTRACT_ID,'ciciot23-legacy22-v1'):raise HTTPException(422,'Select a Kaggle CSV-trained model')
-    try:data=await file.read(32*1024*1024+1)
+    try:data=await file.read()
     finally:await file.close()
-    if len(data)>32*1024*1024:raise HTTPException(413,'Maximum upload size is 32 MiB')
     def analyze():
         frame=pd.read_csv(io.BytesIO(data))
         if len(frame)>10000:raise ValueError('Maximum 10,000 rows per request')
