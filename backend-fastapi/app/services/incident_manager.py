@@ -29,11 +29,12 @@ class IncidentManager:
         self.benign_counts = {}
         self.pending = defaultdict(lambda: deque(maxlen=10000))
 
-    def record(self, db, payloads, predictions):
+    def record(self, db, payloads, predictions, fresh_upload=False):
+        devices = {}
         flows, alerts, incidents = [], [], []
         for payload, prediction in zip(payloads, predictions):
             p = prediction.model_dump(mode='json')
-            existing = db.scalar(select(Flow).where(Flow.window_id == payload.window_id)) if payload.window_id else None
+            existing = db.scalar(select(Flow).where(Flow.window_id == payload.window_id)) if payload.window_id and not fresh_upload else None
             if existing is not None:
                 if existing.features_22_json != json.dumps(p['features_22']) or existing.src_ip != payload.src_ip or existing.dst_ip != payload.dst_ip:
                     raise ValueError('Observation ID reused with different content')
@@ -49,17 +50,21 @@ class IncidentManager:
                 top_anomalies_json=json.dumps(p['top_anomalies']), features_22_json=json.dumps(p['features_22']))
             db.add(flow)
             for ip, mac in {(payload.src_ip, payload.src_mac), (payload.dst_ip, payload.dst_mac)}:
-                device = db.scalar(select(Device).where(Device.ip_address == ip))
+                device = devices.get(ip)
+                if device is None:
+                    device = db.scalar(select(Device).where(Device.ip_address == ip))
                 if device is None:
                     device = Device(device_id='observed-' + ip, ip_address=ip, mac_address=mac,
                                     total_flows_seen=0, attack_flows_seen=0)
                     db.add(device)
+                devices[ip] = device
                 device.total_flows_seen += 1
                 device.attack_flows_seen += int(prediction.is_anomaly and prediction.input_representation != 'packet_approximation')
                 device.last_seen = now
             if prediction.input_representation == 'packet_approximation':
-                db.flush()
-                flows.append(serialize(flow))
+                if not fresh_upload:
+                    db.flush()
+                    flows.append(serialize(flow))
                 continue
             if prediction.is_anomaly:
                 self.benign_counts[payload.dst_ip] = 0

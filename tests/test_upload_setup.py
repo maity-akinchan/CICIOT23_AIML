@@ -129,3 +129,34 @@ def test_upload_out_of_order_matches_sorted_capture(monkeypatch, tmp_path):
         result = client.post('/api/v1/pcap/upload', files={'file': (paths[0].name, stream)})
     assert result.status_code == 200, result.text
     assert result.json()['processed_windows'] == 2
+
+
+def test_pcap_extraction_leaves_live_ingestion_available(monkeypatch, tmp_path):
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Event
+    from app.routers import pcap
+    from test_pipeline import capture
+    monkeypatch.setenv('DATABASE_URL', f'sqlite:///{tmp_path}/concurrent.db')
+    monkeypatch.setenv('SENTINEL_AUTH_DISABLED', '1')
+    path = tmp_path/'sample.pcap'
+    capture(path)
+    entered, resume = Event(), Event()
+    original = pcap.pcap_windows
+
+    def pause(stream, diagnostics):
+        entered.set()
+        assert resume.wait(10)
+        yield from original(stream, diagnostics)
+
+    monkeypatch.setattr(pcap, 'pcap_windows', pause)
+    with TestClient(app) as client, ThreadPoolExecutor() as executor:
+        upload = executor.submit(client.post, '/api/v1/pcap/upload',
+                                 files={'file': (path.name, path.read_bytes())})
+        try:
+            assert entered.wait(5)
+            assert not app.state.ingest_lock.locked()
+            assert client.get('/health').status_code == 200
+            assert client.get('/api/v1/alerts').status_code == 200
+        finally:
+            resume.set()
+        assert upload.result(timeout=10).status_code == 200

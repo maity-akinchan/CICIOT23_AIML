@@ -34,7 +34,7 @@ def ordered_records(stream, endian, resources):
     """Preserve equal-time order; sort record offsets on disk only if needed."""
     start=stream.tell()
 
-    def records():
+    def records(read_payload=True):
         while True:
             offset=stream.tell()
             header=stream.read(16)
@@ -45,14 +45,18 @@ def ordered_records(stream, endian, resources):
             seconds, fraction, caplen, wirelen=struct.unpack(endian+'IIII',header)
             if caplen>1048576 or caplen!=wirelen:
                 raise ValueError('Truncated/oversized packet is unsupported')
-            raw=stream.read(caplen)
-            if len(raw)!=caplen:
-                raise ValueError('Truncated PCAP packet')
+            if read_payload:
+                raw=stream.read(caplen)
+                if len(raw)!=caplen:
+                    raise ValueError('Truncated PCAP packet')
+            else:
+                raw=None
+                stream.seek(caplen,1)
             yield offset, seconds, fraction, raw, wirelen
 
     previous=(-1,-1)
     unordered=False
-    for _, seconds, fraction, _, _ in records():
+    for _, seconds, fraction, _, _ in records(False):
         if (seconds,fraction)<previous:
             unordered=True
             break
@@ -67,13 +71,16 @@ def ordered_records(stream, endian, resources):
     database.execute('PRAGMA temp_store=FILE')
     database.execute('CREATE TABLE records (seconds INTEGER, fraction INTEGER, offset INTEGER)')
     database.executemany('INSERT INTO records VALUES (?,?,?)',
-                        ((seconds,fraction,offset) for offset,seconds,fraction,_,_ in records()))
+                        ((seconds,fraction,offset) for offset,seconds,fraction,_,_ in records(False)))
     database.execute('CREATE INDEX record_time ON records(seconds,fraction,offset)')
     for seconds,fraction,offset in database.execute('SELECT seconds,fraction,offset FROM records ORDER BY seconds,fraction,offset'):
         stream.seek(offset)
         header=stream.read(16)
         _,_,caplen,wirelen=struct.unpack(endian+'IIII',header)
-        yield seconds,fraction,stream.read(caplen),wirelen
+        raw=stream.read(caplen)
+        if len(raw)!=caplen:
+            raise ValueError("Truncated PCAP packet")
+        yield seconds,fraction,raw,wirelen
 
 def _extract(stream, diagnostics, resources):
     stats=diagnostics if diagnostics is not None else {}
@@ -85,6 +92,7 @@ def _extract(stream, diagnostics, resources):
     scale=1e9 if header[:4].hex() in ('4d3cb2a1','a1b23c4d') else 1e6
     groups=OrderedDict()
     spill=None
+    next_spill_expiry=float("inf")
     def close(packets):
         if len(packets)<5:stats['insufficient_packets']+=len(packets);return None
         stats['windows']+=1;return summarize(packets)
@@ -97,11 +105,13 @@ def _extract(stream, diagnostics, resources):
                 break
             row=close(groups.pop(oldest))
             if row:yield row
-        if spill is not None:
+        if spill is not None and ts>=next_spill_expiry:
             for (data,) in spill.execute('SELECT data FROM windows WHERE opened <= ? ORDER BY opened, rowid',(ts-2,)):
                 row=close(json.loads(data))
                 if row:yield row
             spill.execute('DELETE FROM windows WHERE opened <= ?', (ts-2,))
+            earliest=spill.execute('SELECT MIN(opened) FROM windows').fetchone()[0]
+            next_spill_expiry=earliest+2 if earliest is not None else float("inf")
         try:eth=dpkt.ethernet.Ethernet(raw)
         except dpkt.UnpackError as exc:raise ValueError('Malformed Ethernet packet') from exc
         ip=eth.data
@@ -152,6 +162,7 @@ def _extract(stream, diagnostics, resources):
             spill.execute('UPDATE windows SET data=? WHERE key=?',(json.dumps(packets),encoded))
         else:
             spill.execute('INSERT INTO windows VALUES (?,?,?)',(encoded,ts,json.dumps(packets)))
+            next_spill_expiry=min(next_spill_expiry,ts+2)
     for packets in groups.values():
         row=close(packets)
         if row:yield row

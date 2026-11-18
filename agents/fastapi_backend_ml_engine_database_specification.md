@@ -57,3 +57,10 @@ already in order use a streaming pass. Unordered captures use a temporary disk
 index of record offsets, ordered by seconds, fractional timestamp and file offset,
 preserving packet order for equal timestamps. Original timestamps and lengths
 are retained. Large unordered files require extra temporary disk and processing.
+
+PCAP extraction and inference stage batches in a private temporary file before
+taking the shared ingestion lock and opening the final database transaction.
+Malformed captures publish no results. Device lookups are cached within each
+persistence batch. Credential database access runs in a worker thread so SQLite
+writer waits do not block the event loop. Large uploads still need temporary disk
+and time for sorting, inference and final atomic persistence.

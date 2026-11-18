@@ -15,40 +15,71 @@ async def upload(request:Request,file:UploadFile):
     if not (file.filename or '').lower().endswith('.pcap'):
         await file.close()
         raise HTTPException(415,'Choose a classic .pcap file; PCAPNG is not supported')
+    from tempfile import TemporaryFile
+    import json
+    import hashlib
+    from itertools import islice
+    from app.models import CaptureSession
+    from app.schemas import FlowWindowPayload, PredictionResult
+    from app.services.incident_manager import IncidentManager
+
     session=str(uuid4())
+    staged=TemporaryFile(mode='w+t')
+    counts=dict(processed_windows=0,benign_count=0,dos_count=0,ddos_count=0)
+    diagnostics={}
+
     def analyze():
-        # UploadFile is disk-spooled by Starlette. Never read the entire capture.
-        import hashlib
-        from itertools import islice
-        from app.models import CaptureSession
-        from app.services.incident_manager import IncidentManager
-        digest=hashlib.sha256();size=0
+        digest=hashlib.sha256()
+        size=0
         file.file.seek(0)
-        while chunk:=file.file.read(1024*1024):digest.update(chunk);size+=len(chunk)
+        while chunk:=file.file.read(1024*1024):
+            digest.update(chunk)
+            size+=len(chunk)
         file.file.seek(0)
-        # Isolate transient incident state so a malformed file cannot pollute live state.
-        incidents=IncidentManager()
-        counts=dict(processed_windows=0,benign_count=0,dos_count=0,ddos_count=0)
-        diagnostics={}
         windows=iter(pcap_windows(file.file, diagnostics))
-        with request.app.state.sessions.begin() as db:
+        try:
             while batch:=list(islice(windows,256)):
-                for window in batch:window.capture_session_id=session
+                for window in batch:
+                    window.capture_session_id=session
                 predictions=engine.predict_batch(batch)
                 result=_response(predictions)
-                for key in counts:counts[key]+=getattr(result,key)
-                incidents.record(db,batch,predictions)
-                db.flush();db.expunge_all()
-                incidents.pending.clear();incidents.benign_counts.clear()
+                for key in counts:
+                    counts[key]+=getattr(result,key)
+                staged.write(json.dumps({
+                    'payloads':[p.model_dump(mode='json') for p in batch],
+                    'predictions':[p.model_dump(mode='json') for p in predictions]
+                })+'\n')
+        finally:
+            windows.close()
+        staged.seek(0)
+        return digest.hexdigest(),size
+
+    def persist(digest,size):
+        incidents=IncidentManager()
+        with request.app.state.sessions.begin() as db:
+            for line in staged:
+                batch=json.loads(line)
+                payloads=[FlowWindowPayload.model_validate(p) for p in batch['payloads']]
+                predictions=[PredictionResult.model_validate(p) for p in batch['predictions']]
+                incidents.record(db,payloads,predictions,fresh_upload=True)
+                db.flush()
+                db.expunge_all()
             db.add(CaptureSession(id=session,filename=(file.filename or 'capture.pcap')[:255],
-                file_sha256=digest.hexdigest(),size_bytes=size,
+                file_sha256=digest,size_bytes=size,
                 artifact_sha256=engine.bundle['artifact_sha256'],**counts))
-        return counts|{'coverage':diagnostics,'capture_session_id':session,'artifact_sha256':engine.bundle['artifact_sha256']}
+        return counts|{'coverage':diagnostics,'capture_session_id':session,
+                      'artifact_sha256':engine.bundle['artifact_sha256']}
+
     try:
+        # Validate and infer without occupying the live ingestion lock or writer.
+        digest,size=await run_in_threadpool(analyze)
         async with request.app.state.ingest_lock:
-            return await run_in_threadpool(analyze)
-    except (ValueError,EOFError) as exc:raise HTTPException(422,str(exc)) from exc
-    finally:await file.close()
+            return await run_in_threadpool(persist,digest,size)
+    except (ValueError,EOFError) as exc:
+        raise HTTPException(422,str(exc)) from exc
+    finally:
+        staged.close()
+        await file.close()
 
 
 @router.post('/csv/upload')
