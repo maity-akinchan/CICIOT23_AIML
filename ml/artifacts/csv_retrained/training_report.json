@@ -1,0 +1,214 @@
+{
+  "selected_model": "xgb",
+  "selection_rule": "maximum attack recall within 0.1% validation benign false-positive budget",
+  "decision_policies": {
+    "xgb": {
+      "attack_threshold": 0.8719786405563354,
+      "max_validation_false_positive_rate": 0.001,
+      "validation_benign_count": 27519,
+      "scope": "dataset_features",
+      "packet_validated": false,
+      "validation_false_positives": 27,
+      "validation_attack_recall": 0.9987568015397187,
+      "usable": true
+    }
+  },
+  "validation": {
+    "xgb": {
+      "attack_confusion_matrix": [
+        [
+          27492,
+          27
+        ],
+        [
+          1319,
+          1059654
+        ]
+      ],
+      "benign_false_positive_rate": 0.000981140303063338,
+      "attack_recall": 0.9987568015397187,
+      "test_accuracy": 0.9103842747581057,
+      "test_macro_f1": 0.8816855955948167,
+      "confusion_matrix": [
+        [
+          27492,
+          12,
+          15
+        ],
+        [
+          914,
+          836855,
+          19754
+        ],
+        [
+          405,
+          76446,
+          126599
+        ]
+      ],
+      "classification_report": {
+        "Benign": {
+          "precision": 0.9542188747353442,
+          "recall": 0.9990188596969367,
+          "f1-score": 0.976105094976034,
+          "support": 27519.0
+        },
+        "DDoS": {
+          "precision": 0.9162849975857127,
+          "recall": 0.9758980225603279,
+          "f1-score": 0.9451524590645323,
+          "support": 857523.0
+        },
+        "DoS": {
+          "precision": 0.8649363248797551,
+          "recall": 0.6222609977881544,
+          "f1-score": 0.7237992327438839,
+          "support": 203450.0
+        },
+        "accuracy": 0.9103842747581057,
+        "macro avg": {
+          "precision": 0.9118133990669374,
+          "recall": 0.8657259600151397,
+          "f1-score": 0.8816855955948167,
+          "support": 1088492.0
+        },
+        "weighted avg": {
+          "precision": 0.9076464544482837,
+          "recall": 0.9103842747581057,
+          "f1-score": 0.9045618729074569,
+          "support": 1088492.0
+        }
+      }
+    }
+  },
+  "artifact_hashes": {
+    "xgb": "2dffc7097e5f68d582edf4cd0a71aed761bd452592cbf61d7f16afdd70577f70"
+  },
+  "test": {
+    "attack_confusion_matrix": [
+      [
+        27686,
+        23
+      ],
+      [
+        1274,
+        1058952
+      ]
+    ],
+    "benign_false_positive_rate": 0.0008300552167165903,
+    "attack_recall": 0.9987983694042591,
+    "test_accuracy": 0.909743688731404,
+    "test_macro_f1": 0.8816566687539895,
+    "confusion_matrix": [
+      [
+        27686,
+        10,
+        13
+      ],
+      [
+        874,
+        834953,
+        20154
+      ],
+      [
+        400,
+        76742,
+        127103
+      ]
+    ],
+    "classification_report": {
+      "Benign": {
+        "precision": 0.9560082872928177,
+        "recall": 0.9991699447832834,
+        "f1-score": 0.9771127071238244,
+        "support": 27709.0
+      },
+      "DDoS": {
+        "precision": 0.9158148743288673,
+        "recall": 0.9754340341666462,
+        "f1-score": 0.9446847460465264,
+        "support": 855981.0
+      },
+      "DoS": {
+        "precision": 0.8630610443403273,
+        "recall": 0.6223065436118387,
+        "f1-score": 0.7231725530916178,
+        "support": 204245.0
+      },
+      "accuracy": 0.909743688731404,
+      "macro avg": {
+        "precision": 0.911628068654004,
+        "recall": 0.8656368408539228,
+        "f1-score": 0.8816566687539895,
+        "support": 1087935.0
+      },
+      "weighted avg": {
+        "precision": 0.9069347604193128,
+        "recall": 0.909743688731404,
+        "f1-score": 0.9039247636242452,
+        "support": 1087935.0
+      }
+    }
+  },
+  "majority_test_accuracy": 0.7867942478181141,
+  "provenance": {
+    "dataset": "himadri07/ciciot2023",
+    "contract_id": "ciciot23-kaggle-csv22-v2",
+    "contract_hash": "7c9b337a461ca64acabd1b62dd44025b2d3c46148888151a98d137468fa16506",
+    "sources": [
+      {
+        "split": "train",
+        "path": "/workspace/work/kaggle-ciciot23/train.csv.gz",
+        "sha256": "fd214f64f6271f0b38f827efa4b20fbbdbbf11e477a4e548e2ed20760d89dc32",
+        "raw_rows": 5491971,
+        "excluded_other_labels": 413277,
+        "invalid_rows": 0,
+        "retained_rows": 3670479,
+        "class_counts": {
+          "DDoS": 2704388,
+          "DoS": 839703,
+          "Benign": 126388
+        }
+      },
+      {
+        "split": "validation",
+        "path": "/workspace/work/kaggle-ciciot23/validation.csv.gz",
+        "sha256": "0466eb4b3874c57eb3a569db260c020f4f7315ead656762a674b851c26ca2671",
+        "raw_rows": 1176851,
+        "excluded_other_labels": 88359,
+        "invalid_rows": 0,
+        "retained_rows": 1088492,
+        "class_counts": {
+          "DDoS": 857523,
+          "DoS": 203450,
+          "Benign": 27519
+        }
+      },
+      {
+        "split": "test",
+        "path": "/workspace/work/kaggle-ciciot23/test.csv.gz",
+        "sha256": "a3e1671a92c292612fa117f936bc116f012fff683e296cd76d2e6f365e73ffb1",
+        "raw_rows": 1176851,
+        "excluded_other_labels": 88916,
+        "invalid_rows": 0,
+        "retained_rows": 1087935,
+        "class_counts": {
+          "DDoS": 855981,
+          "DoS": 204245,
+          "Benign": 27709
+        }
+      }
+    ],
+    "exact_feature_overlap": {
+      "train/validation": 293823,
+      "train/test": 293660,
+      "validation/test": 129452
+    },
+    "capture_group_split_verified": false,
+    "pcap_compatible": false,
+    "limitations": [
+      "Supplied row splits retained; recording independence unknown",
+      "Exact overlap reported, not used to modify holdout labels or training"
+    ]
+  }
+}
