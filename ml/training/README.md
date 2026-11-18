@@ -85,3 +85,8 @@ decision behavior. This CSV objective does not certify packet compatibility.
 The 0.1% budget is an initial engineering choice. Evaluate recall and final-test
 false positives before deployment. Independent local benign traffic and known
 attack intervals are needed to assess actual application performance.
+
+The reader also accepts train.csv.gz, validation.csv.gz and test.csv.gz directly.
+Use exactly one compressed or uncompressed file for each split. To train only
+the requested XGBoost candidate, call
+`train(DATASET_ROOT, OUTPUT_DIR, model_names=['xgb'])`.

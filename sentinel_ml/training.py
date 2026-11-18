@@ -26,7 +26,7 @@ def metrics(y,p):
                 confusion_matrix=confusion_matrix(y,p,labels=CLASSES).tolist(),
                 classification_report=classification_report(y,p,labels=CLASSES,output_dict=True,zero_division=0))
 
-def fit_export(frame,provenance,output_dir,preprocess=matrix,contract_id=CONTRACT_ID,contract_hash=CONTRACT_HASH):
+def fit_export(frame,provenance,output_dir,preprocess=matrix,contract_id=CONTRACT_ID,contract_hash=CONTRACT_HASH,model_names=None):
     X={s:preprocess(frame.loc[frame.split==s,BASE]) for s in ('train','validation','test')}
     y={s:frame.loc[frame.split==s,'label'] for s in X}
     encoder=LabelEncoder().fit(y['train'])
@@ -35,6 +35,11 @@ def fit_export(frame,provenance,output_dir,preprocess=matrix,contract_id=CONTRAC
                             objective='multi:softprob',eval_metric='mlogloss',random_state=42,n_jobs=2,tree_method='hist'),
         'rf':RandomForestClassifier(n_estimators=200,min_samples_leaf=5,class_weight='balanced',random_state=42,n_jobs=2),
         'lr':make_pipeline(StandardScaler(),LogisticRegression(max_iter=2000,class_weight='balanced',random_state=42))}
+    if model_names is not None:
+        unknown=set(model_names)-set(estimators)
+        if unknown or not model_names:
+            raise ValueError("Choose at least one supported model: xgb, rf, lr")
+        estimators={name:estimators[name] for name in model_names}
     validation={}
     policies={}
     for name,model in estimators.items():

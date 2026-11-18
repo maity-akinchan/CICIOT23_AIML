@@ -17,7 +17,7 @@ def labels(series):
 def build_dataset(root):
     root=Path(root);parts=[];sources=[];fingerprints={}
     for split,folder,name in [('train','train','train.csv'),('validation','validation','validation.csv'),('test','test','test.csv')]:
-        candidates=list(root.rglob(name))
+        candidates=list(root.rglob(name))+list(root.rglob(name+".gz"))
         if len(candidates)!=1:raise ValueError(f'Expected exactly one {name} below {root}')
         path=candidates[0]
         raw=pd.read_csv(path,usecols=list(BASE)+['label'],dtype={k:'float32' for k in BASE})
@@ -43,6 +43,6 @@ def build_dataset(root):
         capture_group_split_verified=False,pcap_compatible=False,
         limitations=['Supplied row splits retained; recording independence unknown','Exact overlap reported, not used to modify holdout labels or training'])
 
-def train(root,output_dir):
+def train(root,output_dir,model_names=None):
     frame,provenance=build_dataset(root)
-    return fit_export(frame,provenance,output_dir,preprocess=matrix,contract_id=CONTRACT_ID,contract_hash=CONTRACT_HASH)
+    return fit_export(frame,provenance,output_dir,preprocess=matrix,contract_id=CONTRACT_ID,contract_hash=CONTRACT_HASH,model_names=model_names)
