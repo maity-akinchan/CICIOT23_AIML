@@ -31,7 +31,7 @@ def extract(stream, diagnostics=None):
 
 def _extract(stream, diagnostics, resources):
     stats=diagnostics if diagnostics is not None else {}
-    stats.update(packets=0,windows=0,insufficient_packets=0)
+    stats.update(packets=0,windows=0,insufficient_packets=0,skipped_packets=0)
     header=stream.read(24)
     endian={'d4c3b2a1':'<','a1b2c3d4':'>','4d3cb2a1':'<','a1b23c4d':'>'}.get(header[:4].hex())
     if len(header)!=24 or endian is None:raise ValueError('Expected classic PCAP (PCAPNG unsupported)')
@@ -67,15 +67,21 @@ def _extract(stream, diagnostics, resources):
             spill.execute('DELETE FROM windows WHERE opened <= ?', (ts-2,))
         try:eth=dpkt.ethernet.Ethernet(raw)
         except dpkt.UnpackError as exc:raise ValueError('Malformed Ethernet packet') from exc
-        if eth.type==dpkt.ethernet.ETH_TYPE_ARP:continue
-        if eth.type!=dpkt.ethernet.ETH_TYPE_IP:raise ValueError('Unsupported Ethernet protocol (requires IPv4)')
         ip=eth.data
-        if not isinstance(ip,dpkt.ip.IP) or ip.offset or ip.mf:raise ValueError('Fragments/malformed IPv4 unsupported')
+        # dpkt unwraps VLAN tags into eth.data; use the decoded payload type.
+        if not isinstance(ip,dpkt.ip.IP):
+            stats['skipped_packets']+=1
+            continue
+        if ip.offset or ip.mf:
+            stats['skipped_packets']+=1
+            continue
         t=ip.data
         if isinstance(t,dpkt.tcp.TCP):protocol='TCP';transport=t.off*4
         elif isinstance(t,dpkt.udp.UDP):protocol='UDP';transport=8
         elif isinstance(t,dpkt.icmp.ICMP):protocol='ICMP';transport=8
-        else:raise ValueError('Unsupported transport')
+        else:
+            stats['skipped_packets']+=1
+            continue
         if ip.hl*4+transport>len(ip):raise ValueError('Incomplete packet headers')
         src=socket.inet_ntoa(ip.src);dst=socket.inet_ntoa(ip.dst)
         sport=getattr(t,'sport',0);dport=getattr(t,'dport',0)

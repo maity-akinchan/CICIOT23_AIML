@@ -99,7 +99,7 @@ export interface UploadAnalysisSummary {
   captureSessionId?: string;
   fileName: string;
   processedWindows: number;
-  coverage?: {packets: number; insufficient_packets: number};
+  coverage?: {packets: number; insufficient_packets: number; skipped_packets: number};
   benignCount: number;
   dosCount: number;
   ddosCount: number;

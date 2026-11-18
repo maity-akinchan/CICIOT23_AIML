@@ -81,4 +81,24 @@ def test_upload_preserves_interleaved_overflow_windows(monkeypatch, tmp_path):
         result = client.post('/api/v1/pcap/upload', files={'file': (path.name, stream)})
         assert result.status_code == 200, result.text
         assert result.json()['processed_windows'] == 3
-        assert result.json()['coverage'] == dict(packets=4111, windows=3, insufficient_packets=4096)
+        assert result.json()['coverage'] == dict(packets=4111, windows=3, insufficient_packets=4096, skipped_packets=0)
+
+
+def test_upload_mixed_ethernet_protocols(monkeypatch, tmp_path):
+    monkeypatch.setenv('DATABASE_URL', f'sqlite:///{tmp_path}/mixed.db')
+    monkeypatch.setenv('SENTINEL_AUTH_DISABLED', '1')
+    path = tmp_path / 'mixed.pcap'
+    with path.open('wb') as stream:
+        writer = dpkt.pcap.Writer(stream)
+        writer.writepkt(bytes(dpkt.ethernet.Ethernet(type=0x86dd, data=bytes(40))), ts=1)
+        writer.writepkt(bytes(dpkt.ethernet.Ethernet(type=0x88cc, data=b'abc')), ts=1.1)
+        udp = dpkt.udp.UDP(sport=1, dport=53)
+        ip = dpkt.ip.IP(src=b'\xc0\x00\x02\x01', dst=b'\xc0\x00\x02\x02', p=17, data=udp)
+        packet = bytes(dpkt.ethernet.Ethernet(type=2048, data=ip))
+        for i in range(5):
+            writer.writepkt(packet, ts=1.2 + i * .01)
+    with TestClient(app) as client, path.open('rb') as stream:
+        result = client.post('/api/v1/pcap/upload', files={'file': (path.name, stream)})
+    assert result.status_code == 200, result.text
+    assert result.json()['processed_windows'] == 1
+    assert result.json()['coverage']['skipped_packets'] == 2
