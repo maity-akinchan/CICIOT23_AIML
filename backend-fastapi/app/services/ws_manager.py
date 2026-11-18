@@ -17,8 +17,8 @@ class ConnectionManager:
         self.active_connections: set[WebSocket] = set()
         self.telemetry_buffer: deque[dict[str, Any]] = deque(maxlen=10_000)
 
-    async def connect(self, websocket: WebSocket) -> None:
-        await websocket.accept()
+    async def connect(self, websocket: WebSocket, subprotocol: str | None = None) -> None:
+        await websocket.accept(subprotocol=subprotocol)
         self.active_connections.add(websocket)
 
     def disconnect(self, websocket: WebSocket) -> None:

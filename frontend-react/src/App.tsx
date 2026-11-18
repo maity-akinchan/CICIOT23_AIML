@@ -94,6 +94,7 @@ export function App() {
         initialEmail={profile?.email || draftAuth.email}
         initialOrgName={profile?.orgName || draftAuth.orgName}
         onAuthSuccess={({ email, orgName }) => {
+          telemetry.reconnectWebSocket();
           setDraftAuth({ email, orgName });
           if (profile) {
             setStage(profile.onboardingCompleted ? 'console' : 'onboarding');

@@ -16,7 +16,8 @@ async def live_socket(websocket: WebSocket) -> None:
     if os.getenv('SENTINEL_AUTH_DISABLED')!='1' and role(token)!='operator':
         await websocket.close(code=1008)
         return
-    await manager.connect(websocket)
+    selected=next((p.strip() for p in protocols if p.strip().startswith("sentinel.")), None)
+    await manager.connect(websocket, subprotocol=selected)
     from app.models import Flow
     from app.routers.analytics import summary
     from app.services.incident_manager import serialize
