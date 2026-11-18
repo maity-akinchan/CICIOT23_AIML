@@ -6,7 +6,6 @@ services:
       target: api
     restart: unless-stopped
     environment:
-      SENTINEL_OPERATOR_TOKEN: ${SENTINEL_OPERATOR_TOKEN:?Run server setup}
       DATABASE_URL: sqlite:////data/sentinel.db
     volumes:
       - data:/data

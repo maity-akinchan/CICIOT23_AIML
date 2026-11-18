@@ -32,6 +32,7 @@ type Aggregator struct {
 	openedOrder list.List
 	flows       map[FlowKey]*flowWin
 	seq         map[FlowKey]int
+	floods      map[FlowKey]*flowWin
 }
 
 type flowWin struct {
@@ -58,6 +59,7 @@ func newAggregator(cfg Config, session string, out chan<- Window, stats *Stats) 
 		stats:      stats,
 		flows:      make(map[FlowKey]*flowWin),
 		seq:        make(map[FlowKey]int),
+		floods:     make(map[FlowKey]*flowWin),
 	}
 }
 
@@ -157,6 +159,53 @@ func (a *Aggregator) finish(st *flowWin) {
 	if len(st.packets) < a.minPackets {
 		a.stats.WindowsInsufficient.Add(1)
 		a.stats.InsufficientPackets.Add(uint64(len(st.packets)))
+		if st.key.Protocol == "TCP" && st.key.SrcIP != "" && len(st.packets) > 0 && st.packets[0].WireBytes <= 74 && (st.packets[0].TCPFlags&(flagSYN|flagRST)) != 0 {
+			fkey := FlowKey{SrcIP: st.key.SrcIP, DstIP: st.key.DstIP, Protocol: "TCP", DstPort: st.key.DstPort}
+			fb := a.floods[fkey]
+			if fb != nil && !st.minTS.IsZero() && !fb.minTS.IsZero() && st.minTS.Sub(fb.minTS) >= a.timeout {
+				delete(a.floods, fkey)
+				fb = nil
+			}
+			if fb == nil {
+				fb = &flowWin{
+					key:    fkey,
+					opened: st.opened,
+					seq:    a.seq[fkey],
+				}
+				a.seq[fkey] = fb.seq + 1
+				a.floods[fkey] = fb
+			}
+			fb.packets = append(fb.packets, st.packets...)
+			for _, p := range st.packets {
+				if !p.Timestamp.IsZero() {
+					if fb.minTS.IsZero() || p.Timestamp.Before(fb.minTS) {
+						fb.minTS = p.Timestamp
+					}
+					if p.Timestamp.After(fb.maxTS) {
+						fb.maxTS = p.Timestamp
+					}
+				}
+			}
+			if len(fb.packets) >= a.windowSize {
+				delete(a.floods, fkey)
+				emit := &flowWin{
+					key:     fb.key,
+					packets: fb.packets[:a.windowSize],
+					minTS:   fb.minTS,
+					maxTS:   fb.maxTS,
+					opened:  fb.opened,
+					seq:     fb.seq,
+				}
+				if window, err := buildWindow(a.session, emit); err == nil {
+					select {
+					case a.out <- window:
+						a.stats.WindowsEmitted.Add(1)
+					default:
+						a.stats.WindowsDropped.Add(1)
+					}
+				}
+			}
+		}
 		return
 	}
 	window, err := buildWindow(a.session, st)

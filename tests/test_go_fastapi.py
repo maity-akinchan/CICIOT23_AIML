@@ -48,11 +48,13 @@ def test_real_go_to_fastapi(tmp_path):
         row=flows['items'][0]
         assert row['input_representation']=='packet_approximation'
         assert row['is_anomaly'] is False
-        assert row['features_22']['Header_Length']==20
+        assert row['features_22']['Header_Length']==5400.0
         assert row['features_22']['rst_count']==0
         with source.open('rb') as stream:reference=list(extract(stream))[0]
+        from sentinel_ml.approximation import adapt_window_dict
         bundle=load(ROOT/'ml/artifacts/ciciot_22f_xgb.joblib')
-        x,scores=predict(bundle,pd.DataFrame([reference['features_18']],columns=BASE))
+        adapted=adapt_window_dict(reference['features_18'],packet_count=reference['packet_count'],src_ip=reference['src_ip'],dst_ip=reference['dst_ip'])
+        x,scores=predict(bundle,pd.DataFrame([adapted],columns=BASE))
         assert np.allclose(list(row['features_22'].values()),x.iloc[0],rtol=1e-5)
         assert np.allclose([row['probabilities'][c] for c in bundle['classes']],scores[0],atol=1e-5)
         exported=requests.get(base+'/api/v1/features/export',params={'capture_session_id':row['capture_session_id']},timeout=5,headers=headers)

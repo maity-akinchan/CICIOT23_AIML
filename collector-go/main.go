@@ -21,9 +21,6 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(2)
 	}
-	if cfg.AuthToken == "" {
-		log.Printf("service token is not set; authenticated servers will reject ingestion")
-	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	if err := run(ctx, cfg); err != nil && !errors.Is(err, context.Canceled) {

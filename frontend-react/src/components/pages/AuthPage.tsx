@@ -41,10 +41,18 @@ export function AuthPage({
       return;
     }
     try {
-      await apiClient.get('/api/v1/flows?limit=1',{headers:{Authorization:`Bearer ${password}`}});
-      sessionStorage.setItem('sentinel_operator_token',password);
-    } catch {
-      setAuthError('Server rejected the operator token or could not be reached');
+      await apiClient.post('/api/v1/auth/login', {
+        email: parsed.data.email,
+        password,
+        org_name: orgName.trim() || undefined,
+        mode: authMode,
+      });
+      sessionStorage.removeItem('sentinel_operator_token');
+    } catch (err: unknown) {
+      const detail =
+        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
+        'Invalid email or password, or server could not be reached';
+      setAuthError(detail);
       return;
     }
     setAuthError(null);
@@ -169,14 +177,14 @@ export function AuthPage({
                 htmlFor="auth-password"
                 className="block text-[11px] font-semibold text-[#8E8CA3] uppercase tracking-wider"
               >
-                Operator access token
+                Password
               </label>
               <input
                 id="auth-password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter the server operator token"
+                placeholder="Enter your password"
                 className="w-full h-10 px-3.5 bg-[#1A1826] border border-[#222030] rounded-lg text-xs text-[#F8FAFC] placeholder-[#8E8CA3]/60 focus:outline-none focus:border-[#6366F1]"
               />
             </div>

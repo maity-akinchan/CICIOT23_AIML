@@ -121,7 +121,7 @@ export async function analyzeUploadedFile(file: File): Promise<UploadAnalysisSum
 export function apiErrorMessage(error:unknown):string {
   if(axios.isAxiosError(error)) {
     const status=error.response?.status;
-    if(status===401)return 'Sign in with your server access token, then try again.';
+    if(status===401)return 'Invalid login credentials. Please sign in and try again.';
     if(status===403)return 'This action requires operator access.';
     const detail=error.response?.data?.detail;
     if(typeof detail==='string')return detail;
