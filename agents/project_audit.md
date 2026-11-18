@@ -1,3 +1,9 @@
+Current revision (2026-11-18): the user authorizes retraining and feature changes
+to reduce false positives. Earlier fixed-model restrictions below are superseded.
+Use the supplied Kaggle CSVs as the training source. Report benign false-positive
+rate and attack recall, and validate packet compatibility independently. Never
+claim low live false-positive rates from a CSV validation result alone.
+
 # Current project audit — 2026-11-17
 
 The demonstration uses the supplied CSV-trained XGBoost, without retraining.
@@ -40,3 +46,40 @@ Go can replay captures incrementally; neither path requires storing training PCA
 
 Device/firewall actions remain disabled. Authentication and public deployment
 hardening are outstanding. The React UI and full Compose demonstration are deferred.
+
+## False-positive audit, 2026-11-18
+
+Critical unresolved finding: original CSV measurement semantics differ from the
+packet approximation. Header_Length, reset counts, flag aggregation, flow duration
+and window grouping require evidence of parity. Dropping two columns alone cannot
+establish compatibility. Existing model probabilities are overconfident on observed
+normal traffic. Neither confidence nor CSV accuracy demonstrates live accuracy.
+
+Training selection previously maximized macro-F1. It now selects attack thresholds
+using validation benign rows, with an explicit empirical 0.1% false-positive budget,
+then chooses maximum attack recall among usable candidates. The budget is a chosen
+engineering starting point, not a measured live guarantee. Test labels never select
+the threshold. Report final-test false positives and recall together. Validation
+reuse introduces selection optimism; final independent testing remains essential.
+Row overlap and unknown recording independence limit the strength of that result.
+
+The original supplied model lacks this policy. Retraining is necessary to produce
+policy-bearing artifacts. The workspace contains neither the three full Kaggle
+splits nor labeled live captures. No new accuracy result has been established.
+
+Runtime gaps remain. Sparse five-tuple flows below five packets produce no model
+window, including rotating-source-port attack traffic. Capacity evictions and queue
+loss can reduce coverage under load. Destination-level traffic aggregation needs a
+separate validated measurement contract before use as model inputs. DDoS source
+distribution cannot reliably be inferred from a single directed flow.
+
+Operational gaps remain. Large uploads sort and stage on temporary disk; final
+atomic persistence holds the SQLite writer. Progress, cancellation, background jobs
+and concurrent live ingestion under sustained load need further work. New CSV model
+bundles accept CSV inference only, pending packet adapter validation. The runtime
+default is XGBoost even when a different candidate wins selection; deployment must
+explicitly select the evaluated candidate.
+
+Acceptance requires independently labeled benign and attack evaluation, false
+positives per benign window and per hour, attack recall, missed-packet coverage,
+and time to detection. High accuracy alone is insufficient on imbalanced data.

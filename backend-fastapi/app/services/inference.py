@@ -2,6 +2,7 @@ from pathlib import Path
 import pandas as pd
 from sentinel_ml.approximation import WARNING
 from sentinel_ml.artifacts import load, predict
+from sentinel_ml.decision import classify
 from sentinel_ml.contract import BASE
 from app.schemas import PredictionResult
 
@@ -23,10 +24,11 @@ class InferenceEngine:
     def predict_batch(self,payloads):
         if self.bundle is None:raise RuntimeError(self.error)
         x,scores=predict(self.bundle,pd.DataFrame([{k:getattr(p,k) for k in BASE} for p in payloads],columns=BASE))
+        labels=classify(self.bundle["classes"],scores,self.bundle.get("decision_policy"))
         result=[]
         for i,p in enumerate(payloads):
             probabilities=dict(zip(self.bundle['classes'],map(float,scores[i])))
-            label=max(probabilities,key=probabilities.get)
+            label=str(labels[i])
             unverified = p.input_representation == 'packet_approximation'
             result.append(PredictionResult(window_id=p.window_id,timestamp=p.timestamp,src_ip=p.src_ip,dst_ip=p.dst_ip,
                 predicted_class=label,confidence_score=probabilities[label],is_anomaly=label!='Benign' and not unverified,probabilities=probabilities,

@@ -11,6 +11,7 @@ from sklearn.pipeline import make_pipeline
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from xgboost import XGBClassifier
+from .decision import classify, select_policy
 from .contract import BASE, FEATURES, CLASSES
 from .csv_contract import CONTRACT_ID, CONTRACT_HASH, matrix
 
@@ -35,12 +36,17 @@ def fit_export(frame,provenance,output_dir,preprocess=matrix,contract_id=CONTRAC
         'rf':RandomForestClassifier(n_estimators=200,min_samples_leaf=5,class_weight='balanced',random_state=42,n_jobs=2),
         'lr':make_pipeline(StandardScaler(),LogisticRegression(max_iter=2000,class_weight='balanced',random_state=42))}
     validation={}
+    policies={}
     for name,model in estimators.items():
         model.fit(X['train'],encoder.transform(y['train']) if name=='xgb' else y['train'])
-        pred=model.predict(X['validation'])
-        if name=='xgb':pred=encoder.inverse_transform(pred.astype(int))
-        validation[name]=metrics(y['validation'],pred)
-    selected=max(validation,key=lambda k:validation[k]['test_macro_f1'])
+        classes=list(encoder.classes_ if name=='xgb' else model.classes_)
+        scores=model.predict_proba(X['validation'])
+        policies[name]=select_policy(classes,scores,y['validation'])
+        validation[name]=metrics(y['validation'],classify(classes,scores,policies[name]))
+    eligible=[name for name in estimators if policies[name]['usable']]
+    if not eligible:
+        raise ValueError('No model detects attacks within the validation false-positive budget')
+    selected=max(eligible,key=lambda k:validation[k]['attack_recall'])
     out=Path(output_dir);out.mkdir(parents=True,exist_ok=True)
     baseline=X['train'].loc[y['train']=='Benign']
     bundles={}
@@ -49,16 +55,15 @@ def fit_export(frame,provenance,output_dir,preprocess=matrix,contract_id=CONTRAC
         classes=list(encoder.classes_ if name=='xgb' else model.classes_)
         bundle=dict(model_id=name,model_name=name,model=model,label_encoder=encoder if name=='xgb' else None,
             feature_names=list(FEATURES),classes=classes,contract_id=contract_id,contract_hash=contract_hash,
-            provenance=provenance,metrics={'validation':validation[name]},
+            decision_policy=policies[name],provenance=provenance,metrics={'validation':validation[name]},
             benign_medians=baseline.median().to_dict(),benign_iqr=(baseline.quantile(.75)-baseline.quantile(.25)).to_dict(),
             golden_base=frame.loc[frame.split=='validation',BASE].iloc[:32].to_dict('records'),golden_probabilities=probabilities.tolist(),
             library_versions={k:__import__('importlib.metadata',fromlist=['version']).version(k) for k in ('numpy','pandas','scikit-learn','xgboost','joblib','dpkt')})
         if name==selected:
-            pred=model.predict(X['test'])
-            if name=='xgb':pred=encoder.inverse_transform(pred.astype(int))
+            pred=classify(classes,model.predict_proba(X['test']),policies[name])
             bundle['metrics']['test']=metrics(y['test'],pred)
         joblib.dump(bundle,out/f'ciciot_22f_{name}.joblib');bundles[name]=sha(out/f'ciciot_22f_{name}.joblib')
-    report=dict(selected_by_validation_macro_f1=selected,validation=validation,artifact_hashes=bundles,
+    report=dict(selected_model=selected,selection_rule="maximum attack recall within 0.1% validation benign false-positive budget",decision_policies=policies,validation=validation,artifact_hashes=bundles,
                 test=joblib.load(out/f'ciciot_22f_{selected}.joblib')['metrics']['test'],
                 majority_test_accuracy=float((y['test']==y['train'].value_counts().idxmax()).mean()),provenance=provenance)
     (out/'training_report.json').write_text(json.dumps(report,indent=2))

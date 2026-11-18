@@ -100,8 +100,10 @@ async def csv_upload(request:Request,file:UploadFile):
         if not set(BASE)<=set(frame.columns):raise ValueError('Missing original base features')
         # CSV serialization is decoded by pandas, then strictly checked by the shared builder.
         x,scores=predict(engine.bundle,frame.loc[:,BASE])
+        from sentinel_ml.decision import classify
+        labels=classify(engine.bundle['classes'],scores,engine.bundle.get('decision_policy'))
         return dict(processed_rows=len(x),feature_contract_id=CONTRACT_ID,artifact_sha256=engine.bundle['artifact_sha256'],
-            predictions=[dict(row_index=i,predicted_class=engine.bundle['classes'][int(score.argmax())],
+            predictions=[dict(row_index=i,predicted_class=str(labels[i]),
                 probabilities=dict(zip(engine.bundle['classes'],map(float,score))),features_22=x.iloc[i].astype(float).to_dict())
                 for i,score in enumerate(scores)])
     try:return await run_in_threadpool(analyze)

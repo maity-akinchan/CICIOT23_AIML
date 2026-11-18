@@ -1,3 +1,9 @@
+Current revision (2026-11-18): the user authorizes retraining and feature changes
+to reduce false positives. Earlier fixed-model restrictions below are superseded.
+Use the supplied Kaggle CSVs as the training source. Report benign false-positive
+rate and attack recall, and validate packet compatibility independently. Never
+claim low live false-positive rates from a CSV validation result alone.
+
 # Responsive detection workspace
 
 The user authorizes a full UI revamp while retaining the dark indigo visual style.

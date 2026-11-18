@@ -70,3 +70,18 @@ compatibility warning. Go replay/live capture and FastAPI upload use this path.
 New CSV-trained artifacts currently accept CSV inference only until their packet
 adapter is separately validated. No PCAP training module or capture-trained model
 contract is retained. The original notebook/model remain as training evidence.
+
+## Revised false-positive objective
+
+Retraining and feature changes are now authorized. The executable pipeline chooses
+a validation attack-score threshold with at most 0.1% empirical benign false
+positives, then selects the candidate with greatest attack recall. This replaces
+the earlier macro-F1 selection instruction above. A candidate with zero detected
+attacks is ineligible. The final test uses the frozen policy. Report keys are
+selected_model, selection_rule and decision_policies. Serving uses the exported
+policy through the shared decision module. Old bundles retain their original
+decision behavior. This CSV objective does not certify packet compatibility.
+
+The 0.1% budget is an initial engineering choice. Evaluate recall and final-test
+false positives before deployment. Independent local benign traffic and known
+attack intervals are needed to assess actual application performance.

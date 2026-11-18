@@ -1,3 +1,9 @@
+Current revision (2026-11-18): the user authorizes retraining and feature changes
+to reduce false positives. Earlier fixed-model restrictions below are superseded.
+Use the supplied Kaggle CSVs as the training source. Report benign false-positive
+rate and attack recall, and validate packet compatibility independently. Never
+claim low live false-positive rates from a CSV validation result alone.
+
 # Contributor Go collector integration
 
 Current decision (2026-11-17): use the existing supplied XGBoost artifact without
