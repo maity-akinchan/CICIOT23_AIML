@@ -5,6 +5,7 @@ from datetime import timedelta, timezone
 from uuid import uuid4
 from sqlalchemy import select
 from app.models import Flow, Device, Incident, Alert
+from sentinel_ml.approximation import WARNING
 
 
 def serialize(row):
@@ -19,6 +20,8 @@ def serialize(row):
             result[column.name] = json.loads(value)
         else:
             result[column.name] = value.isoformat() if hasattr(value, 'isoformat') else value
+    if isinstance(row, Flow) and row.input_representation == 'packet_approximation':
+        result.update(is_anomaly=False, compatibility_warning=WARNING)
     return result
 
 class IncidentManager:
@@ -52,8 +55,12 @@ class IncidentManager:
                                     total_flows_seen=0, attack_flows_seen=0)
                     db.add(device)
                 device.total_flows_seen += 1
-                device.attack_flows_seen += int(prediction.is_anomaly)
+                device.attack_flows_seen += int(prediction.is_anomaly and prediction.input_representation != 'packet_approximation')
                 device.last_seen = now
+            if prediction.input_representation == 'packet_approximation':
+                db.flush()
+                flows.append(serialize(flow))
+                continue
             if prediction.is_anomaly:
                 self.benign_counts[payload.dst_ip] = 0
                 key = (payload.dst_ip, prediction.predicted_class, payload.capture_session_id)

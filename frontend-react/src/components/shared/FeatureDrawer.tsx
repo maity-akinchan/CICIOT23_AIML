@@ -22,7 +22,8 @@ export function FeatureDrawer({ flow, onClose }: FeatureDrawerProps) {
 
   if (!flow) return null;
 
-  const isMalicious = flow.predicted_class !== 'Benign';
+  const unverified = flow.input_representation === 'packet_approximation';
+  const isMalicious = flow.is_anomaly && !unverified;
   const normalPct = Math.round((flow.probabilities.Benign ?? 0) * 100);
   const dosPct = Math.round((flow.probabilities.DoS ?? 0) * 100);
   const ddosPct = Math.round((flow.probabilities.DDoS ?? 0) * 100);
@@ -75,7 +76,7 @@ export function FeatureDrawer({ flow, onClose }: FeatureDrawerProps) {
             {flow.src_ip} → {flow.dst_ip}
           </h3>
           <div className="flex flex-wrap items-center gap-2 mt-2">
-            <StatusBadge status={flow.predicted_class} confidence={flow.confidence} />
+            {unverified ? <span className="text-sm text-slate-300">{flow.predicted_class} · Unverified</span> : <StatusBadge status={flow.predicted_class} confidence={flow.confidence} />}
             <span className="px-2 py-0.5 rounded bg-[#1A1826] border border-[#222030] text-[#8E8CA3] text-[11px] font-medium">
               {flow.model_used}
             </span>
@@ -86,11 +87,13 @@ export function FeatureDrawer({ flow, onClose }: FeatureDrawerProps) {
         </div>
       </div>
 
-      {/* Section A: Model Confidence Breakdown */}
+      {unverified && <p className="subtle-note">{flow.compatibility_warning || 'Packet measurements differ from the training inputs. Scores are unverified.'}</p>}
+
+      {/* Model scores by class */}
       <div className="space-y-2.5">
         <div className="flex items-center justify-between">
           <h4 className="text-[13px] font-semibold text-[#F8FAFC]">
-            Model Confidence Breakdown
+            Model scores by class
           </h4>
           <span className="text-[11px] text-[#8E8CA3] font-mono tabular-nums">
             {flow.protocol} · {flow.packet_count} pkts
@@ -105,14 +108,14 @@ export function FeatureDrawer({ flow, onClose }: FeatureDrawerProps) {
             <ProgressBar value={normalPct} color="emerald" className="mt-1.5" />
           </div>
           <div className="p-2.5 rounded-lg bg-[#1A1826] border border-[#222030]">
-            <div className="text-[11px] text-[#8E8CA3]">DoS Attack</div>
+            <div className="text-[11px] text-[#8E8CA3]">DoS</div>
             <div className="text-[15px] font-bold text-[#F59E0B] font-mono tabular-nums mt-0.5">
               {dosPct}%
             </div>
             <ProgressBar value={dosPct} color="amber" className="mt-1.5" />
           </div>
           <div className="p-2.5 rounded-lg bg-[#1A1826] border border-[#222030]">
-            <div className="text-[11px] text-[#8E8CA3]">DDoS Attack</div>
+            <div className="text-[11px] text-[#8E8CA3]">DDoS</div>
             <div className="text-[15px] font-bold text-[#EF4444] font-mono tabular-nums mt-0.5">
               {ddosPct}%
             </div>

@@ -44,13 +44,13 @@ export function FlowExplorerTable({
 
   const handleExportCsv = () => {
     const header =
-      'Window ID,Timestamp,Source IP,Source MAC,Target IP,Protocol,Packet Rate (pkt/s),Average Size (B),SYN-to-ACK Ratio,Classification,Model Confidence\n';
+      'Window ID,Timestamp,Source IP,Source MAC,Target IP,Protocol,Packet Rate (pkt/s),Average Size (B),SYN-to-ACK Ratio,Model prediction,Model score,Input verification\n';
     const rows = filtered
       .map(
         (f) =>
           `${f.window_id},${f.timestamp},${f.src_ip},${f.src_mac},${f.dst_ip},${f.protocol},${f.features_22.Rate},${f.features_22.AVG},${f.features_22.syn_ack_ratio},${f.predicted_class},${(
             f.confidence * 100
-          ).toFixed(1)}%`
+          ).toFixed(1)}%,${f.input_representation === 'packet_approximation' ? 'Unverified' : 'Dataset features'}`
       )
       .join('\n');
     const blob = new Blob([header + rows], { type: 'text/csv;charset=utf-8;' });
@@ -110,10 +110,10 @@ export function FlowExplorerTable({
                 onChange={(e) => setClassFilter(e.target.value as 'ALL' | TrafficClass)}
                 className="w-full h-[38px] px-3 rounded-lg bg-[#1A1826] border border-[#222030] text-[12.5px] text-[#F8FAFC] focus:outline-none focus:border-[#6366F1]"
               >
-                <option value="ALL">Classification: All</option>
+                <option value="ALL">Model prediction: All</option>
                 <option value="Benign">Normal Traffic</option>
-                <option value="DoS">DoS Attack</option>
-                <option value="DDoS">DDoS Attack</option>
+                <option value="DoS">DoS</option>
+                <option value="DDoS">DDoS</option>
               </select>
             </div>
 
@@ -170,7 +170,7 @@ export function FlowExplorerTable({
                     <th className="py-3 px-4">Proto</th>
                     <th className="py-3 px-4">Packet Rate</th>
                     <th className="py-3 px-4">Top Flagged Signal</th>
-                    <th className="py-3 px-4">Classification</th>
+                    <th className="py-3 px-4">Model prediction</th>
                     <th className="py-3 px-3 text-right">22F</th>
                   </tr>
                 </thead>
@@ -220,14 +220,16 @@ export function FlowExplorerTable({
                               </span>
                             </span>
                           ) : (
-                            <span className="text-[#10B981]">Normal profile</span>
+                            <span className="text-[#10B981]">No explanation</span>
                           )}
                         </td>
                         <td className="py-3.5 px-4">
-                          <StatusBadge
-                            status={flow.predicted_class}
-                            confidence={flow.confidence}
-                          />
+                          {flow.input_representation === 'packet_approximation' ? (
+                            <span className="text-slate-300">
+                              {flow.predicted_class} · {(flow.confidence * 100).toFixed(1)}%
+                              <span className="block text-xs text-slate-400">Unverified</span>
+                            </span>
+                          ) : <StatusBadge status={flow.predicted_class} confidence={flow.confidence} />}
                         </td>
                         <td className="py-3.5 px-3 text-right">
                           <ChevronRight

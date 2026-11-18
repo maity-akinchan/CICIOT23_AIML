@@ -182,6 +182,7 @@ export function App() {
           {activePage === 'pcap-analysis' && <PcapPage onUpload={telemetry.handleFileUpload}/>}
           {['live-traffic','flow-explorer'].includes(activePage)&&<label className="block text-sm text-slate-400">Search windows<input className="workspace-input mt-2" value={searchQuery} onChange={e=>setSearchQuery(e.target.value)} placeholder="Search by IP, protocol or window"/></label>}
           {activePage === 'live-traffic' && <TrafficPage flows={telemetry.flows} timeSeries={telemetry.timeSeries} search={searchQuery}/>}
+          {activePage === 'alerts' && <p className="subtle-note">Packet predictions no longer create alerts. Earlier alerts may reflect unverified predictions.</p>}
           {activePage === 'alerts' && (
             <AttackAlertsPanel
               alerts={telemetry.alerts}

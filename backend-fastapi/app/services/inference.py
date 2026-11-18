@@ -1,5 +1,6 @@
 from pathlib import Path
 import pandas as pd
+from sentinel_ml.approximation import WARNING
 from sentinel_ml.artifacts import load, predict
 from sentinel_ml.contract import BASE
 from app.schemas import PredictionResult
@@ -26,10 +27,11 @@ class InferenceEngine:
         for i,p in enumerate(payloads):
             probabilities=dict(zip(self.bundle['classes'],map(float,scores[i])))
             label=max(probabilities,key=probabilities.get)
+            unverified = p.input_representation == 'packet_approximation'
             result.append(PredictionResult(window_id=p.window_id,timestamp=p.timestamp,src_ip=p.src_ip,dst_ip=p.dst_ip,
-                predicted_class=label,confidence_score=probabilities[label],is_anomaly=label!='Benign',probabilities=probabilities,
+                predicted_class=label,confidence_score=probabilities[label],is_anomaly=label!='Benign' and not unverified,probabilities=probabilities,
                 input_representation=p.input_representation,
-                compatibility_warning=__import__('sentinel_ml.approximation',fromlist=['WARNING']).WARNING if p.input_representation=='packet_approximation' else None,
+                compatibility_warning=WARNING if unverified else None,
                 model_used=self.bundle['model_id'],artifact_sha256=self.bundle['artifact_sha256'],
                 features_22=x.iloc[i].astype(float).to_dict(),top_anomalies=[]))
         return result

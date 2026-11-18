@@ -47,6 +47,7 @@ def test_real_go_to_fastapi(tmp_path):
         assert flows['total']==1
         row=flows['items'][0]
         assert row['input_representation']=='packet_approximation'
+        assert row['is_anomaly'] is False
         assert row['features_22']['Header_Length']==20
         assert row['features_22']['rst_count']==0
         with source.open('rb') as stream:reference=list(extract(stream))[0]
@@ -60,6 +61,9 @@ def test_real_go_to_fastapi(tmp_path):
         assert np.allclose(table.iloc[0],x.iloc[0],rtol=1e-5)
         upload=requests.post(base+'/api/v1/pcap/upload',files={'file':('syn.pcap',source.read_bytes())},timeout=10,headers=headers)
         assert upload.status_code==200,upload.text
+        assert requests.get(base+'/api/v1/alerts',headers=headers,timeout=5).json()==[]
+        summary=requests.get(base+'/api/v1/overview/summary',headers=headers,timeout=5).json()
+        assert summary['active_incidents_count']==0
     finally:
         process.terminate()
         try:process.wait(timeout=10)
