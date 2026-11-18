@@ -7,7 +7,7 @@ from pathlib import Path
 import requests
 p=argparse.ArgumentParser();p.add_argument('manifest',type=Path);p.add_argument('--server',required=True);p.add_argument('--output',type=Path,default=Path('capture-validation.json'));args=p.parse_args()
 if not args.server.startswith('https://') and not args.server.startswith(('http://127.0.0.1:','http://localhost:')):p.error('Use HTTPS or localhost')
-headers={'Authorization':'Bearer '+os.environ['SENTINEL_OPERATOR_TOKEN']};results=[]
+headers={'Authorization':'Bearer '+os.environ['SENTINEL_OPERATOR_TOKEN']} if os.environ.get('SENTINEL_OPERATOR_TOKEN') else {};results=[]
 for item in json.loads(args.manifest.read_text()):
     if item['expected'] not in ('Benign','DoS','DDoS'):raise ValueError('Invalid expected class')
     path=args.manifest.parent/item['path']

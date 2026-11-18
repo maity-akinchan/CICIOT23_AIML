@@ -105,3 +105,7 @@ app.include_router(downloads.router,prefix="/api/v1")
 
 from app.routers import services
 app.include_router(services.router,prefix='/api/v1')
+
+from app.security import authorize, router as auth_router
+app.include_router(auth_router, prefix='/api/v1')
+app.middleware("http")(authorize)

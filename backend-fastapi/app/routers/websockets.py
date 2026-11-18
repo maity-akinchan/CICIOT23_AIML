@@ -10,6 +10,10 @@ router = APIRouter()
 @router.websocket("/ws/live")
 async def live_socket(websocket: WebSocket) -> None:
     protocols=websocket.headers.get('sec-websocket-protocol','').split(',')
+    token=next((p.strip()[9:] for p in protocols if p.strip().startswith('sentinel.')), '')
+    if os.getenv('SENTINEL_AUTH_DISABLED')!='1' and os.getenv('SENTINEL_OPERATOR_TOKEN') and role(token)!='operator':
+        await websocket.close(code=1008)
+        return
     selected=next((p.strip() for p in protocols if p.strip().startswith("sentinel.")), None)
     await manager.connect(websocket, subprotocol=selected)
     from app.models import Flow

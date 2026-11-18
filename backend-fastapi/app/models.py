@@ -118,3 +118,11 @@ class Enrollment(Base):
     collector_id = mapped_column(String(64))
     expires_at = mapped_column(DateTime)
     used = mapped_column(Boolean, default=False)
+
+class UserAccount(Base):
+    __tablename__ = 'user_accounts'
+    id = mapped_column(Integer, primary_key=True)
+    email = mapped_column(String(128), unique=True, index=True)
+    password_hash = mapped_column(String(128))
+    org_name = mapped_column(String(128), default='Sentinel Workspace')
+    created_at = mapped_column(DateTime, default=datetime.utcnow)
