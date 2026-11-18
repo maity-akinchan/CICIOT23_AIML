@@ -29,6 +29,52 @@ def extract(stream, diagnostics=None):
         yield from _extract(stream, diagnostics, resources)
 
 
+
+def ordered_records(stream, endian, resources):
+    """Preserve equal-time order; sort record offsets on disk only if needed."""
+    start=stream.tell()
+
+    def records():
+        while True:
+            offset=stream.tell()
+            header=stream.read(16)
+            if not header:
+                return
+            if len(header)!=16:
+                raise ValueError('Truncated PCAP record header')
+            seconds, fraction, caplen, wirelen=struct.unpack(endian+'IIII',header)
+            if caplen>1048576 or caplen!=wirelen:
+                raise ValueError('Truncated/oversized packet is unsupported')
+            raw=stream.read(caplen)
+            if len(raw)!=caplen:
+                raise ValueError('Truncated PCAP packet')
+            yield offset, seconds, fraction, raw, wirelen
+
+    previous=(-1,-1)
+    unordered=False
+    for _, seconds, fraction, _, _ in records():
+        if (seconds,fraction)<previous:
+            unordered=True
+            break
+        previous=(seconds,fraction)
+    stream.seek(start)
+    if not unordered:
+        for _, seconds, fraction, raw, wirelen in records():
+            yield seconds, fraction, raw, wirelen
+        return
+
+    database=resources.enter_context(closing(sqlite3.connect('')))
+    database.execute('PRAGMA temp_store=FILE')
+    database.execute('CREATE TABLE records (seconds INTEGER, fraction INTEGER, offset INTEGER)')
+    database.executemany('INSERT INTO records VALUES (?,?,?)',
+                        ((seconds,fraction,offset) for offset,seconds,fraction,_,_ in records()))
+    database.execute('CREATE INDEX record_time ON records(seconds,fraction,offset)')
+    for seconds,fraction,offset in database.execute('SELECT seconds,fraction,offset FROM records ORDER BY seconds,fraction,offset'):
+        stream.seek(offset)
+        header=stream.read(16)
+        _,_,caplen,wirelen=struct.unpack(endian+'IIII',header)
+        yield seconds,fraction,stream.read(caplen),wirelen
+
 def _extract(stream, diagnostics, resources):
     stats=diagnostics if diagnostics is not None else {}
     stats.update(packets=0,windows=0,insufficient_packets=0,skipped_packets=0)
@@ -39,21 +85,12 @@ def _extract(stream, diagnostics, resources):
     scale=1e9 if header[:4].hex() in ('4d3cb2a1','a1b23c4d') else 1e6
     groups=OrderedDict()
     spill=None
-    previous=-float('inf')
     def close(packets):
         if len(packets)<5:stats['insufficient_packets']+=len(packets);return None
         stats['windows']+=1;return summarize(packets)
-    while True:
-        raw_header=stream.read(16)
-        if not raw_header:break
-        if len(raw_header)!=16:raise ValueError('Truncated PCAP record header')
-        seconds,frac,caplen,wirelen=struct.unpack(endian+'IIII',raw_header)
-        if caplen>1048576 or caplen!=wirelen:raise ValueError('Truncated/oversized packet is unsupported')
-        raw=stream.read(caplen)
-        if len(raw)!=caplen:raise ValueError('Truncated PCAP packet')
+    for seconds,frac,raw,wirelen in ordered_records(stream,endian,resources):
         ts=seconds+frac/scale
-        if ts<previous:raise ValueError('Out-of-order packet timestamps')
-        previous=ts;stats['packets']+=1
+        stats['packets']+=1
         while groups:
             oldest=next(iter(groups))
             if ts-groups[oldest][0]['ts']<2:

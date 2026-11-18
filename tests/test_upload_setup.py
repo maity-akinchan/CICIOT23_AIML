@@ -102,3 +102,30 @@ def test_upload_mixed_ethernet_protocols(monkeypatch, tmp_path):
     assert result.status_code == 200, result.text
     assert result.json()['processed_windows'] == 1
     assert result.json()['coverage']['skipped_packets'] == 2
+
+
+def test_upload_out_of_order_matches_sorted_capture(monkeypatch, tmp_path):
+    from sentinel_ml.capture import extract
+    monkeypatch.setenv('DATABASE_URL', f'sqlite:///{tmp_path}/unordered.db')
+    monkeypatch.setenv('SENTINEL_AUTH_DISABLED', '1')
+    udp = dpkt.udp.UDP(sport=1, dport=53)
+    ip = dpkt.ip.IP(src=socket.inet_aton('192.0.2.1'), dst=socket.inet_aton('192.0.2.2'), p=17, data=udp)
+    packet = bytes(dpkt.ethernet.Ethernet(type=2048, data=ip))
+    paths = [tmp_path/'unordered.pcap', tmp_path/'sorted.pcap']
+    times = [10, 10.1, 1.1, 1, 1.2, 1.3, 1.4, 10.2, 10.3, 10.4]
+    for path, timestamps in zip(paths, [times, sorted(times)]):
+        with path.open('wb') as stream:
+            writer = dpkt.pcap.Writer(stream)
+            for ts in timestamps:
+                writer.writepkt(packet, ts=ts)
+    with paths[0].open('rb') as stream:
+        actual = list(extract(stream))
+    with paths[1].open('rb') as stream:
+        expected = list(extract(stream))
+    assert actual == expected
+    assert len(actual) == 2
+    assert actual[0]['features_18']['flow_duration'] > .39
+    with TestClient(app) as client, paths[0].open('rb') as stream:
+        result = client.post('/api/v1/pcap/upload', files={'file': (paths[0].name, stream)})
+    assert result.status_code == 200, result.text
+    assert result.json()['processed_windows'] == 2

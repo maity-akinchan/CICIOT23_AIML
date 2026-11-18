@@ -51,3 +51,9 @@ are generated on redemption and stored root-only by the installer. Keep probes
 and synthetic browser traffic removed. PCAP upload has no fixed size/window cap;
 use disk spooling, bounded batches, atomic persistence and paginated results.
 The browser must send multipart PCAP, never parse it as CSV or silently zero data.
+
+PCAP upload reads records in timestamp order before window aggregation. Captures
+already in order use a streaming pass. Unordered captures use a temporary disk
+index of record offsets, ordered by seconds, fractional timestamp and file offset,
+preserving packet order for equal timestamps. Original timestamps and lengths
+are retained. Large unordered files require extra temporary disk and processing.
