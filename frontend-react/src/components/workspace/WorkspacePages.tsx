@@ -27,9 +27,53 @@ export function PcapPage({onUpload}:{onUpload:(f:File)=>Promise<UploadAnalysisSu
  const input=useRef<HTMLInputElement>(null);
  async function analyze(file?:File){if(!file || busy)return;setBusy(true);setError('');setResult(null);try{setResult(await onUpload(file));}catch(e){setError(e instanceof Error?e.message:'Upload failed. Please try again.');}finally{setBusy(false);if(input.current)input.current.value='';}}
  return <div className="space-y-6"><div className="grid lg:grid-cols-[minmax(0,1fr)_280px] gap-5"><section className="workspace-card"><h2 className="text-lg font-semibold mb-2">Choose a packet capture</h2><p className="text-sm text-slate-400 mb-5">Classify the flow windows inside your file with the trained XGBoost model.</p><input ref={input} type="file" accept=".pcap" className="sr-only" aria-label="Choose PCAP file" disabled={busy} onChange={e=>void analyze(e.target.files?.[0])}/><button disabled={busy} onClick={()=>input.current?.click()} onDragOver={e=>{e.preventDefault();setDrag(true);}} onDragLeave={()=>setDrag(false)} onDrop={e=>{e.preventDefault();setDrag(false);void analyze(e.dataTransfer.files[0]);}} className={`upload-zone ${drag?'drag-active':''}`}><UploadCloud size={34} className="text-indigo-400"/><span className="font-semibold">{busy?'Analyzing your capture…':'Drop a PCAP here or browse files'}</span><span className="text-sm text-slate-400">Classic .pcap · no fixed file-size limit</span></button>{error&&<p role="alert" className="mt-4 text-red-300 text-sm">{error}</p>}<div aria-live="polite" className="mt-4 text-sm text-slate-400">{busy?'Extracting features and classifying windows. Keep this page open.':result?`Analysis complete: ${result.fileName}`:'Your capture is used for inference. No retraining is required.'}</div></section><aside className="workspace-card space-y-4"><span className="eyebrow">Before you upload</span><p className="text-sm text-slate-300 leading-relaxed">Use classic Ethernet / IPv4 captures with TCP, UDP, or ICMP traffic.</p><p className="text-sm text-slate-400 leading-relaxed">A file can contain several classes. Results show unverified model predictions for individual windows.</p><p className="subtle-note">PCAPNG and truncated packets are not supported by upload. Large files take longer and require available server disk space.</p></aside></div>
- {result&&<section className="space-y-4"><div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-xl font-semibold break-all">Results · {result.fileName}</h2><span className="text-sm text-slate-400">{result.processedWindows} windows processed</span></div><div className="grid grid-cols-1 sm:grid-cols-3 gap-4">{[['Benign',result.benignCount,'text-emerald-400'],['DoS',result.dosCount,'text-amber-400'],['DDoS',result.ddosCount,'text-red-400']].map(([name,count,color])=><div className="workspace-card" key={name}><p className={`font-medium ${color}`}>{name}</p><p className="text-3xl mt-2 tabular-nums">{count}</p></div>)}</div>{result.processedWindows===0?<p className="workspace-card">No eligible windows were found. Each flow window needs at least five supported packets.</p>:<SessionFlows session={result.captureSessionId!} total={result.processedWindows}/>}</section>}</div>;
+ {result&&<section className="space-y-4"><div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-xl font-semibold break-all">Results · {result.fileName}</h2><span className="text-sm text-slate-400">{result.processedWindows} windows processed{result.coverage && ` · ${result.coverage.packets} packets read · ${result.coverage.insufficient_packets} packets in short windows`}</span></div><div className="grid grid-cols-1 sm:grid-cols-3 gap-4">{[['Benign',result.benignCount,'text-emerald-400'],['DoS',result.dosCount,'text-amber-400'],['DDoS',result.ddosCount,'text-red-400']].map(([name,count,color])=><div className="workspace-card" key={name}><p className={`font-medium ${color}`}>{name}</p><p className="text-3xl mt-2 tabular-nums">{count}</p></div>)}</div>{result.processedWindows===0?<p className="workspace-card">No eligible windows were found. Each flow window needs at least five supported packets.</p>:<SessionFlows session={result.captureSessionId!} total={result.processedWindows}/>}</section>}</div>;
 }
-export function TrafficPage({flows,timeSeries,search}:{flows:FlowRecord[];timeSeries:TimeSeriesPoint[];search:string}){const live=flows.filter(f=>f.capture_mode==='LIVE_INTERFACE'||f.capture_mode==='PCAP_REPLAY');return <div className="space-y-5"><section className="workspace-card"><div className="flex items-center gap-3 mb-5"><Activity className="text-indigo-400"/><div><h2 className="text-lg font-semibold">Incoming traffic</h2><p className="text-sm text-slate-400">The chart includes recent workspace observations. The table shows service traffic.</p></div></div>{timeSeries.length?<SmoothSplineChart data={timeSeries} height={220} primaryColor="#6366F1" secondaryColor="#f97316" mode="rate"/>:<p className="py-12 text-center text-slate-400">Waiting for classified traffic. Start your monitoring service to see activity.</p>}</section><FlowExplorerTable flows={live} globalSearch={search}/></div>;}
+interface CaptureReport {
+  collector_id: string;
+  iface: string;
+  received_at: string;
+  captured: number;
+  insufficient_packets: number;
+  windows_emitted: number;
+  kernel_drops: number;
+  queue_drops: number;
+  windows_dropped: number;
+  http_fail: number;
+}
+
+function CoveragePanel() {
+  const [reports, setReports] = useState<CaptureReport[]>([]);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    const controller = new AbortController();
+    let timer: ReturnType<typeof setTimeout>;
+    async function refresh() {
+      try {
+        const response = await apiClient.get<CaptureReport[]>('/api/v1/capture/coverage', {signal: controller.signal});
+        if (!controller.signal.aborted) { setReports(response.data); setFailed(false); }
+      } catch {
+        if (!controller.signal.aborted) setFailed(true);
+      } finally {
+        if (!controller.signal.aborted) timer = setTimeout(refresh, 10000);
+      }
+    }
+    void refresh();
+    return () => { controller.abort(); clearTimeout(timer); };
+  }, []);
+  return <section className="workspace-card space-y-3">
+    <h2 className="text-lg font-semibold">Live capture coverage</h2>
+    {failed && <p role="alert">Capture reports could not be refreshed.</p>}
+    {!reports.length && !failed && <p>Waiting for the monitoring service’s first capture report.</p>}
+    {reports.map(r => <div key={r.collector_id} className="space-y-1">
+      <h3>{r.collector_id} · {r.iface}</h3>
+      <p>Last report {new Date(r.received_at).toLocaleString()}</p>
+      <p>{r.captured.toLocaleString()} packets captured · {r.insufficient_packets.toLocaleString()} packets in short windows · {r.windows_emitted.toLocaleString()} windows emitted</p>
+      <p>Kernel drops {r.kernel_drops} · Packet queue drops {r.queue_drops} · Window drops {r.windows_dropped} · Failed batches {r.http_fail}</p>
+    </div>)}
+  </section>;
+}
+export function TrafficPage({flows,timeSeries,search}:{flows:FlowRecord[];timeSeries:TimeSeriesPoint[];search:string}){const live=flows.filter(f=>f.capture_mode==='LIVE_INTERFACE'||f.capture_mode==='PCAP_REPLAY');return <div className="space-y-5"><CoveragePanel/><section className="workspace-card"><div className="flex items-center gap-3 mb-5"><Activity className="text-indigo-400"/><div><h2 className="text-lg font-semibold">Incoming traffic</h2><p className="text-sm text-slate-400">The chart includes recent workspace observations. The table shows service traffic.</p></div></div>{timeSeries.length?<SmoothSplineChart data={timeSeries} height={220} primaryColor="#6366F1" secondaryColor="#f97316" mode="rate"/>:<p className="py-12 text-center text-slate-400">Waiting for classified traffic. Start your monitoring service to see activity.</p>}</section><FlowExplorerTable flows={live} globalSearch={search}/></div>;}
 export function ServiceSetupPage(){
  const [name,setName]=useState(''),[code,setCode]=useState(''),[error,setError]=useState(''),[copied,setCopied]=useState(false),[busy,setBusy]=useState(false);
  const base=getApiBaseUrl();

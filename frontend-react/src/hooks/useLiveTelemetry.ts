@@ -205,9 +205,10 @@ export function useLiveTelemetry() {
     for (let i = flows.length - 1; i >= 0; i--) {
       const f = flows[i];
       const existing = map.get(f.dst_ip);
-      const isDos = f.predicted_class === 'DoS';
-      const isDdos = f.predicted_class === 'DDoS';
-      const status = isDdos ? 'DDoS Attack' : isDos ? 'DoS Attack' : 'Normal';
+      const verified = f.input_representation !== 'packet_approximation';
+      const isDos = verified && f.predicted_class === 'DoS';
+      const isDdos = verified && f.predicted_class === 'DDoS';
+      const status = !verified ? 'Unverified' : isDdos ? 'DDoS Attack' : isDos ? 'DoS Attack' : 'Normal';
 
       if (!existing) {
         map.set(f.dst_ip, {

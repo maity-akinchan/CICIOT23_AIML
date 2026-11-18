@@ -275,6 +275,7 @@ export function getPlainTrafficLabel(predictedClass: TrafficClass): string {
 
 export function getPlainStatusLabel(status: string): DeviceHealthStatus {
   const upper = status.toUpperCase();
+  if (upper === 'UNVERIFIED') return 'Unverified';
   if (upper.includes('DDOS')) return 'DDoS Attack';
   if (upper.includes('DOS')) return 'DoS Attack';
   return 'Normal';

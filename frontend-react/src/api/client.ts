@@ -99,6 +99,7 @@ export interface UploadAnalysisSummary {
   captureSessionId?: string;
   fileName: string;
   processedWindows: number;
+  coverage?: {packets: number; insufficient_packets: number};
   benignCount: number;
   dosCount: number;
   ddosCount: number;
@@ -114,7 +115,7 @@ export async function analyzeUploadedFile(file: File): Promise<UploadAnalysisSum
     const form=new FormData();form.append('file',file);
     const {data}=await apiClient.post('/api/v1/pcap/upload',form,{headers:{'Content-Type':'multipart/form-data'},timeout:0});
     const response=await apiClient.get('/api/v1/flows',{params:{capture_session_id:data.capture_session_id,limit:1000}});
-    return {fileName:file.name,processedWindows:data.processed_windows,benignCount:data.benign_count,dosCount:data.dos_count,ddosCount:data.ddos_count,flows:response.data.items.map((row:unknown)=>FlowRecordSchema.parse(row)),captureSessionId:data.capture_session_id};
+    return {fileName:file.name,coverage:data.coverage,processedWindows:data.processed_windows,benignCount:data.benign_count,dosCount:data.dos_count,ddosCount:data.ddos_count,flows:response.data.items.map((row:unknown)=>FlowRecordSchema.parse(row)),captureSessionId:data.capture_session_id};
   } catch(error) {throw new Error(apiErrorMessage(error));}
 }
 export function apiErrorMessage(error:unknown):string {

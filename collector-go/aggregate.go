@@ -1,6 +1,7 @@
 package main
 
 import (
+	"container/list"
 	"fmt"
 	"hash/fnv"
 	"io"
@@ -19,20 +20,22 @@ import (
 // would stretch the span to 2 seconds backward is counted as late and dropped.
 // Duration always uses the latest minus the earliest timestamp in the window.
 type Aggregator struct {
-	windowSize int
-	minPackets int
-	timeout    time.Duration
-	wallClock  bool
-	session    string
-	apiHost    string
-	apiPort    int
-	out        chan<- Window
-	stats      *Stats
-	flows      map[FlowKey]*flowWin
-	seq        map[FlowKey]int
+	windowSize  int
+	minPackets  int
+	timeout     time.Duration
+	wallClock   bool
+	session     string
+	apiHost     string
+	apiPort     int
+	out         chan<- Window
+	stats       *Stats
+	openedOrder list.List
+	flows       map[FlowKey]*flowWin
+	seq         map[FlowKey]int
 }
 
 type flowWin struct {
+	order   *list.Element
 	key     FlowKey
 	packets []Packet
 	minTS   time.Time
@@ -87,15 +90,16 @@ func (a *Aggregator) Add(p Packet) {
 	}
 	if st == nil {
 		if len(a.flows) >= maxActiveFlows {
-			a.evictOldest()
+			a.stats.CapacityEvictions.Add(1)
+			a.finish(a.openedOrder.Front().Value.(*flowWin))
 		}
 		st = &flowWin{
-			key:     key,
-			opened:  time.Now().UTC(),
-			seq:     a.seq[key],
-			packets: make([]Packet, 0, a.windowSize),
+			key:    key,
+			opened: time.Now().UTC(),
+			seq:    a.seq[key],
 		}
 		a.seq[key] = st.seq + 1
+		st.order = a.openedOrder.PushBack(st)
 		a.flows[key] = st
 		if len(a.seq) > maxActiveFlows*4 {
 			a.pruneSeq()
@@ -122,37 +126,18 @@ func (a *Aggregator) FlushIdle(now time.Time) {
 	if !a.wallClock {
 		return
 	}
-	for _, st := range a.snapshot() {
-		if now.Sub(st.opened) >= a.timeout {
-			a.finish(st)
+	for a.openedOrder.Len() > 0 {
+		st := a.openedOrder.Front().Value.(*flowWin)
+		if now.Sub(st.opened) < a.timeout {
+			break
 		}
-	}
-}
-
-// FlushEOF closes every open flow. Short flows are not emitted.
-func (a *Aggregator) FlushEOF() {
-	for _, st := range a.snapshot() {
 		a.finish(st)
 	}
 }
 
-func (a *Aggregator) snapshot() []*flowWin {
-	out := make([]*flowWin, 0, len(a.flows))
-	for _, st := range a.flows {
-		out = append(out, st)
-	}
-	return out
-}
-
-func (a *Aggregator) evictOldest() {
-	var oldest *flowWin
-	for _, st := range a.flows {
-		if oldest == nil || st.opened.Before(oldest.opened) {
-			oldest = st
-		}
-	}
-	if oldest != nil {
-		a.finish(oldest)
+func (a *Aggregator) FlushEOF() {
+	for a.openedOrder.Len() > 0 {
+		a.finish(a.openedOrder.Front().Value.(*flowWin))
 	}
 }
 
@@ -166,10 +151,12 @@ func (a *Aggregator) pruneSeq() {
 
 func (a *Aggregator) finish(st *flowWin) {
 	if _, ok := a.flows[st.key]; ok {
+		a.openedOrder.Remove(st.order)
 		delete(a.flows, st.key)
 	}
 	if len(st.packets) < a.minPackets {
 		a.stats.WindowsInsufficient.Add(1)
+		a.stats.InsufficientPackets.Add(uint64(len(st.packets)))
 		return
 	}
 	window, err := buildWindow(a.session, st)
@@ -272,6 +259,9 @@ func sameHost(ip, host string) bool {
 		return true
 	}
 	left := net.ParseIP(ip)
+	if host == "localhost" {
+		return left != nil && left.IsLoopback()
+	}
 	right := net.ParseIP(host)
 	return left != nil && right != nil && left.Equal(right)
 }

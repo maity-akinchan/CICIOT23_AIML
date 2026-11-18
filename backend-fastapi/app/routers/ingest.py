@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
+from pydantic import BaseModel, Field, NonNegativeInt
 from fastapi import APIRouter, HTTPException, Request
 
 from app.schemas import BatchPredictionRequest, BatchPredictionResponse, IngestBatchRequest, PredictionResult
@@ -78,3 +79,37 @@ def verify_contract(payload,request):
     if payload.feature_contract_id==APPROX_ID and payload.contract_hash==APPROX_HASH and engine.bundle.get('is_legacy'):return
     if payload.feature_contract_id!=engine.bundle['contract_id'] or payload.contract_hash!=engine.bundle['contract_hash']:
         raise HTTPException(422,'Input contract differs from loaded model')
+
+class CaptureCoverage(BaseModel):
+    collector_id: str = Field(min_length=1, max_length=64)
+    session: str = Field(min_length=1, max_length=64)
+    iface: str = Field(min_length=1, max_length=64)
+    captured: NonNegativeInt
+    accepted: NonNegativeInt
+    insufficient_packets: NonNegativeInt
+    capacity_evictions: NonNegativeInt
+    kernel_drops: NonNegativeInt
+    queue_drops: NonNegativeInt
+    windows_emitted: NonNegativeInt
+    windows_dropped: NonNegativeInt
+    http_ok: NonNegativeInt
+    http_fail: NonNegativeInt
+
+
+@router.post("/ingest/coverage", status_code=204)
+async def record_coverage(request: Request, payload: CaptureCoverage):
+    expected = getattr(request.state, "collector_id", None)
+    if expected is not None and payload.collector_id != expected:
+        raise HTTPException(403, "Credential belongs to a different service")
+    request.app.state.capture_coverage.append({
+        **payload.model_dump(), "received_at": datetime.now(timezone.utc).isoformat()
+    })
+
+
+@router.get("/capture/coverage")
+async def recent_coverage(request: Request, collector_id: str | None = None):
+    reports = request.app.state.capture_coverage
+    if collector_id is not None:
+        return [row for row in reports if row["collector_id"] == collector_id]
+    latest = {row["collector_id"]: row for row in reports}
+    return list(latest.values())

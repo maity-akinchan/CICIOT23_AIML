@@ -21,8 +21,8 @@ func run(ctx context.Context, cfg Config) error {
 	if !supportedLink(src.LinkType()) {
 		return fmt.Errorf("unsupported link type %s (%d); supported: %s", src.LinkType(), uint32(src.LinkType()), supportedLinkNames())
 	}
-	log.Printf("capture source=%s link=%s contract=%s extractor=%s window=%d stride=%d timeout=%.0fs min=%d",
-		cfg.sourceType(), src.LinkType(), contractID, extractorVersion, cfg.WindowSize, cfg.Stride, windowTimeoutSecond, minWindowPackets)
+	log.Printf("capture source=%s interface=%q link=%s contract=%s extractor=%s window=%d stride=%d timeout=%.0fs min=%d",
+		cfg.sourceType(), cfg.Iface, src.LinkType(), contractID, extractorVersion, cfg.WindowSize, cfg.Stride, windowTimeoutSecond, minWindowPackets)
 	return serve(ctx, cfg, src)
 }
 
@@ -35,6 +35,10 @@ func serve(ctx context.Context, cfg Config, src PacketSource) error {
 	windows := make(chan Window, windowQueue)
 	agg := newAggregator(cfg, session, windows, stats)
 	ship := newShipper(cfg, session, src.LinkType().String(), stats)
+
+	if cfg.Mode == "live" {
+		go ship.reportCoverage(runCtx, cfg.Iface, src.KernelDrops)
+	}
 
 	var wg sync.WaitGroup
 	wg.Add(2)

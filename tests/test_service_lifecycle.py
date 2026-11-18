@@ -18,6 +18,13 @@ def test_device_tokens_history_alerts(monkeypatch,tmp_path):
         assert client.post('/api/v1/services/verify',json={'collector_id':'sensor-a'},headers=device).status_code==200
         assert client.post('/api/v1/services/verify',json={'collector_id':'sensor-b'},headers=device).status_code==403
         assert client.get('/api/v1/captures',headers=device).status_code==403
+        report = dict(collector_id='sensor-a', iface='eth0', session='session-1', captured=100,
+                      accepted=100, insufficient_packets=100, capacity_evictions=0, kernel_drops=0,
+                      queue_drops=0, windows_emitted=0, windows_dropped=0, http_ok=0, http_fail=0)
+        assert client.post('/api/v1/ingest/coverage', json=report, headers=device).status_code == 204
+        assert client.post('/api/v1/ingest/coverage', json={**report, 'collector_id':'other'}, headers=device).status_code == 403
+        assert client.get('/api/v1/capture/coverage', headers=device).status_code == 403
+        assert client.get('/api/v1/capture/coverage', headers=headers).json()[0]['captured'] == 100
         with app.state.sessions() as db:
             saved=db.get(ServiceCredential,credential['id'])
             assert saved.token_hash==hashlib.sha256(token.encode()).hexdigest()

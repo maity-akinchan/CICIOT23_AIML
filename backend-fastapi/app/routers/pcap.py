@@ -29,7 +29,8 @@ async def upload(request:Request,file:UploadFile):
         # Isolate transient incident state so a malformed file cannot pollute live state.
         incidents=IncidentManager()
         counts=dict(processed_windows=0,benign_count=0,dos_count=0,ddos_count=0)
-        windows=iter(pcap_windows(file.file))
+        diagnostics={}
+        windows=iter(pcap_windows(file.file, diagnostics))
         with request.app.state.sessions.begin() as db:
             while batch:=list(islice(windows,256)):
                 for window in batch:window.capture_session_id=session
@@ -42,7 +43,7 @@ async def upload(request:Request,file:UploadFile):
             db.add(CaptureSession(id=session,filename=(file.filename or 'capture.pcap')[:255],
                 file_sha256=digest.hexdigest(),size_bytes=size,
                 artifact_sha256=engine.bundle['artifact_sha256'],**counts))
-        return counts|{'capture_session_id':session,'artifact_sha256':engine.bundle['artifact_sha256']}
+        return counts|{'coverage':diagnostics,'capture_session_id':session,'artifact_sha256':engine.bundle['artifact_sha256']}
     try:
         async with request.app.state.ingest_lock:
             return await run_in_threadpool(analyze)

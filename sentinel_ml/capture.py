@@ -1,6 +1,8 @@
 """Packet approximation extractor for inference only; never a training source."""
-from collections import Counter
-from pathlib import Path
+from collections import OrderedDict
+from contextlib import ExitStack, closing
+import json
+import sqlite3
 import struct
 import socket
 import dpkt
@@ -23,6 +25,11 @@ def summarize(packets):
 
 def extract(stream, diagnostics=None):
     """Strict bounded-format reader preserving original wire length; no silent fallback."""
+    with ExitStack() as resources:
+        yield from _extract(stream, diagnostics, resources)
+
+
+def _extract(stream, diagnostics, resources):
     stats=diagnostics if diagnostics is not None else {}
     stats.update(packets=0,windows=0,insufficient_packets=0)
     header=stream.read(24)
@@ -30,9 +37,10 @@ def extract(stream, diagnostics=None):
     if len(header)!=24 or endian is None:raise ValueError('Expected classic PCAP (PCAPNG unsupported)')
     if struct.unpack(endian+'I',header[20:24])[0]!=1:raise ValueError('Only Ethernet PCAP is supported')
     scale=1e9 if header[:4].hex() in ('4d3cb2a1','a1b23c4d') else 1e6
-    groups={};previous=-float('inf')
-    def close(key):
-        packets=groups.pop(key)
+    groups=OrderedDict()
+    spill=None
+    previous=-float('inf')
+    def close(packets):
         if len(packets)<5:stats['insufficient_packets']+=len(packets);return None
         stats['windows']+=1;return summarize(packets)
     while True:
@@ -46,10 +54,17 @@ def extract(stream, diagnostics=None):
         ts=seconds+frac/scale
         if ts<previous:raise ValueError('Out-of-order packet timestamps')
         previous=ts;stats['packets']+=1
-        for key in list(groups):
-            if ts-groups[key][0]['ts']>=2:
-                row=close(key)
+        while groups:
+            oldest=next(iter(groups))
+            if ts-groups[oldest][0]['ts']<2:
+                break
+            row=close(groups.pop(oldest))
+            if row:yield row
+        if spill is not None:
+            for (data,) in spill.execute('SELECT data FROM windows WHERE opened <= ? ORDER BY opened, rowid',(ts-2,)):
+                row=close(json.loads(data))
                 if row:yield row
+            spill.execute('DELETE FROM windows WHERE opened <= ?', (ts-2,))
         try:eth=dpkt.ethernet.Ethernet(raw)
         except dpkt.UnpackError as exc:raise ValueError('Malformed Ethernet packet') from exc
         if eth.type==dpkt.ethernet.ETH_TYPE_ARP:continue
@@ -65,13 +80,39 @@ def extract(stream, diagnostics=None):
         src=socket.inet_ntoa(ip.src);dst=socket.inet_ntoa(ip.dst)
         sport=getattr(t,'sport',0);dport=getattr(t,'dport',0)
         key=(src,dst,protocol,sport,dport)
-        if key not in groups and len(groups)>=4096:raise ValueError('Active flow capacity exceeded')
         p=dict(ts=ts,size=wirelen,header=transport,ttl=ip.ttl,src_ip=src,dst_ip=dst,src_port=sport,dst_port=dport,
                protocol=protocol,flags=t.flags if protocol=='TCP' else 0,src_mac=eth.src.hex(':'),dst_mac=eth.dst.hex(':'))
-        groups.setdefault(key,[]).append(p)
-        if len(groups[key])==100:
-            row=close(key)
-            if row:yield row
-    for key in list(groups):
-        row=close(key)
+        if key in groups or (spill is None and len(groups)<4096):
+            packets=groups.setdefault(key,[])
+            packets.append(p)
+            if len(packets)==100:
+                yield close(groups.pop(key))
+            continue
+
+        # SQLite's empty filename creates a private temporary database, removed
+        # on close. Keep overflow windows intact for later packets of that flow.
+        if spill is None:
+            spill=resources.enter_context(closing(sqlite3.connect('')))
+            spill.execute('CREATE TABLE windows (key TEXT PRIMARY KEY, opened REAL, data TEXT)')
+            spill.execute('CREATE INDEX windows_opened ON windows(opened)')
+        encoded=json.dumps(key)
+        saved=spill.execute('SELECT data FROM windows WHERE key=?',(encoded,)).fetchone()
+        if saved is None and len(groups)<4096:
+            groups[key]=[p]
+            continue
+        packets=json.loads(saved[0]) if saved else []
+        packets.append(p)
+        if len(packets)==100:
+            spill.execute('DELETE FROM windows WHERE key=?',(encoded,))
+            yield close(packets)
+        elif saved:
+            spill.execute('UPDATE windows SET data=? WHERE key=?',(json.dumps(packets),encoded))
+        else:
+            spill.execute('INSERT INTO windows VALUES (?,?,?)',(encoded,ts,json.dumps(packets)))
+    for packets in groups.values():
+        row=close(packets)
         if row:yield row
+    if spill is not None:
+        for (data,) in spill.execute('SELECT data FROM windows ORDER BY opened, rowid'):
+            row=close(json.loads(data))
+            if row:yield row

@@ -19,6 +19,8 @@ type Stats struct {
 	Control             atomic.Uint64
 	WindowsEmitted      atomic.Uint64
 	WindowsInsufficient atomic.Uint64
+	InsufficientPackets atomic.Uint64
+	CapacityEvictions   atomic.Uint64
 	WindowsDropped      atomic.Uint64
 	HTTPSuccess         atomic.Uint64
 	HTTPFailures        atomic.Uint64
@@ -26,7 +28,7 @@ type Stats struct {
 
 func (s *Stats) log(prefix string, kernelDrops uint64, backlogPackets, backlogWindows int) {
 	log.Printf(
-		"%s captured=%d accepted=%d dropped_queue=%d dropped_kernel=%d skipped=%d truncated=%d fragments=%d malformed=%d late=%d control=%d windows_emitted=%d windows_insufficient=%d windows_dropped=%d http_ok=%d http_fail=%d backlog_packets=%d backlog_windows=%d",
+		"%s captured=%d accepted=%d dropped_queue=%d dropped_kernel=%d skipped=%d truncated=%d fragments=%d malformed=%d late=%d control=%d windows_emitted=%d windows_insufficient=%d insufficient_packets=%d capacity_evictions=%d windows_dropped=%d http_ok=%d http_fail=%d backlog_packets=%d backlog_windows=%d",
 		prefix,
 		s.Captured.Load(),
 		s.Accepted.Load(),
@@ -40,6 +42,8 @@ func (s *Stats) log(prefix string, kernelDrops uint64, backlogPackets, backlogWi
 		s.Control.Load(),
 		s.WindowsEmitted.Load(),
 		s.WindowsInsufficient.Load(),
+		s.InsufficientPackets.Load(),
+		s.CapacityEvictions.Load(),
 		s.WindowsDropped.Load(),
 		s.HTTPSuccess.Load(),
 		s.HTTPFailures.Load(),

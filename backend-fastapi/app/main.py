@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections import deque
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import AsyncIterator
@@ -24,6 +25,7 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     import os
     import asyncio
+    app.state.capture_coverage = deque(maxlen=3600)
     app.state.ingest_lock = asyncio.Lock()
     model_dir = Path(os.getenv('MODEL_DIR', str(Path(__file__).resolve().parents[2] / 'ml/artifacts')))
     app.state.db_engine, app.state.sessions = initialize()

@@ -165,3 +165,20 @@ func TestAggregatorDropsLatePacketThatBreaksTimeout(t *testing.T) {
 		t.Fatalf("late packet was kept: insufficient=%d emitted=%d", stats.WindowsInsufficient.Load(), stats.WindowsEmitted.Load())
 	}
 }
+
+func TestLiveFlowPressureAndLocalControl(t *testing.T) {
+	agg, _, stats := testAggregator("live")
+	agg.apiHost = "localhost"
+	agg.apiPort = 8000
+	agg.Add(Packet{Protocol: "TCP", DstIP: "127.0.0.1", DstPort: 8000})
+	for i := 0; i <= maxActiveFlows; i++ {
+		agg.Add(Packet{Protocol: "UDP", SrcPort: i})
+	}
+	if stats.Control.Load() != 1 || stats.CapacityEvictions.Load() != 1 || stats.InsufficientPackets.Load() != 1 {
+		t.Fatal("missing control exclusion or capacity accounting")
+	}
+	agg.FlushEOF()
+	if agg.openedOrder.Len() != 0 || len(agg.flows) != 0 || stats.InsufficientPackets.Load() != maxActiveFlows+1 {
+		t.Fatal("lost short-flow accounting")
+	}
+}

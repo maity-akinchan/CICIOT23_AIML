@@ -163,3 +163,20 @@ Set SENTINEL_OPERATOR_TOKEN in the environment. The manifest contains objects
 with `path` and `expected` (`Benign`, `DoS`, or `DDoS`). The report gives class counts
 and expected-class window fraction; mixed captures need window-level ground truth.
 No real capture validation result is claimed until supplied files have been run.
+
+### Diagnosing gaps in live traffic
+
+Open **Live traffic → Live capture coverage**. The Linux monitoring service reports
+its interface and cumulative counters every ten seconds, even when no window
+qualifies for inference. Compare successive reports from the same session.
+Increasing short-window packet counts mean packets reached the service but their
+directed flows closed below five packets. Check kernel drops, queue drops, dropped
+windows and failed batches to locate other losses. A stale report leaves capture
+status unknown. Operators can read recent reports at
+`GET /api/v1/capture/coverage?collector_id=office-device`. Each backend process
+keeps its last 3,600 reports in memory until restart.
+
+For tests between two devices, select the interface carrying traffic from the peer
+(`ip route get <peer-IP>` on Linux). Loopback windows describe local communication.
+PCAP upload preserves open windows above its in-memory capacity by spilling to a
+temporary disk database. Allow free temporary disk space for large captures.

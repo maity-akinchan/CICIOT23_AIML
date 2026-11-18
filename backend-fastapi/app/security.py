@@ -27,6 +27,6 @@ async def authorize(request, call_next):
                 credential.last_used_at=datetime.utcnow()
     if not scope:return JSONResponse({'detail':'Valid bearer credential required'},status_code=401)
     live_download=request.method=='GET' and request.url.path in ('/api/v1/downloads/collectors/sentinel-service-linux-amd64','/api/v1/downloads/collectors/sentinel-service-linux-arm64','/api/v1/downloads/collectors/LIVE-SHA256SUMS')
-    if scope=='collector' and not live_download and (request.url.path not in ('/api/v1/ingest/windows','/api/v1/services/verify') or request.method!='POST'):
+    if scope=='collector' and not live_download and (request.url.path not in ('/api/v1/ingest/windows','/api/v1/ingest/coverage','/api/v1/services/verify') or request.method!='POST'):
         return JSONResponse({'detail':'Operator credential required'},status_code=403)
     return await call_next(request)

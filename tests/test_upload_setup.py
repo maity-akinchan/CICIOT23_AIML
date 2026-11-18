@@ -50,7 +50,7 @@ def test_upload_crosses_batch_boundary(monkeypatch,tmp_path):
     monkeypatch.setenv('DATABASE_URL',f'sqlite:///{tmp_path}/batches.db')
     path=tmp_path/'small.pcap';capture(path)
     with path.open('rb') as stream:sample=next(pcap_windows(stream))
-    def windows(_):
+    def windows(_, diagnostics):
         for i in range(513):
             yield sample.model_copy(update={'window_id':str(uuid4())},deep=True)
     monkeypatch.setattr(pcap,'pcap_windows',windows)
@@ -59,3 +59,26 @@ def test_upload_crosses_batch_boundary(monkeypatch,tmp_path):
         assert r.status_code==200,r.text
         assert r.json()['processed_windows']==513
         assert client.get('/api/v1/flows').json()['total']==513
+
+
+def test_upload_preserves_interleaved_overflow_windows(monkeypatch, tmp_path):
+    monkeypatch.setenv('DATABASE_URL', f'sqlite:///{tmp_path}/flows.db')
+    monkeypatch.setenv('SENTINEL_AUTH_DISABLED', '1')
+    path = tmp_path/'interleaved.pcap'
+    with path.open('wb') as stream:
+        writer = dpkt.pcap.Writer(stream)
+        def packet(port):
+            udp = dpkt.udp.UDP(sport=port, dport=53)
+            ip = dpkt.ip.IP(src=b'\xc0\x00\x02\x01', dst=b'\xc0\x00\x02\x02', p=17, data=udp)
+            return bytes(dpkt.ethernet.Ethernet(type=2048, data=ip))
+        for port in range(1, 4099):
+            writer.writepkt(packet(port), ts=1)
+        for port in (1, 4097, 4098):
+            for _ in range(4):
+                writer.writepkt(packet(port), ts=1.5)
+        writer.writepkt(packet(1), ts=3)
+    with TestClient(app) as client, path.open('rb') as stream:
+        result = client.post('/api/v1/pcap/upload', files={'file': (path.name, stream)})
+        assert result.status_code == 200, result.text
+        assert result.json()['processed_windows'] == 3
+        assert result.json()['coverage'] == dict(packets=4111, windows=3, insufficient_packets=4096)

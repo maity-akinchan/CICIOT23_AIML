@@ -224,6 +224,7 @@ export const SecurityAlertSchema = z.object({
 export type SecurityAlert = z.infer<typeof SecurityAlertSchema>;
 
 export const DeviceStatusSchema = z.enum([
+  'Unverified',
   'Normal',
   'DoS Attack',
   'DDoS Attack',

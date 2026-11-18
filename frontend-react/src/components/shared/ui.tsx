@@ -111,6 +111,10 @@ export function StatusBadge({
       ? ` ${(confidence <= 1 ? confidence * 100 : confidence).toFixed(1)}%`
       : '';
 
+  if (label === 'Unverified') {
+    return <span className="text-sm text-slate-300">Unverified</span>;
+  }
+
   if (label === 'Normal' || label === 'RESOLVED') {
     return (
       <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#10B981]/15 border border-[#10B981]/30 text-[#10B981] tabular-nums whitespace-nowrap">

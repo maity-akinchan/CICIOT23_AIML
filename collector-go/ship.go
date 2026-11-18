@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"time"
 )
 
@@ -270,4 +271,53 @@ func jsonListContains(raw any, want string) bool {
 		}
 	}
 	return false
+}
+
+// Report capture progress even when no five-packet window reaches inference.
+func (s *shipper) reportCoverage(ctx context.Context, iface string, kernelDrops func() uint64) {
+	endpoint, err := url.Parse(s.apiURL)
+	if err != nil {
+		return
+	}
+	endpoint = endpoint.ResolveReference(&url.URL{Path: "coverage"})
+	ticker := time.NewTicker(10 * time.Second)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			data := map[string]any{
+				"collector_id": s.collectorID, "session": s.session, "iface": iface,
+				"captured": s.stats.Captured.Load(), "accepted": s.stats.Accepted.Load(),
+				"insufficient_packets": s.stats.InsufficientPackets.Load(), "capacity_evictions": s.stats.CapacityEvictions.Load(),
+				"kernel_drops": kernelDrops(), "queue_drops": s.stats.DroppedQueue.Load(),
+				"windows_emitted": s.stats.WindowsEmitted.Load(), "windows_dropped": s.stats.WindowsDropped.Load(),
+				"http_ok": s.stats.HTTPSuccess.Load(), "http_fail": s.stats.HTTPFailures.Load(),
+			}
+			body, err := jsonMarshal(data)
+			if err != nil {
+				continue
+			}
+			req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint.String(), bytes.NewReader(body))
+			if err != nil {
+				return
+			}
+			req.Header.Set("Content-Type", "application/json")
+			if s.authToken != "" {
+				req.Header.Set("Authorization", "Bearer "+s.authToken)
+			}
+			res, err := s.client.Do(req)
+			if err != nil {
+				if ctx.Err() == nil {
+					log.Printf("capture coverage: %v", err)
+				}
+				continue
+			}
+			res.Body.Close()
+			if res.StatusCode != 204 {
+				log.Printf("capture coverage: server returned %d", res.StatusCode)
+			}
+		}
+	}
 }
