@@ -32,13 +32,10 @@ def login(payload: LoginPayload, request: Request):
             )
             db.add(user)
             db.flush()
-        elif payload.mode == 'create':
-            user.password_hash = pw_hash
-            if payload.org_name and payload.org_name.strip():
-                user.org_name = payload.org_name.strip()
-        else:
-            if not secrets.compare_digest(user.password_hash, pw_hash):
-                raise HTTPException(401, 'Invalid email or password')
+        elif not secrets.compare_digest(user.password_hash, pw_hash):
+            raise HTTPException(401, 'Invalid email or password')
+        elif payload.mode == 'create' and payload.org_name and payload.org_name.strip():
+            user.org_name = payload.org_name.strip()
         return {
             'status': 'ok',
             'email': user.email,

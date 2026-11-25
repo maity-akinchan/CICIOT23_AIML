@@ -8,10 +8,11 @@ router=APIRouter()
 
 @router.post('/pcap/upload')
 async def upload(request:Request,file:UploadFile):
-    engine=request.app.state.inference_engine
-    if engine.is_loaded:
-        if not engine.bundle.get("is_legacy"): raise HTTPException(422,"PCAP extraction has not been verified against the Kaggle CSV measurements; use CSV upload")
-    if not engine.is_loaded:raise HTTPException(503,engine.error)
+    engine=request.app.state.model_catalog.active
+    if not engine.is_loaded:
+        raise HTTPException(503, engine.error)
+    if not engine.accepts_packet_approximation:
+        raise HTTPException(422, 'The selected model accepts CSV feature rows only')
     if not (file.filename or '').lower().endswith('.pcap'):
         await file.close()
         raise HTTPException(415,'Choose a classic .pcap file; PCAPNG is not supported')
@@ -68,7 +69,7 @@ async def upload(request:Request,file:UploadFile):
                 file_sha256=digest,size_bytes=size,
                 artifact_sha256=engine.bundle['artifact_sha256'],**counts))
         return counts|{'coverage':diagnostics,'capture_session_id':session,
-                      'artifact_sha256':engine.bundle['artifact_sha256']}
+                      'artifact_sha256':engine.bundle['artifact_sha256'],'model_used':engine.model_id}
 
     try:
         # Validate and infer without occupying the live ingestion lock or writer.
@@ -88,7 +89,7 @@ async def csv_upload(request:Request,file:UploadFile):
     from sentinel_ml.artifacts import predict
     from sentinel_ml.contract import BASE
     import pandas as pd
-    engine=request.app.state.inference_engine
+    engine=request.app.state.model_catalog.active
     if not engine.is_loaded:raise HTTPException(503,engine.error)
     if engine.bundle['contract_id'] not in (CONTRACT_ID,'ciciot23-legacy22-v1'):raise HTTPException(422,'Select a Kaggle CSV-trained model')
     try:data=await file.read()
@@ -101,7 +102,7 @@ async def csv_upload(request:Request,file:UploadFile):
         x,scores=predict(engine.bundle,frame.loc[:,BASE])
         from sentinel_ml.decision import classify
         labels=classify(engine.bundle['classes'],scores,engine.bundle.get('decision_policy'))
-        return dict(processed_rows=len(x),feature_contract_id=CONTRACT_ID,artifact_sha256=engine.bundle['artifact_sha256'],
+        return dict(processed_rows=len(x),feature_contract_id=CONTRACT_ID,model_used=engine.model_id,artifact_sha256=engine.bundle['artifact_sha256'],
             predictions=[dict(row_index=i,predicted_class=str(labels[i]),
                 probabilities=dict(zip(engine.bundle['classes'],map(float,score))),features_22=x.iloc[i].astype(float).to_dict())
                 for i,score in enumerate(scores)])

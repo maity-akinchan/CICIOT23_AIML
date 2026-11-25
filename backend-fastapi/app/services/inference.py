@@ -15,6 +15,14 @@ class InferenceEngine:
     def is_loaded(self):return self.bundle is not None
     @property
     def is_bootstrap_model(self):return False
+    @property
+    def model_id(self) -> str:
+        return self.artifact_path.stem
+
+    @property
+    def accepts_packet_approximation(self) -> bool:
+        return bool(self.bundle and self.bundle['accepts_packet_approximation'])
+
     def load(self):
         self.bundle=load(self.artifact_path)
         self.error=None

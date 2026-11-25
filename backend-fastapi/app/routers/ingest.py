@@ -4,6 +4,10 @@ from datetime import datetime, timezone
 
 from pydantic import BaseModel, Field, NonNegativeInt
 from fastapi import APIRouter, HTTPException, Request
+from starlette.concurrency import run_in_threadpool
+
+from app.services.inference import InferenceEngine
+from sentinel_ml.approximation import CONTRACT_ID as APPROX_ID, CONTRACT_HASH as APPROX_HASH
 
 from app.schemas import BatchPredictionRequest, BatchPredictionResponse, IngestBatchRequest, PredictionResult
 
@@ -20,10 +24,10 @@ def _response(predictions: list[PredictionResult]) -> BatchPredictionResponse:
                                    ddos_count=counts["DDoS"])
 
 
-async def _predict(request: Request, payloads) -> BatchPredictionResponse:
-    from starlette.concurrency import run_in_threadpool
+async def _predict(request: Request, envelope: IngestBatchRequest, payloads) -> BatchPredictionResponse:
     async with request.app.state.ingest_lock:
-        engine = request.app.state.inference_engine
+        engine = request.app.state.model_catalog.active
+        verify_contract(envelope, engine)
         def persist():
             predictions = engine.predict_batch(payloads)
             with request.app.state.sessions.begin() as db:
@@ -46,8 +50,6 @@ async def ingest_windows(request: Request, payload: IngestBatchRequest) -> Batch
     expected=getattr(request.state,'collector_id',None)
     if expected is not None and payload.collector_id!=expected:
         raise HTTPException(403,'Credential belongs to a different service')
-    verify_contract(payload,request)
-    from sentinel_ml.approximation import CONTRACT_ID as APPROX_ID
     approximate=payload.feature_contract_id==APPROX_ID
     import hashlib
     windows=[window.to_flow_payload(payload.capture_mode) for window in payload.windows]
@@ -58,27 +60,29 @@ async def ingest_windows(request: Request, payload: IngestBatchRequest) -> Batch
             window.input_representation='packet_approximation'
         window.capture_session_id=payload.capture_session_id
         window.window_id=hashlib.sha256(f'{payload.capture_session_id}:{payload.collector_id}:{window.window_id}'.encode()).hexdigest()
-    return await _predict(request, windows)
+    return await _predict(request, payload, windows)
 
 
 @router.post("/predict/batch", response_model=BatchPredictionResponse)
 async def predict_batch(request: Request, payload: BatchPredictionRequest) -> BatchPredictionResponse:
-    verify_contract(payload,request)
+    engine = request.app.state.model_catalog.active
+    verify_contract(payload, engine)
     try:
-        from starlette.concurrency import run_in_threadpool
-        predictions=await run_in_threadpool(request.app.state.inference_engine.predict_batch,payload.data)
+        predictions = await run_in_threadpool(engine.predict_batch, payload.data)
         return _response(predictions)
     except (ValueError, RuntimeError) as exc:
-        raise HTTPException(503 if not request.app.state.inference_engine.is_loaded else 422, str(exc)) from exc
+        raise HTTPException(422, str(exc)) from exc
 
 
-def verify_contract(payload,request):
-    engine=request.app.state.inference_engine
-    if not engine.is_loaded:raise HTTPException(503,engine.error)
-    from sentinel_ml.approximation import CONTRACT_ID as APPROX_ID,CONTRACT_HASH as APPROX_HASH
-    if payload.feature_contract_id==APPROX_ID and payload.contract_hash==APPROX_HASH and engine.bundle.get('is_legacy'):return
-    if payload.feature_contract_id!=engine.bundle['contract_id'] or payload.contract_hash!=engine.bundle['contract_hash']:
-        raise HTTPException(422,'Input contract differs from loaded model')
+def verify_contract(payload, engine: InferenceEngine):
+    if not engine.is_loaded:
+        raise HTTPException(503, engine.error)
+    if (payload.feature_contract_id == APPROX_ID and payload.contract_hash == APPROX_HASH
+            and engine.accepts_packet_approximation):
+        return
+    if payload.feature_contract_id != engine.bundle['contract_id'] or payload.contract_hash != engine.bundle['contract_hash']:
+        raise HTTPException(422, 'Input contract differs from loaded model')
+
 
 class CaptureCoverage(BaseModel):
     collector_id: str = Field(min_length=1, max_length=64)

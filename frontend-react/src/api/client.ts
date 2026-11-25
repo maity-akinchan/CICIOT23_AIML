@@ -55,6 +55,7 @@ apiClient.interceptors.request.use(config => {
 export interface BackendHealthStatus {
   online: boolean;
   modelLoaded: boolean;
+  activeModelId?: string | null;
   isBootstrapModel: boolean;
   latencyMs: number | null;
   error?: string;
@@ -77,6 +78,7 @@ export async function checkBackendHealth(
     return {
       online: parsed.status === 'ok',
       modelLoaded: parsed.model_loaded,
+      activeModelId: parsed.active_model_id,
       isBootstrapModel: parsed.is_bootstrap_model,
       latencyMs,
     };

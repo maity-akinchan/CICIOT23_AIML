@@ -118,7 +118,7 @@ export const FlowRecordSchema = z
     is_anomaly: z.boolean().optional(),
     probabilities: z
       .record(z.string(), finiteNumber),
-    model_used: z.string().optional().default('XGBoost (22F)'),
+    model_used: z.string().optional().default('Unknown'),
     top_anomalies: z.array(AnomalyExplanationSchema).optional().default([]),
     capture_session_id: z.string().optional(),
     artifact_sha256: z.string().optional(),
@@ -189,6 +189,7 @@ export type BatchPredictionResponse = z.output<typeof BatchPredictionResponseSch
 export const HealthResponseSchema = z.object({
   status: z.string(),
   model_loaded: z.boolean(),
+  active_model_id: z.string().nullable().optional(),
   is_bootstrap_model: z.boolean(),
 });
 

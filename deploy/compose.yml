@@ -9,6 +9,7 @@ services:
       DATABASE_URL: sqlite:////data/sentinel.db
     volumes:
       - data:/data
+      - ../ml/artifacts:/repo/ml/artifacts:ro
     healthcheck:
       test: [CMD, python, -c, "import urllib.request,json; d=json.load(urllib.request.urlopen('http://localhost:8000/health')); assert d['model_loaded'],d.get('reason')"]
       interval: 10s

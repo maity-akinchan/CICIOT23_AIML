@@ -278,10 +278,8 @@ export function ProfileSetupPage({
                   )}
                   <span>
                     {apiTestResult.online
-                      ? `Connected to Server (${apiTestResult.latencyMs}ms) · Model Loaded: ${
-                          apiTestResult.isBootstrapModel
-                            ? 'Bootstrap Model'
-                            : 'XGBoost Artifact'
+                      ? `Connected to Server (${apiTestResult.latencyMs}ms) · Model: ${
+                          apiTestResult.activeModelId ?? (apiTestResult.modelLoaded ? 'Loaded' : 'Unavailable')
                         }`
                       : `Server not reachable at ${apiBaseUrl}. Run: uvicorn app.main:app --port 8000 --reload`}
                   </span>

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 from collections import deque
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -13,8 +14,10 @@ from fastapi.responses import JSONResponse
 
 from app.routers import ingest, websockets, analytics, incidents
 from app.database import initialize
+from app.security import router as auth_router
 from app.services.incident_manager import IncidentManager
-from app.services.inference import InferenceEngine
+from app.services.model_catalog import ModelCatalog
+from sentinel_ml.approximation import CONTRACT_ID as PACKET_CONTRACT_ID, CONTRACT_HASH as PACKET_CONTRACT_HASH
 from app.services.ws_manager import manager
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
@@ -23,8 +26,6 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    import os
-    import asyncio
     app.state.capture_coverage = deque(maxlen=3600)
     app.state.ingest_lock = asyncio.Lock()
     model_dir = Path(os.getenv('MODEL_DIR', str(Path(__file__).resolve().parents[2] / 'ml/artifacts')))
@@ -32,23 +33,14 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.incidents = IncidentManager()
     from app.services.auto_blocker import AutoBlocker
     app.state.auto_blocker = AutoBlocker()
-    app.state.registry = {}
-    for model_id in ('xgb','rf','lr'):
-        candidate = InferenceEngine(model_dir / f'ciciot_22f_{model_id}.joblib')
-        try:
-            candidate.load()
-        except Exception as exc:
-            candidate.error = str(exc)
-            logger.warning('Model %s unavailable: %s', model_id, exc)
-        app.state.registry[model_id] = candidate
-    app.state.inference_engine = app.state.registry['xgb']
+    app.state.model_catalog = ModelCatalog(model_dir)
+    app.state.model_catalog.load_default()
     app.state.ws_manager = manager
     app.state.replay = dict(is_running=False, speed_fps=10, rows_streamed=0)
     app.state.replay_task = None
     yield
     if app.state.replay_task:
         app.state.replay_task.cancel()
-        import asyncio
         try: await app.state.replay_task
         except asyncio.CancelledError: pass
     app.state.db_engine.dispose()
@@ -67,16 +59,19 @@ async def unhandled_exception(request: Request, exc: Exception) -> JSONResponse:
 
 @app.get("/health")
 async def health() -> dict[str, object]:
-    engine = app.state.inference_engine
+    engine = app.state.model_catalog.active
     return {"status": "ok", "model_loaded": engine.is_loaded,
             "is_bootstrap_model": False, "reason": engine.error,
-            "allowed_contracts":[__import__('sentinel_ml.approximation',fromlist=['CONTRACT_ID']).CONTRACT_ID] if engine.is_loaded and engine.bundle.get('is_legacy') else [],
-            "allowed_input_modes":['PCAP_REPLAY','PCAP_UPLOAD','LIVE_INTERFACE'],
-            "contract_hash":__import__('sentinel_ml.approximation',fromlist=['CONTRACT_HASH']).CONTRACT_HASH,
-            "packet_compatibility":"approximate", "observe_only":True}
+            "active_model_id": engine.model_id if engine.is_loaded else None,
+            "allowed_contracts": [PACKET_CONTRACT_ID] if engine.accepts_packet_approximation else [],
+            "allowed_input_modes": ['PCAP_REPLAY', 'PCAP_UPLOAD', 'LIVE_INTERFACE'] if engine.accepts_packet_approximation else [],
+            "contract_hash": PACKET_CONTRACT_HASH,
+            "packet_compatibility": "approximate" if engine.accepts_packet_approximation else "unavailable",
+            "observe_only": True}
 
 
 app.include_router(ingest.router, prefix="/api/v1")
+app.include_router(auth_router, prefix="/api/v1")
 
 
 app.include_router(websockets.router)
@@ -95,7 +90,7 @@ app.include_router(replay.router,prefix="/api/v1")
 def contract():
     from sentinel_ml.csv_contract import SPEC, CONTRACT_HASH
     from sentinel_ml.approximation import SPEC as PACKET_SPEC, CONTRACT_HASH as PACKET_HASH
-    engine=app.state.inference_engine
+    engine=app.state.model_catalog.active
     return {'csv_specification':SPEC,'csv_contract_hash':CONTRACT_HASH,
             'packet_specification':PACKET_SPEC,'packet_contract_hash':PACKET_HASH,
             'active_model_contract':engine.bundle['contract_id'] if engine.is_loaded else None}

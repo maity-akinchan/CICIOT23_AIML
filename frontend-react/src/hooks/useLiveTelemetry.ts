@@ -28,7 +28,8 @@ export function useLiveTelemetry() {
     isBootstrapModel: false,
     latencyMs: null,
   });
-  const [activeModelName, setActiveModelName] = useState<string>('Checking FastAPI...');
+  const activeModelName = health.activeModelId
+    ?? (health.modelLoaded ? 'Loaded' : health.online ? 'No model loaded' : 'Unavailable');
   const [apiError, setApiError] = useState<string | null>(null);
 
   const [streamPaused, setStreamPaused] = useState(false);
@@ -71,11 +72,6 @@ export function useLiveTelemetry() {
       seenWindowIdsRef.current = new Set(arr);
     }
 
-    const firstModel = fresh[0]?.model_used;
-    if (firstModel) {
-      setActiveModelName(firstModel);
-    }
-
     const benignBatch = fresh.filter((f) => f.predicted_class === 'Benign').length;
     const dosBatch = fresh.filter((f) => f.predicted_class === 'DoS').length;
     const ddosBatch = fresh.filter((f) => f.predicted_class === 'DDoS').length;
@@ -112,18 +108,7 @@ export function useLiveTelemetry() {
   const refreshBackendHealth = useCallback(async (overrideUrl?: string) => {
     const status = await checkBackendHealth(overrideUrl);
     setHealth(status);
-    if (status.online) {
-      setApiError(null);
-      setActiveModelName((prev) =>
-        prev === 'Checking FastAPI...' || prev === 'Offline'
-          ? status.isBootstrapModel
-            ? 'Deterministic Bootstrap Model'
-            : 'XGBoost (22F Artifact)'
-          : prev
-      );
-    } else {
-      setActiveModelName('Offline');
-    }
+    if (status.online) setApiError(null);
     return status;
   }, []);
 

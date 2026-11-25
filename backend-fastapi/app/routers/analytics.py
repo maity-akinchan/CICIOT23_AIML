@@ -1,7 +1,9 @@
 from fastapi import APIRouter, HTTPException, Request, Query
+from pydantic import BaseModel, Field
 from sqlalchemy import select, func, or_, delete
 from app.models import Flow, Alert, Incident, Device, CaptureSession
 from app.services.incident_manager import serialize
+from app.services.inference import InferenceEngine
 
 router = APIRouter()
 
@@ -66,35 +68,60 @@ async def reset(request:Request):
         return {'status':'reset'}
 
 
+def model_details(model_id: str, active: InferenceEngine):
+    details = {'model_id': model_id, 'model_name': model_id, 'available': True,
+               'loaded': active.is_loaded and active.model_id == model_id}
+    if not details['loaded']:
+        return details
+    bundle = active.bundle
+    metrics = bundle.get('metrics', {})
+    test = metrics.get('test', metrics)
+    scores = test.get('metrics', test)
+    return details | {
+        'is_bootstrap_model': active.is_bootstrap_model,
+        'artifact_sha256': bundle['artifact_sha256'],
+        'classes': bundle['classes'],
+        'test_accuracy': scores.get('accuracy', scores.get('test_accuracy')),
+        'test_macro_f1': scores.get('macro_f1', scores.get('test_macro_f1')),
+        'confusion_matrix': test.get('confusion_matrix'),
+        'classification_report': test.get('classification_report'),
+        'feature_importances': bundle.get('feature_importance', metrics.get('feature_importances', {})),
+        'training_scope': bundle.get('training_scope', {}),
+        'packet_compatibility': 'approximate' if active.accepts_packet_approximation else 'csv_only',
+        'parity_validation': bundle.get('parity_validation', 'golden_rows_verified'),
+    }
+
+
 @router.get('/models')
-def models(request:Request):
-    return {'active_model_id':next((key for key,value in request.app.state.registry.items() if value is request.app.state.inference_engine), None),
-            'models':[analytics(key,request) for key in request.app.state.registry]}
+def models(request: Request):
+    catalog = request.app.state.model_catalog
+    active = catalog.active
+    model_ids = list(catalog.paths())
+    if active.is_loaded and active.model_id not in model_ids:
+        model_ids.append(active.model_id)
+    return {
+        'active_model_id': active.model_id if active.is_loaded else None,
+        'models': [model_details(model_id, active) for model_id in model_ids],
+    }
+
 
 @router.get('/models/{model_id}/analytics')
-def analytics(model_id:str,request:Request):
-    engine=request.app.state.registry.get(model_id)
-    if engine is None: raise HTTPException(404,'Model not found')
-    if not engine.is_loaded: return {'model_id':model_id,'available':False,'reason':engine.error}
-    b=engine.bundle
-    metrics=b.get('metrics',{})
-    test=metrics.get('test',metrics)
-    scores=test.get('metrics',test)
-    return {'model_id':model_id,'model_name':b['model_name'],'is_bootstrap_model':engine.is_bootstrap_model,
-            'available':True,'artifact_sha256':b['artifact_sha256'],'classes':b['classes'],'test_accuracy':scores.get('accuracy',scores.get('test_accuracy')),
-            'test_macro_f1':scores.get('macro_f1',scores.get('test_macro_f1')),
-            'confusion_matrix':test.get('confusion_matrix'), 'classification_report':test.get('classification_report'),
-            'feature_importances':b.get('feature_importance',metrics.get('feature_importances',{})),
-            'training_scope':b.get('training_scope',{}), 'packet_compatibility':'approximate' if b.get('is_legacy') else 'contract_dependent',
-            'parity_validation':b.get('parity_validation','golden_rows_verified')}
+def analytics(model_id: str, request: Request):
+    catalog = request.app.state.model_catalog
+    active = catalog.active
+    paths = catalog.paths()
+    if model_id not in paths and model_id != active.model_id:
+        model_id = catalog.resolve_id(model_id)
+    if model_id not in paths and not (active.is_loaded and model_id == active.model_id):
+        raise HTTPException(404, 'Model not found')
+    return model_details(model_id, active)
 
-from pydantic import BaseModel
-from typing import Literal
+
 class ModelSelection(BaseModel):
-    model_id: Literal['xgb','rf','lr']
+    model_id: str = Field(min_length=1, max_length=255)
+
 
 @router.post('/models/select')
-def select_model(payload:ModelSelection,request:Request):
-    if not request.app.state.registry[payload.model_id].is_loaded: raise HTTPException(503,"Model unavailable")
-    request.app.state.inference_engine=request.app.state.registry[payload.model_id]
-    return {'active_model_id':payload.model_id}
+async def select_model(payload: ModelSelection, request: Request):
+    engine = await request.app.state.model_catalog.select(payload.model_id)
+    return {'active_model_id': engine.model_id}

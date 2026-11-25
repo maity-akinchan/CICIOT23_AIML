@@ -43,7 +43,7 @@ and prediction run in batches, and results are paginated. Available disk space,
 processing time, and any independently configured proxy limits still apply.
 Keep the page open while processing; results are saved in Analysis history.
 PCAPNG, truncated packets and unsupported protocols produce an explicit error.
-CSV upload retains its separate limits; the original model is used without retraining.
+CSV upload retains its separate limits; the selected model is used without retraining.
 
 The latest upload regression was a CSV-only frontend handler accidentally replacing
 the PCAP handler. The client now uses multipart PCAP upload and displays server
@@ -54,9 +54,9 @@ checks model readiness before exposing the website.
 
 # CICIoT23 Sentinel — Go + FastAPI prototype
 
-The supplied trained XGBoost is used directly; retraining is optional. The active
+The trained models are used directly. The active
 path is PCAP/live capture -> contributor Go collector -> FastAPI approximate adapter
--> 22-feature CSV/DataFrame -> XGBoost -> stored predictions/WebSocket updates.
+-> 22-feature DataFrame -> selected model -> stored predictions/WebSocket updates.
 
 Packet measurements are explicitly approximate representations of the original
 Kaggle training inputs. Outputs identify that limitation. The original artifact,
@@ -65,9 +65,25 @@ arbitrary scaling are used. Device/firewall actions are disabled.
 
 See [build/run instructions](collector-go/README.md), [current architecture](agents/master_architecture_integration_blueprint.md),
 and [model/measurement definitions](agents/machine_learning_pipeline_22_feature_contract.md).
-Backend docs: http://127.0.0.1:8000/docs. Default model path:
-ml/artifacts/ciciot_22f_xgb.joblib. MODEL_DIR overrides its directory;
-DATABASE_URL overrides SQLite storage. Use one backend worker.
+Backend docs: http://127.0.0.1:8000/docs. DATABASE_URL overrides SQLite storage.
+
+### Select an inference model
+
+The workspace **Model** menu switches the backend model for subsequent requests.
+The supplied XGBoost model is the startup default. The menu also lists the bundled
+calibrated SVM and logistic regression by filename stem.
+
+Put additional trusted CICIoT23 model bundles, such as
+`ciciot23_balanced_random_forest_22f.joblib`, directly in `ml/artifacts/`
+(or the directory set by `MODEL_DIR`). Click **Refresh models** next to the menu,
+then select the new model. The packaged server mounts `ml/artifacts/` read-only.
+Use a CICIoT23 bundle with matching feature-contract metadata or a fitted
+estimator with the same 22 named features in order, the three string class
+labels and `predict_proba`. The selected estimator must expect the shared
+CICIoT23 preprocessing. Selection loads and checks the file. Use one backend
+worker because the selection is shared in memory and resets on restart.
+The supplied exports support CSV inference and approximate, observe-only packet
+inference. Artifacts exported with the repository's CSV-only contract use CSV input.
 
 POST /api/v1/pcap/upload accepts classic Ethernet/IPv4 TCP/UDP/ICMP PCAPs.
 The Go collector supports more formats; parity is tested on the supported reference

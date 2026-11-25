@@ -1,3 +1,4 @@
+import { ModelSelector } from './components/layout/ModelSelector';
 import { WorkspaceNavigation } from './components/layout/WorkspaceNavigation';
 import { pages, SummaryPage, CaptureHistoryPage, PcapPage, TrafficPage, ServiceSetupPage } from './components/workspace/WorkspacePages';
 import { AlertCircle, X } from 'lucide-react';
@@ -147,7 +148,21 @@ export function App() {
     <div className="min-h-screen bg-[#0D0C14] text-[#F8FAFC]">
       <WorkspaceNavigation active={activePage} onNavigate={setActivePage} onHome={()=>setStage('landing')}/>
       <div className="workspace-main">
-        <header className="workspace-topbar"><span className="text-sm text-slate-400">Detection workspace <span className="mx-2 text-slate-600">/</span><span className="text-slate-200">{pages.find(p=>p.id===activePage)?.label}</span></span>{activePage!=='onboarding'&&<button className="secondary-action" onClick={()=>setActivePage('pcap-analysis')}>Upload PCAP</button>}</header>
+        <header className="workspace-topbar">
+          <span className="text-sm text-slate-400">
+            Detection workspace <span className="mx-2 text-slate-600">/</span>
+            <span className="text-slate-200">{pages.find(p=>p.id===activePage)?.label}</span>
+          </span>
+          <div className="flex flex-wrap items-start gap-2 min-w-0">
+            <ModelSelector
+              key={getApiBaseUrl()}
+              onSelect={() => telemetry.refreshBackendHealth()}
+            />
+            {activePage !== 'onboarding' && (
+              <button className="secondary-action" onClick={() => setActivePage('pcap-analysis')}>Upload PCAP</button>
+            )}
+          </div>
+        </header>
         <main className="workspace-content space-y-6">
           <div><p className="eyebrow mb-2">Network analysis</p><h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">{pages.find(p=>p.id===activePage)?.label}</h1><p className="text-sm sm:text-base text-slate-400 mt-2">{pages.find(p=>p.id===activePage)?.description}</p></div>
           {/* Connection errors */}
