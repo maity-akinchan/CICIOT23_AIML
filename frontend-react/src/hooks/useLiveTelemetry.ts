@@ -3,12 +3,15 @@ import {
   analyzeUploadedFile,
   apiClient,
   checkBackendHealth,
+  getOperatorToken,
   getWsLiveUrl,
   type BackendHealthStatus,
   type UploadAnalysisSummary,
 } from '../api/client';
 import {
   TelemetryBatchFrameSchema,
+  FlowRecordSchema,
+  SecurityAlertSchema,
   type DiscoveredEndpoint,
   type FlowRecord,
   type KpiSummary,
@@ -36,6 +39,8 @@ export function useLiveTelemetry() {
   const [flows, setFlows] = useState<FlowRecord[]>([]);
   const [timeSeries, setTimeSeries] = useState<TimeSeriesPoint[]>([]);
   const [alerts, setAlerts] = useState<SecurityAlert[]>([]);
+  const [alertsError, setAlertsError] = useState(false);
+  const [flowsError, setFlowsError] = useState(false);
 
   const [counters, setCounters] = useState({
     total: 0,
@@ -146,15 +151,19 @@ export function useLiveTelemetry() {
 
     const connect = () => {
       if (unmounted) return;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      setWsConnected(false);
       try {
         if (ws) {
           ws.onclose = null;
           ws.close();
         }
-        ws = new WebSocket(getWsLiveUrl(), sessionStorage.getItem('sentinel_operator_token') ? ['sentinel.'+sessionStorage.getItem('sentinel_operator_token')] : []);
+        const token = getOperatorToken();
+        ws = new WebSocket(getWsLiveUrl(), token ? ['sentinel.' + token] : []);
         ws.onopen = () => {
           if (!unmounted) {
             setWsConnected(true);
+            setFlowsError(false);
             setHealth((prev) => ({ ...prev, online: true }));
             setApiError(null);
           }
@@ -193,6 +202,29 @@ export function useLiveTelemetry() {
       ws?.close();
     };
   }, [ingestFlowsIntoState]);
+
+  useEffect(() => {
+    if (wsConnected || streamPaused) return;
+    const controller = new AbortController();
+    let timer: ReturnType<typeof setTimeout>;
+    async function syncFlows() {
+      try {
+        const {data} = await apiClient.get<{items: unknown[]}>('/api/v1/flows', {
+          params: {limit: MAX_FLOWS}, signal: controller.signal,
+        });
+        if (controller.signal.aborted) return;
+        const rows = data.items.map(row => FlowRecordSchema.parse(row));
+        ingestFlowsIntoState(rows);
+        setFlowsError(false);
+      } catch {
+        if (!controller.signal.aborted) setFlowsError(true);
+      } finally {
+        if (!controller.signal.aborted) timer = setTimeout(syncFlows, 5000);
+      }
+    }
+    void syncFlows();
+    return () => { controller.abort(); clearTimeout(timer); };
+  }, [ingestFlowsIntoState, streamPaused, wsConnected]);
 
   const reconnectWebSocket = useCallback(() => {
     reconnectWsRef.current?.();
@@ -268,8 +300,9 @@ export function useLiveTelemetry() {
   const refreshAlerts = useCallback(async () => {
     try {
       const {data}=await apiClient.get('/api/v1/alerts?limit=1000');
-      setAlerts(data.map((a:SecurityAlert & {id:number})=>({...a,id:String(a.id),window_id:`incident-${a.id}`,model_used:''})));
-    } catch { /* The connection banner is managed by health and upload requests. */ }
+      setAlerts(SecurityAlertSchema.array().parse(data));
+      setAlertsError(false);
+    } catch { setAlertsError(true); }
   },[]);
   useEffect(()=>{void refreshAlerts();const timer=setInterval(()=>void refreshAlerts(),5000);return()=>clearInterval(timer);},[refreshAlerts]);
   const handleAcknowledgeAlert = useCallback((id:string) => {
@@ -332,6 +365,8 @@ export function useLiveTelemetry() {
     kpis,
     discoveredEndpoints,
     alerts,
+    alertsError,
+    flowsError,
     handleAcknowledgeAlert,
     handleAcknowledgeAllAlerts,
     handleFileUpload,

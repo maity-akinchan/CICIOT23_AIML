@@ -107,7 +107,7 @@ CGO/libpcap. Build output is generated under dist and excluded from Git.
 For isolated development/tests only, set SENTINEL_AUTH_DISABLED=1 explicitly.
 
 The responsive React workspace has focused pages for Overview, PCAP analysis,
-Live traffic, Flow explorer, Attack alerts, Monitoring service, System console and Workspace settings.
+Live traffic, Flow explorer, Attack alerts, Connected devices, Monitoring service, System console and Workspace settings.
 PCAP uploads show only that file's predictions. The feature inspector opens on
 selection. Mobile/tablet navigation uses an expandable menu; wide tables scroll
 within their panels. Collector binaries download through authenticated requests.
@@ -146,7 +146,8 @@ service's network capabilities. Use `systemctl status sentinel-monitor` and
 `journalctl -u sentinel-monitor` for diagnosis. To remove it, disable/stop the unit,
 remove its unit file, executable and `/etc/sentinel`, then daemon-reload. Never
 install this unit on the backend host unless that is the intended monitored host.
-Linux installation is implemented; macOS/Windows live services are not supported.
+Linux supports the systemd installer. Windows supports running the collector
+directly with Npcap. See [the collector instructions](collector-go/README.md).
 
 Analysis history and alert acknowledgements now persist in SQLite. Capture history
 stores filename, hash, size, model identity and class counts, not raw capture bytes.

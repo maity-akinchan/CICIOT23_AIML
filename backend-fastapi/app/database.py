@@ -29,5 +29,27 @@ def initialize():
         if table in inspector.get_table_names() and 'capture_session_id' not in {c['name'] for c in inspector.get_columns(table)}:
             with engine.begin() as conn:
                 conn.execute(text(f"ALTER TABLE {table} ADD COLUMN capture_session_id VARCHAR(64) DEFAULT ''"))
+    extra_columns = {
+        'flow_logs': {'collector_id': 'VARCHAR(64)'},
+        'incidents': {
+            'collector_id': 'VARCHAR(64)', 'capture_mode': "VARCHAR(32) DEFAULT ''",
+            'input_representation': "VARCHAR(64) DEFAULT 'dataset_features'",
+        },
+        'security_alerts': {
+            'collector_id': 'VARCHAR(64)', 'capture_mode': "VARCHAR(32) DEFAULT ''",
+            'input_representation': "VARCHAR(64) DEFAULT 'dataset_features'",
+        },
+    }
+    with engine.begin() as conn:
+        existing = inspect(conn)
+        for table, definitions in extra_columns.items():
+            if not existing.has_table(table):
+                continue
+            columns = {c['name'] for c in existing.get_columns(table)}
+            for name, definition in definitions.items():
+                if name not in columns:
+                    conn.execute(text(f'ALTER TABLE {table} ADD COLUMN {name} {definition}'))
+        if existing.has_table('flow_logs'):
+            conn.execute(text('CREATE INDEX IF NOT EXISTS ix_flow_live_activity ON flow_logs(capture_mode, timestamp, collector_id)'))
     Base.metadata.create_all(engine)
     return engine, sessionmaker(engine, expire_on_commit=False)

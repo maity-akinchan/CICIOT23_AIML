@@ -29,8 +29,9 @@ def flows(request: Request, limit: int=Query(100,ge=1,le=1000), offset: int=Quer
     if protocol: query=query.where(Flow.protocol==protocol)
     if ip_search: query=query.where(or_(Flow.src_ip.contains(ip_search),Flow.dst_ip.contains(ip_search),Flow.src_mac.contains(ip_search)))
     with request.app.state.sessions() as db:
-        return {'total':db.scalar(select(func.count()).select_from(query.subquery())),
-                'items':[serialize(x) for x in db.scalars(query.order_by(Flow.id.desc()).offset(offset).limit(limit))]}
+        total = db.scalar(select(func.count()).select_from(query.subquery()))
+        items = [serialize(x) for x in db.scalars(query.order_by(Flow.id.desc()).offset(offset).limit(limit))]
+    return {'total': total, 'items': request.app.state.inference_engine.restore_explanations(items)}
 
 @router.get('/alerts')
 def alerts(request: Request, acknowledged: bool|None=None, severity: str|None=None, limit: int=Query(50,ge=1,le=1000)):

@@ -40,8 +40,7 @@ export function AttackAlertsPanel({
             Attack Alerts &amp; Explanations
           </h2>
           <p className="text-[13px] text-[#8E8CA3] mt-0.5">
-            DoS and DDoS detections from FastAPI showing the top 3 plain-English reasons each
-            flow was flagged
+            Review DoS and DDoS predictions and the signals behind them.
           </p>
         </div>
 
@@ -150,18 +149,26 @@ export function AttackAlertsPanel({
                     </span>
                   </div>
 
+                  <div className="flex flex-wrap gap-2 text-xs text-slate-300">
+                    {alert.input_representation === 'packet_approximation' && <span className="text-amber-300">Unverified packet prediction</span>}
+                    {alert.capture_mode === 'PCAP_UPLOAD' && <span>Uploaded capture</span>}
+                    {alert.capture_mode === 'PCAP_REPLAY' && <span>Capture replay</span>}
+                    {alert.capture_mode === 'LIVE_INTERFACE' && <span>Live traffic</span>}
+                    {alert.collector_id && <span className="break-all">{alert.collector_id}</span>}
+                  </div>
+
                   {/* Endpoints */}
                   <div className="p-3 rounded-lg bg-[#1A1826] border border-[#222030] flex items-center justify-between gap-2 font-mono text-[13px] tabular-nums">
                     <div>
                       <div className="text-[10px] font-sans uppercase text-[#8E8CA3]">
-                        Attacker Source
+                        Observed Source
                       </div>
                       <div className="font-semibold text-[#F97316]">{alert.src_ip}</div>
                     </div>
                     <ArrowRight className="w-4 h-4 text-[#8E8CA3] shrink-0" />
                     <div className="text-right">
                       <div className="text-[10px] font-sans uppercase text-[#8E8CA3]">
-                        Target Endpoint
+                        Observed Destination
                       </div>
                       <div className="font-semibold text-[#F8FAFC]">{alert.dst_ip}</div>
                     </div>
@@ -170,26 +177,26 @@ export function AttackAlertsPanel({
                   {/* Why This Was Flagged */}
                   <div className="space-y-2">
                     <div className="text-[11.5px] font-bold uppercase tracking-wider text-[#8E8CA3]">
-                      Why This Was Flagged (Top 3 Unusual Signals)
+                      Why This Was Flagged
                     </div>
                     <div className="space-y-1.5">
+                      {alert.top_anomalies.length === 0 && <p className="text-xs text-slate-400">No supporting feature signal is available for this alert.</p>}
                       {alert.top_anomalies.slice(0, 3).map((anom) => (
                         <div
                           key={anom.feature}
-                          className="px-3 py-2 rounded-lg bg-[#0D0C14] border border-[#222030] flex items-center justify-between gap-2 text-[12.5px]"
+                          className="px-3 py-2 rounded-lg bg-[#0D0C14] border border-[#222030] flex items-center justify-between flex-wrap gap-2 text-[12.5px]"
                         >
                           <span className="font-medium text-[#F8FAFC] truncate">
                             {getFeatureLabel(anom.feature)}
                           </span>
-                          <div className="flex items-center gap-2 shrink-0 font-mono tabular-nums">
+                          <div className="flex items-center gap-2 flex-wrap font-mono tabular-nums">
                             <span className="text-[#F8FAFC] font-bold">
                               {formatFeatureValue(anom.feature, anom.value)}
                             </span>
-                            <span className="text-[11px] text-[#8E8CA3]">
-                              (normal: {formatFeatureValue(anom.feature, anom.benign_median)})
-                            </span>
-                            <span className="px-1.5 py-0.5 rounded bg-[#EF4444]/15 text-[#EF4444] text-[11px] font-bold">
-                              +{anom.z_iqr.toFixed(1)}× normal
+                            <span className="text-[11px] text-slate-400">
+                              {'model_contribution' in anom
+                                ? `+${anom.model_contribution.toFixed(3)} log-odds vs Benign`
+                                : `Benign median ${formatFeatureValue(anom.feature, anom.benign_median)}`}
                             </span>
                           </div>
                         </div>

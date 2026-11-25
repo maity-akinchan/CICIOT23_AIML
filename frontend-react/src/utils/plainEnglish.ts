@@ -292,19 +292,23 @@ export function formatUptime(seconds: number): string {
   return `${m}m ${String(s).padStart(2, '0')}s`;
 }
 
+function telemetryTimestamp(isoString: string): number {
+  return Date.parse(/^\d{4}-\d{2}-\d{2}T[\d:.]+$/.test(isoString) ? isoString + 'Z' : isoString);
+}
+
 export function formatRelativeTime(isoString: string): string {
-  const ts = Date.parse(isoString);
+  const ts = telemetryTimestamp(isoString);
   if (Number.isNaN(ts)) return isoString;
   const diffSec = Math.max(0, Math.floor((Date.now() - ts) / 1000));
   if (diffSec < 10) return 'Just now';
   if (diffSec < 60) return `${diffSec}s ago`;
   if (diffSec < 3600) return `${Math.floor(diffSec / 60)}m ago`;
   if (diffSec < 86400) return `${Math.floor(diffSec / 3600)}h ago`;
-  return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  return new Date(ts).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
 }
 
 export function formatClockTime(isoString: string): string {
-  const ts = Date.parse(isoString);
+  const ts = telemetryTimestamp(isoString);
   if (Number.isNaN(ts)) return isoString;
   return new Date(ts).toLocaleTimeString([], {
     hour12: false,

@@ -21,7 +21,7 @@ def test_three_windows_create_one_incident(tmp_path,monkeypatch):
             assert incident.peak_rate_pps==10000
 
 
-def test_unverified_packet_predictions_stay_out_of_incidents(tmp_path, monkeypatch):
+def test_unverified_packet_predictions_create_one_labeled_alert(tmp_path, monkeypatch):
     monkeypatch.setenv('DATABASE_URL', f'sqlite:///{tmp_path}/packet.db')
     with TestClient(app):
         manager = IncidentManager()
@@ -31,7 +31,7 @@ def test_unverified_packet_predictions_stay_out_of_incidents(tmp_path, monkeypat
         )
         prediction = PredictionResult(
             window_id='fixture', timestamp=payload.timestamp, src_ip=payload.src_ip, dst_ip=payload.dst_ip,
-            predicted_class='DDoS', confidence_score=.999, is_anomaly=True,
+            predicted_class='DDoS', confidence_score=.999, is_anomaly=False,
             probabilities={'DoS':.001, 'Benign':0, 'DDoS':.999}, model_used='fixture',
             input_representation='packet_approximation', features_22={'Rate':10000},
         )
@@ -39,7 +39,12 @@ def test_unverified_packet_predictions_stay_out_of_incidents(tmp_path, monkeypat
             flows, alerts, incidents = manager.record(db, [payload], [prediction])
             assert flows[0]['predicted_class'] == 'DDoS'
             assert flows[0]['is_anomaly'] is False
-            assert not alerts and not incidents
+            assert alerts[0]['input_representation'] == 'packet_approximation'
+            assert alerts[0]['capture_mode'] == 'PCAP_UPLOAD'
+            assert len(incidents) == 1
+            _, repeated_alerts, incidents = manager.record(db, [payload], [prediction])
+            assert not repeated_alerts
+            assert incidents[0]['affected_flows_count'] == 2
         with app.state.sessions() as db:
-            assert db.scalar(select(func.count()).select_from(Flow)) == 1
-            assert db.scalar(select(func.count()).select_from(Incident)) == 0
+            assert db.scalar(select(func.count()).select_from(Flow)) == 2
+            assert db.scalar(select(func.count()).select_from(Incident)) == 1

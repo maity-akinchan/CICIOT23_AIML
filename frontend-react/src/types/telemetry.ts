@@ -84,13 +84,18 @@ export type TrafficClass = z.infer<typeof TrafficClassSchema>;
 export const ProtocolSchema = z.enum(['TCP', 'UDP', 'ICMP']);
 export type ProtocolType = z.infer<typeof ProtocolSchema>;
 
-export const AnomalyExplanationSchema = z.object({
+const BaselineSignalSchema = z.object({
   feature: z.string(),
   value: finiteNumber,
   benign_median: finiteNumber,
   z_iqr: finiteNumber,
   direction: z.enum(['HIGH', 'LOW']).default('HIGH'),
 });
+
+export const AnomalyExplanationSchema = z.union([
+  z.object({feature: z.string(), value: finiteNumber, model_contribution: finiteNumber}),
+  BaselineSignalSchema,
+]);
 
 export type AnomalyExplanation = z.infer<typeof AnomalyExplanationSchema>;
 
@@ -120,7 +125,7 @@ export const FlowRecordSchema = z
       .record(z.string(), finiteNumber),
     model_used: z.string().optional().default('XGBoost (22F)'),
     top_anomalies: z.array(AnomalyExplanationSchema).optional().default([]),
-    capture_session_id: z.string().optional(),
+    capture_session_id: z.string().nullish(),
     artifact_sha256: z.string().optional(),
     input_representation: z.string().optional(),
     compatibility_warning: z.string().nullable().optional(),
@@ -207,8 +212,7 @@ export const KpiSummarySchema = z.object({
 export type KpiSummary = z.infer<typeof KpiSummarySchema>;
 
 export const SecurityAlertSchema = z.object({
-  id: z.string(),
-  window_id: z.string(),
+  id: z.union([z.string(), z.number()]).transform(String),
   timestamp: z.string(),
   attack_type: z.enum(['DoS', 'DDoS']),
   severity: z.enum(['HIGH', 'CRITICAL']),
@@ -216,7 +220,9 @@ export const SecurityAlertSchema = z.object({
   dst_ip: z.string(),
   protocol: ProtocolSchema.catch('TCP'),
   confidence: finiteNumber,
-  model_used: z.string(),
+  collector_id: z.string().nullish(),
+  capture_mode: z.string().optional(),
+  input_representation: z.string().optional(),
   top_anomalies: z.array(AnomalyExplanationSchema).default([]),
   acknowledged: z.boolean().default(false),
 });
@@ -279,6 +285,7 @@ export type DashboardPageId =
   | 'overview'
   | 'live-traffic'
   | 'alerts'
+  | 'connected-devices'
   | 'flow-explorer'
   | 'onboarding'
   | 'profile';

@@ -1,3 +1,4 @@
+import { ConnectedDevicesPage } from './components/workspace/ConnectedDevicesPage';
 import { WorkspaceNavigation } from './components/layout/WorkspaceNavigation';
 import { pages, SummaryPage, CaptureHistoryPage, PcapPage, TrafficPage, ServiceSetupPage } from './components/workspace/WorkspacePages';
 import { AlertCircle, X } from 'lucide-react';
@@ -182,7 +183,8 @@ export function App() {
           {activePage === 'pcap-analysis' && <PcapPage onUpload={telemetry.handleFileUpload}/>}
           {['live-traffic','flow-explorer'].includes(activePage)&&<label className="block text-sm text-slate-400">Search windows<input className="workspace-input mt-2" value={searchQuery} onChange={e=>setSearchQuery(e.target.value)} placeholder="Search by IP, protocol or window"/></label>}
           {activePage === 'live-traffic' && <TrafficPage flows={telemetry.flows} timeSeries={telemetry.timeSeries} search={searchQuery}/>}
-          {activePage === 'alerts' && <p className="subtle-note">Packet predictions no longer create alerts. Earlier alerts may reflect unverified predictions.</p>}
+          {activePage === 'alerts' && telemetry.alertsError && <p role="alert" className="text-red-300">Could not refresh attack alerts.</p>}
+          {activePage === 'connected-devices' && <ConnectedDevicesPage onSetup={() => setActivePage('onboarding')} />}
           {activePage === 'alerts' && (
             <AttackAlertsPanel
               alerts={telemetry.alerts}
@@ -191,6 +193,7 @@ export function App() {
             />
           )}
 
+          {['live-traffic','flow-explorer'].includes(activePage) && telemetry.flowsError && <p role="alert" className="text-red-300">Could not load saved traffic windows.</p>}
           {activePage === 'flow-explorer' && (
             <FlowExplorerTable
               flows={telemetry.flows}
@@ -200,7 +203,7 @@ export function App() {
 
           {activePage === 'onboarding' && <ServiceSetupPage/>}
 
-          {activePage === 'system-console' && <section className="workspace-card space-y-5"><h2 className="text-lg font-semibold">Connection details</h2><dl className="diagnostic-list">{[['API server',telemetry.health.online?'Online':'Offline'],['Live updates',telemetry.wsConnected?'Connected':'Disconnected'],['Model',telemetry.activeModelName],['Model loaded',telemetry.health.modelLoaded?'Yes':'No'],['Server URL',getApiBaseUrl()],['Health latency',telemetry.health.latencyMs===null?'Unavailable':`${telemetry.health.latencyMs} ms`],['Last observation',telemetry.lastUpdated]].map(([label,value])=><div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl><button className="secondary-action" onClick={()=>void telemetry.refreshBackendHealth()}>Refresh connection</button></section>}
+          {activePage === 'system-console' && <section className="workspace-card space-y-5"><h2 className="text-lg font-semibold">Connection details</h2><dl className="diagnostic-list">{[['API server',telemetry.health.online?'Online':'Offline'],['Live updates',telemetry.wsConnected?'Connected':'Disconnected'],['Model',telemetry.activeModelName],['Model loaded',telemetry.health.modelLoaded?'Yes':telemetry.health.error || 'No'],['Server URL',getApiBaseUrl()],['Health latency',telemetry.health.latencyMs===null?'Unavailable':`${telemetry.health.latencyMs} ms`],['Last observation',telemetry.lastUpdated]].map(([label,value])=><div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl><button className="secondary-action" onClick={()=>void telemetry.refreshBackendHealth()}>Refresh connection</button></section>}
           {activePage === 'profile'  && (
             <ProfileSetupPage
               embedded

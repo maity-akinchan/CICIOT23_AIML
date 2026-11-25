@@ -103,3 +103,51 @@ def test_extractor_rejects_truncation_and_timeout(tmp_path):
     data=bytearray(p.read_bytes());caplen=struct.unpack('<I',data[32:36])[0]
     data[36:40]=struct.pack('<I',caplen+1)
     with pytest.raises(ValueError,match='Truncated'):list(extract(io.BytesIO(data)))
+
+
+def test_monitoring_device_reports_and_recent_live_predictions(experiment, tmp_path, monkeypatch):
+    from datetime import datetime, timedelta, timezone
+    from sqlalchemy import update
+    from app.models import Flow, MonitoredCollector
+
+    _, models, base = experiment
+    monkeypatch.setenv('MODEL_DIR', str(models))
+    monkeypatch.setenv('DATABASE_URL', f'sqlite:///{tmp_path}/devices.db')
+    monkeypatch.setenv('SENTINEL_AUTH_DISABLED', '1')
+    now = datetime.now(timezone.utc)
+    coverage = dict(collector_id='windows-test', session='live', iface='Ethernet', captured=100,
+                    accepted=100, insufficient_packets=0, capacity_evictions=0, kernel_drops=0,
+                    queue_drops=0, windows_emitted=1, windows_dropped=0, http_ok=0, http_fail=0)
+    window = dict(window_id='one', timestamp_end=now.isoformat(), packet_count=100,
+                  metadata=dict(src_ip='192.0.2.1', dst_ip='192.0.2.2', transport_header_mean=20.),
+                  features_18=base.iloc[0].to_dict())
+    payload = dict(feature_contract_id=CONTRACT_ID, contract_hash=CONTRACT_HASH,
+                   collector_id='windows-test', capture_session_id='live', windows=[window])
+
+    with TestClient(app) as client:
+        assert client.post('/api/v1/ingest/coverage', json=coverage).status_code == 204
+        report, = client.get('/api/v1/monitoring/devices').json()
+        assert report['status'] == 'online' and report['windows_24h'] == 0
+        assert report['coverage']['iface'] == 'Ethernet'
+        with client.websocket_connect('/ws/live') as ws:
+            assert ws.receive_json()['event_type'] == 'SNAPSHOT'
+            response = client.post('/api/v1/ingest/windows', json=payload)
+            assert response.status_code == 200, response.text
+            update_frame = ws.receive_json()
+            assert update_frame['new_alerts'][0]['input_representation'] == 'packet_approximation'
+            assert update_frame['flows'][0]['top_anomalies']
+        assert client.post('/api/v1/ingest/windows', json=payload).status_code == 200
+        replay = {**payload, 'capture_mode': 'PCAP_REPLAY', 'capture_session_id': 'historical'}
+        assert client.post('/api/v1/ingest/windows', json=replay).status_code == 200
+        report, = client.get('/api/v1/monitoring/devices').json()
+        assert report['windows_24h'] == report['dos_24h'] == 1
+        assert report['last_flagged_24h'] == now.isoformat()
+        with app.state.sessions.begin() as db:
+            db.execute(update(Flow).values(top_anomalies_json='[]'))
+            db.execute(update(MonitoredCollector).values(last_seen=(now - timedelta(minutes=1)).replace(tzinfo=None)))
+        assert client.get('/api/v1/flows').json()['items'][0]['top_anomalies']
+
+    with TestClient(app) as client:
+        report, = client.get('/api/v1/monitoring/devices').json()
+        assert report['status'] == 'offline' and report['dos_24h'] == 1
+        assert report['coverage']['iface'] == 'Ethernet'

@@ -16,7 +16,7 @@ CGO_ENABLED=0 go build -o collector .
 ./collector --mode pcap --pcap-file /path/to/file.pcap --replay-speed 0 --api-url http://127.0.0.1:8000/api/v1/ingest/windows
 ```
 
-The CGO-disabled binary supports offline capture only. For live Linux capture,
+On Linux, the CGO-disabled binary supports offline capture only. For live Linux capture,
 install libpcap development headers (for example libpcap-dev on Debian), then
 build with CGO_ENABLED=1 and run with capture privileges:
 
@@ -24,6 +24,22 @@ build with CGO_ENABLED=1 and run with capture privileges:
 CGO_ENABLED=1 go build -o collector .
 sudo ./collector --mode live --iface eth0 --api-url http://127.0.0.1:8000/api/v1/ingest/windows
 ```
+
+For live capture on Windows, install Npcap and run PowerShell from `collector-go`.
+Use the listed adapter ID for the Wi-Fi, Ethernet, or loopback interface that carries
+the traffic you want to monitor. Run PowerShell as Administrator if required by your
+Npcap installation.
+
+    go build -o collector.exe .
+    .\collector.exe --list-interfaces
+    .\collector.exe --mode live --iface '<adapter ID from the list>' --collector-id windows-pc --api-url http://127.0.0.1:8000/api/v1/ingest/windows
+
+Set `SENTINEL_COLLECTOR_TOKEN` in the collector shell if the server requires it.
+In the dashboard, a protected server asks for its separate operator access token.
+Under **Connected devices**, check emitted windows and accepted batches alongside
+captured packet counts. A directed flow needs at least five packets within two
+seconds before it is classified. **Flow explorer** can read persisted windows
+over HTTP while the live WebSocket is disconnected.
 
 No device/firewall commands are executed. Live mode captures actual traffic;
 model accuracy on that traffic is unverified. Windows ship as packet approximations

@@ -23,7 +23,7 @@ export function FeatureDrawer({ flow, onClose }: FeatureDrawerProps) {
   if (!flow) return null;
 
   const unverified = flow.input_representation === 'packet_approximation';
-  const isMalicious = flow.is_anomaly && !unverified;
+  const flagged = flow.predicted_class !== 'Benign';
   const normalPct = Math.round((flow.probabilities.Benign ?? 0) * 100);
   const dosPct = Math.round((flow.probabilities.DoS ?? 0) * 100);
   const ddosPct = Math.round((flow.probabilities.DDoS ?? 0) * 100);
@@ -54,7 +54,7 @@ export function FeatureDrawer({ flow, onClose }: FeatureDrawerProps) {
           <div className="flex items-center gap-2">
             <span
               className={`w-2 h-2 rounded-full ${
-                isMalicious ? 'bg-[#EF4444] animate-ping' : 'bg-[#10B981]'
+                unverified ? 'bg-amber-400' : flagged ? 'bg-[#EF4444]' : 'bg-[#10B981]'
               }`}
             />
             <span className="text-[11px] font-bold text-[#6366F1] tracking-wider uppercase font-mono">
@@ -129,19 +129,17 @@ export function FeatureDrawer({ flow, onClose }: FeatureDrawerProps) {
         <div>
           <h4 className="text-[14px] font-semibold text-[#F8FAFC]">Why This Was Flagged</h4>
           <p className="text-[11px] text-[#8E8CA3]">
-            Top 3 unusual measurements compared to normal traffic median
+            Signals that contributed to the model prediction or differed from the benign baseline
           </p>
         </div>
 
         {flow.top_anomalies.length === 0 ? (
-          <div className="p-3.5 rounded-lg bg-[#1A1826] border border-[#222030] text-[12.5px] text-[#10B981] flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-[#10B981]" />
-            <span>All 22 traffic measurements match normal baseline behavior.</span>
+          <div className="p-3.5 rounded-lg bg-[#1A1826] border border-[#222030] text-[12.5px] text-slate-400">
+            {flagged ? "No supporting feature signal is available for this prediction." : "The model classified this window as benign."}
           </div>
         ) : (
           <div className="space-y-2">
             {flow.top_anomalies.slice(0, 3).map((anom, idx) => {
-              const barColor = idx === 0 ? 'crimson' : idx === 1 ? 'coral' : 'amber';
               const textColor =
                 idx === 0
                   ? 'text-[#EF4444]'
@@ -161,18 +159,11 @@ export function FeatureDrawer({ flow, onClose }: FeatureDrawerProps) {
                       {formatFeatureValue(anom.feature, anom.value)}
                     </span>
                   </div>
-                  <div className="flex items-center justify-between text-[11px] text-[#8E8CA3]">
-                    <span>
-                      Normal median: {formatFeatureValue(anom.feature, anom.benign_median)}
-                    </span>
-                    <span className={`font-semibold tabular-nums ${textColor}`}>
-                      +{anom.z_iqr.toFixed(1)}× normal
-                    </span>
-                  </div>
-                  <ProgressBar
-                    value={Math.min(98, 55 + anom.z_iqr * 0.4)}
-                    color={barColor}
-                  />
+                  <p className="text-[11px] text-slate-400">
+                    {'model_contribution' in anom
+                      ? `Pushed the model toward ${flow.predicted_class} over Benign (+${anom.model_contribution.toFixed(3)} log-odds)`
+                      : `${anom.direction === 'HIGH' ? 'Above' : 'Below'} the benign median of ${formatFeatureValue(anom.feature, anom.benign_median)}`}
+                  </p>
                 </div>
               );
             })}

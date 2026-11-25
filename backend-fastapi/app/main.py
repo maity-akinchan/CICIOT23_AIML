@@ -12,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.routers import ingest, websockets, analytics, incidents
+from app.security import credentials_required
 from app.database import initialize
 from app.services.incident_manager import IncidentManager
 from app.services.inference import InferenceEngine
@@ -69,6 +70,7 @@ async def unhandled_exception(request: Request, exc: Exception) -> JSONResponse:
 async def health() -> dict[str, object]:
     engine = app.state.inference_engine
     return {"status": "ok", "model_loaded": engine.is_loaded,
+            "operator_auth_required": credentials_required(),
             "is_bootstrap_model": False, "reason": engine.error,
             "allowed_contracts":[__import__('sentinel_ml.approximation',fromlist=['CONTRACT_ID']).CONTRACT_ID] if engine.is_loaded and engine.bundle.get('is_legacy') else [],
             "allowed_input_modes":['PCAP_REPLAY','PCAP_UPLOAD','LIVE_INTERFACE'],

@@ -20,6 +20,9 @@ class LoginPayload(BaseModel):
 
 @router.post('/auth/login')
 def login(payload: LoginPayload, request: Request):
+    token = request.headers.get('authorization', '').removeprefix('Bearer ')
+    if credentials_required() and role(token) != 'operator':
+        raise HTTPException(401, 'Enter the operator access token configured on the server')
     email = payload.email.strip().lower()
     pw_hash = hashlib.sha256(payload.password.encode()).hexdigest()
     with request.app.state.sessions.begin() as db:
@@ -53,11 +56,15 @@ def role(token):
     return None
 
 
+def credentials_required():
+    return os.getenv('SENTINEL_AUTH_DISABLED') != '1' and bool(
+        os.getenv('SENTINEL_OPERATOR_TOKEN') or os.getenv('SENTINEL_COLLECTOR_TOKEN')
+    )
+
+
 async def authorize(request, call_next):
     if request.method=='OPTIONS' or (request.method=='GET' and request.url.path in ('/health','/api/v1/install.sh')) or (request.method=='POST' and request.url.path in ('/api/v1/services/enroll','/api/v1/auth/login')):return await call_next(request)
-    if os.getenv('SENTINEL_AUTH_DISABLED')=='1':return await call_next(request)
-    # If no SENTINEL_OPERATOR_TOKEN is configured externally, allow open access for all users and services.
-    if not os.getenv('SENTINEL_OPERATOR_TOKEN') and not os.getenv('SENTINEL_COLLECTOR_TOKEN'):
+    if not credentials_required():
         return await call_next(request)
     token=request.headers.get('authorization','').removeprefix('Bearer ')
     scope=role(token)
