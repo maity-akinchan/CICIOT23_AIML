@@ -220,7 +220,7 @@ export function FlowExplorerTable({
                               </span>
                             </span>
                           ) : (
-                            <span className="text-[#10B981]">No explanation</span>
+                            <span className="text-slate-400">{flow.predicted_class === 'Benign' ? 'Benign prediction' : 'Signal unavailable'}</span>
                           )}
                         </td>
                         <td className="py-3.5 px-4">

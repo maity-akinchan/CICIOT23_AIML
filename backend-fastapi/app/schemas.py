@@ -140,7 +140,7 @@ class IngestBatchRequest(BaseModel):
     feature_contract_id: str
     contract_hash: str
     capture_session_id: str = Field(min_length=1,max_length=64)
-    collector_id: str
+    collector_id: str = Field(min_length=1, max_length=64)
     capture_mode: str = "LIVE_INTERFACE"
     source_ref: str = ""
     windows: list[CollectorWindow] = Field(min_length=1, max_length=100)
@@ -161,6 +161,12 @@ class AnomalyExplanation(BaseModel):
     direction: Literal["HIGH", "LOW"]
 
 
+class ModelSignal(BaseModel):
+    feature: str
+    value: float
+    model_contribution: float
+
+
 class PredictionResult(BaseModel):
     window_id: str | None
     timestamp: datetime
@@ -175,7 +181,7 @@ class PredictionResult(BaseModel):
     artifact_sha256: str = ""
     model_used: str
     features_22: dict[str, float]
-    top_anomalies: list[AnomalyExplanation] = Field(default_factory=list)
+    top_anomalies: list[ModelSignal | AnomalyExplanation] = Field(default_factory=list)
 
 
 class BatchPredictionResponse(BaseModel):

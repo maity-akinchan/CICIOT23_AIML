@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import mapped_column
 from app.database import Base
 
@@ -26,6 +26,8 @@ class Device(Base):
 
 class Flow(Base):
     __tablename__ = 'flow_logs'
+    __table_args__ = (Index('ix_flow_live_activity', 'capture_mode', 'timestamp', 'collector_id'),)
+    collector_id = mapped_column(String(64), nullable=True)
     input_representation = mapped_column(String(64), default='dataset_features')
     capture_session_id = mapped_column(String(64), default='', index=True)
     id = mapped_column(Integer, primary_key=True)
@@ -50,6 +52,9 @@ class Flow(Base):
 
 class Incident(Base):
     __tablename__ = 'incidents'
+    collector_id = mapped_column(String(64), nullable=True)
+    capture_mode = mapped_column(String(32), default='')
+    input_representation = mapped_column(String(64), default='dataset_features')
     capture_session_id = mapped_column(String(64), default='', index=True)
     id = mapped_column(Integer, primary_key=True)
     title = mapped_column(String(256))
@@ -67,6 +72,9 @@ class Incident(Base):
 
 class Alert(Base):
     __tablename__ = 'security_alerts'
+    collector_id = mapped_column(String(64), nullable=True)
+    capture_mode = mapped_column(String(32), default='')
+    input_representation = mapped_column(String(64), default='dataset_features')
     id = mapped_column(Integer, primary_key=True)
     incident_id = mapped_column(ForeignKey('incidents.id'), index=True)
     timestamp = mapped_column(DateTime, index=True)
@@ -88,6 +96,12 @@ class DeviceAction(Base):
     action_type = mapped_column(String(32))
     target_value = mapped_column(String(128))
     reason = mapped_column(String(256))
+
+class MonitoredCollector(Base):
+    __tablename__ = 'monitored_collectors'
+    collector_id = mapped_column(String(64), primary_key=True)
+    last_seen = mapped_column(DateTime, nullable=False)
+    coverage_json = mapped_column(Text, default='{}', nullable=False)
 
 class ServiceCredential(Base):
     __tablename__ = 'service_credentials'

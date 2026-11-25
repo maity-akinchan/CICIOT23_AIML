@@ -18,12 +18,13 @@ var (
 )
 
 // supportedLink reports link types this collector decodes.
-// Ethernet, raw IPv4/IPv6, and Linux SLL cooked capture are handled explicitly.
+// Ethernet, loopback, raw IPv4/IPv6, and Linux cooked capture are supported.
 // Linux SLL2 (276) is not decoded by gopacket v1.1.19, so it stays unsupported
 // instead of being mistaken for Ethernet. Other link types are rejected.
 func supportedLink(link layers.LinkType) bool {
 	switch link {
 	case layers.LinkTypeEthernet,
+		layers.LinkTypeNull,
 		layers.LinkTypeRaw,
 		layers.LinkTypeIPv4,
 		layers.LinkTypeIPv6,
@@ -35,7 +36,7 @@ func supportedLink(link layers.LinkType) bool {
 }
 
 func supportedLinkNames() string {
-	return "Ethernet (1), DLT_RAW (12), LINKTYPE_RAW (101), IPv4 (228), IPv6 (229), Linux SLL (113); Linux SLL2 (276) is unsupported"
+	return "loopback (0), Ethernet (1), DLT_RAW (12), LINKTYPE_RAW (101), IPv4 (228), IPv6 (229), Linux SLL (113); Linux SLL2 (276) is unsupported"
 }
 
 // Decode parses one captured frame. It never panics on short or corrupt input.

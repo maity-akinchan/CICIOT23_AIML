@@ -9,4 +9,4 @@ for os in linux darwin windows; do
  done
 done
 (cd ../dist/collectors && sha256sum collector-* > SHA256SUMS)
-echo 'Offline replay binaries generated. Live Linux capture requires a native CGO/libpcap build.'
+echo 'Collector binaries generated. Live capture requires Npcap on Windows or a native CGO/libpcap build on Linux.'

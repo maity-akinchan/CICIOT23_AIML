@@ -1,6 +1,6 @@
-import { apiClient } from '../../api/client';
+import { apiClient, getOperatorToken } from '../../api/client';
 import { Shield, ArrowRight, ArrowLeft } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   WorkspaceAuthSchema,
   type AppStage,
@@ -24,6 +24,16 @@ export function AuthPage({
   const [password, setPassword] = useState('');
   const [orgName, setOrgName] = useState(initialOrgName);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [operatorRequired, setOperatorRequired] = useState(false);
+  const [operatorToken, setOperatorToken] = useState(getOperatorToken);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void apiClient.get('/health', { signal: controller.signal }).then(({ data }) => {
+      if (!controller.signal.aborted) setOperatorRequired(data.operator_auth_required === true);
+    }).catch(() => {});
+    return () => controller.abort();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,18 +50,21 @@ export function AuthPage({
       setAuthError('Please enter your Workspace or Organization name');
       return;
     }
+    const accessToken = operatorToken.trim();
     try {
       await apiClient.post('/api/v1/auth/login', {
         email: parsed.data.email,
         password,
         org_name: orgName.trim() || undefined,
         mode: authMode,
-      });
-      sessionStorage.removeItem('sentinel_operator_token');
+      }, accessToken ? { headers: { Authorization: 'Bearer ' + accessToken } } : undefined);
+      if (accessToken) sessionStorage.setItem('sentinel_operator_token', accessToken);
+      else sessionStorage.removeItem('sentinel_operator_token');
     } catch (err: unknown) {
       const detail =
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
         'Invalid email or password, or server could not be reached';
+      if (detail === 'Enter the operator access token configured on the server') setOperatorRequired(true);
       setAuthError(detail);
       return;
     }
@@ -188,6 +201,12 @@ export function AuthPage({
                 className="w-full h-10 px-3.5 bg-[#1A1826] border border-[#222030] rounded-lg text-xs text-[#F8FAFC] placeholder-[#8E8CA3]/60 focus:outline-none focus:border-[#6366F1]"
               />
             </div>
+
+            {operatorRequired && <div className="space-y-1.5">
+              <label htmlFor="auth-operator-token" className="block text-xs font-semibold text-slate-300">Operator access token</label>
+              <input id="auth-operator-token" type="password" value={operatorToken} required
+                onChange={e => setOperatorToken(e.target.value)} className="workspace-input" />
+            </div>}
 
             {authError && (
               <div className="p-2.5 rounded-lg bg-[#EF4444]/10 border border-[#EF4444]/30 text-[#EF4444] text-[11.5px]">

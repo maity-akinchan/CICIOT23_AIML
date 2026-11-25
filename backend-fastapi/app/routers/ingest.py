@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field, NonNegativeInt
 from fastapi import APIRouter, HTTPException, Request
 
 from app.schemas import BatchPredictionRequest, BatchPredictionResponse, IngestBatchRequest, PredictionResult
+from app.services.collector_health import track_collector
 
 router = APIRouter()
 
@@ -20,14 +21,16 @@ def _response(predictions: list[PredictionResult]) -> BatchPredictionResponse:
                                    ddos_count=counts["DDoS"])
 
 
-async def _predict(request: Request, payloads) -> BatchPredictionResponse:
+async def _predict(request: Request, payloads, collector_id: str) -> BatchPredictionResponse:
     from starlette.concurrency import run_in_threadpool
     async with request.app.state.ingest_lock:
         engine = request.app.state.inference_engine
         def persist():
             predictions = engine.predict_batch(payloads)
             with request.app.state.sessions.begin() as db:
-                flows, alerts, incidents = request.app.state.incidents.record(db,payloads,predictions)
+                flows, alerts, incidents = request.app.state.incidents.record(db,payloads,predictions,collector_id=collector_id)
+                if payloads[0].capture_mode == 'LIVE_INTERFACE':
+                    track_collector(db, collector_id, datetime.now(timezone.utc).replace(tzinfo=None))
             return predictions,flows,alerts,incidents
         try:
             predictions,flows,alerts,incidents = await run_in_threadpool(persist)
@@ -58,7 +61,7 @@ async def ingest_windows(request: Request, payload: IngestBatchRequest) -> Batch
             window.input_representation='packet_approximation'
         window.capture_session_id=payload.capture_session_id
         window.window_id=hashlib.sha256(f'{payload.capture_session_id}:{payload.collector_id}:{window.window_id}'.encode()).hexdigest()
-    return await _predict(request, windows)
+    return await _predict(request, windows, payload.collector_id)
 
 
 @router.post("/predict/batch", response_model=BatchPredictionResponse)
@@ -101,9 +104,16 @@ async def record_coverage(request: Request, payload: CaptureCoverage):
     expected = getattr(request.state, "collector_id", None)
     if expected is not None and payload.collector_id != expected:
         raise HTTPException(403, "Credential belongs to a different service")
-    request.app.state.capture_coverage.append({
-        **payload.model_dump(), "received_at": datetime.now(timezone.utc).isoformat()
-    })
+    from starlette.concurrency import run_in_threadpool
+    received_at = datetime.now(timezone.utc)
+    report = {**payload.model_dump(), 'received_at': received_at.isoformat()}
+
+    def persist():
+        with request.app.state.sessions.begin() as db:
+            track_collector(db, payload.collector_id, received_at.replace(tzinfo=None), report)
+
+    await run_in_threadpool(persist)
+    request.app.state.capture_coverage.append(report)
 
 
 @router.get("/capture/coverage")

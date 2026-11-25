@@ -23,6 +23,7 @@ export function getApiBaseUrl(): string {
 export function setApiBaseUrl(url: string): void {
   const clean = url.trim().replace(/\/+$/, '');
   if (typeof window !== 'undefined') {
+    if (clean !== getApiBaseUrl()) window.sessionStorage.removeItem('sentinel_operator_token');
     window.localStorage.setItem(STORAGE_KEY_API_URL, clean);
   }
   apiClient.defaults.baseURL = clean;
@@ -30,7 +31,7 @@ export function setApiBaseUrl(url: string): void {
 
 export function getWsLiveUrl(baseUrl?: string): string {
   const base = (baseUrl || getApiBaseUrl()).replace(/\/+$/, '');
-  if (import.meta.env.VITE_WS_URL && !baseUrl) {
+  if (import.meta.env.VITE_WS_URL && !baseUrl && !localStorage.getItem(STORAGE_KEY_API_URL)?.trim()) {
     return import.meta.env.VITE_WS_URL;
   }
   return `${base.replace(/^http/, 'ws')}/ws/live`;
@@ -79,6 +80,7 @@ export async function checkBackendHealth(
       modelLoaded: parsed.model_loaded,
       isBootstrapModel: parsed.is_bootstrap_model,
       latencyMs,
+      error: parsed.model_loaded ? undefined : (data.reason || 'Model unavailable'),
     };
   } catch (err) {
     const msg =

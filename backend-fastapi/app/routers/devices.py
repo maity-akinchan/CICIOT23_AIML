@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException, Request, WebSocket, WebSocketDisco
 from pydantic import BaseModel, Field, IPvAnyAddress
 from sqlalchemy import select
 from app.models import Device, DeviceAction, Incident
+from app.services.collector_health import collector_health
 from app.services.incident_manager import serialize
 router=APIRouter()
 connections={}
@@ -75,6 +76,11 @@ def history(device_id:str,request:Request):
         d=find(db,device_id)
         return {'actions':[serialize(x) for x in db.scalars(select(DeviceAction).where(DeviceAction.device_id==device_id).order_by(DeviceAction.id.desc()))],
                 'incidents':[serialize(x) for x in db.scalars(select(Incident).where(Incident.target_ip==d.ip_address))]}
+
+@router.get('/api/v1/monitoring/devices')
+def monitored_devices(request: Request):
+    with request.app.state.sessions() as db:
+        return collector_health(db)
 
 @router.post('/api/devices/{device_id}/action')
 async def action(device_id:str,payload:Action,request:Request):

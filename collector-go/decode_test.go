@@ -101,6 +101,20 @@ func TestDecodeSYNHeaderCutTo30BytesErrors(t *testing.T) {
 	}
 }
 
+func TestDecodeNpcapLoopback(t *testing.T) {
+	ip := testIPv4(layers.IPProtocolUDP)
+	udp := &layers.UDP{SrcPort: 5000, DstPort: 5001}
+	udp.SetNetworkLayerForChecksum(ip)
+	frame := append([]byte{2, 0, 0, 0}, serializeLayers(t, ip, udp)...)
+	pkt, err := Decode(layers.LinkTypeNull, frame, captureAt(frame, len(frame)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if pkt.Protocol != "UDP" || pkt.DstPort != 5001 || pkt.HeaderBytes != 28 {
+		t.Fatalf("unexpected decoded loopback frame: %+v", pkt)
+	}
+}
+
 func TestDecodePayloadTruncatedTo54BytesKeepsWireLength(t *testing.T) {
 	ip := testIPv4(layers.IPProtocolTCP)
 	tcp := testTCP()

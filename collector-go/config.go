@@ -18,15 +18,16 @@ import (
 // blueprint does not define an overlapping stride. sentinel-packet-approx22-v1 is a
 // tumbling window, so stride must equal window size (default 100).
 type Config struct {
-	Mode        string
-	Iface       string
-	PcapFile    string
-	ReplaySpeed float64
-	APIURL      string
-	CollectorID string
-	WindowSize  int
-	Stride      int
-	AuthToken   string
+	Mode           string
+	Iface          string
+	PcapFile       string
+	ReplaySpeed    float64
+	APIURL         string
+	CollectorID    string
+	WindowSize     int
+	Stride         int
+	AuthToken      string
+	ListInterfaces bool
 }
 
 func parseArgs(args []string) (Config, error) {
@@ -39,6 +40,7 @@ func parseArgsOutput(args []string, output io.Writer) (Config, error) {
 	cfg := Config{}
 	fs.StringVar(&cfg.Mode, "mode", "live", `capture mode: "live" or "pcap"`)
 	fs.StringVar(&cfg.Iface, "iface", "", "network interface for live capture (for example eth0)")
+	fs.BoolVar(&cfg.ListInterfaces, "list-interfaces", false, "list live capture interfaces and exit")
 	fs.StringVar(&cfg.PcapFile, "pcap-file", "", "path to a .pcap or .pcapng file when --mode pcap")
 	fs.Float64Var(&cfg.ReplaySpeed, "replay-speed", 1, "PCAP replay multiplier; 1.0 is real time, 0 is as fast as possible")
 	fs.StringVar(&cfg.APIURL, "api-url", defaultAPIURL, "backend window ingestion URL")
@@ -48,6 +50,9 @@ func parseArgsOutput(args []string, output io.Writer) (Config, error) {
 	fs.StringVar(&cfg.AuthToken, "auth-token", os.Getenv("SENTINEL_COLLECTOR_TOKEN"), "optional bearer token for the ingest request")
 	if err := fs.Parse(args); err != nil {
 		return Config{}, err
+	}
+	if cfg.ListInterfaces {
+		return cfg, nil
 	}
 	if err := cfg.validate(); err != nil {
 		return Config{}, err

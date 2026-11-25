@@ -1,10 +1,12 @@
-//go:build linux && cgo
+//go:build (linux && cgo) || windows
 
 package main
 
 import (
 	"context"
 	"fmt"
+	"io"
+	"runtime"
 	"sync"
 	"time"
 
@@ -20,13 +22,31 @@ type liveSource struct {
 	closed bool
 }
 
+func listInterfaces(out io.Writer) error {
+	devices, err := pcap.FindAllDevs()
+	if err != nil {
+		return captureSetupError(err)
+	}
+	for _, device := range devices {
+		fmt.Fprintf(out, "%s\t%s\n", device.Name, device.Description)
+	}
+	return nil
+}
+
+func captureSetupError(err error) error {
+	if runtime.GOOS == "windows" {
+		return fmt.Errorf("check that Npcap is installed and that the selected interface is accessible: %w", err)
+	}
+	return err
+}
+
 func openLive(iface string) (PacketSource, error) {
 	if iface == "" {
 		return nil, fmt.Errorf("live mode requires --iface")
 	}
 	handle, err := pcap.OpenLive(iface, 65535, true, 200*time.Millisecond)
 	if err != nil {
-		return nil, fmt.Errorf("open %s: %w", iface, err)
+		return nil, fmt.Errorf("open %s: %w", iface, captureSetupError(err))
 	}
 	return &liveSource{handle: handle, iface: iface}, nil
 }
